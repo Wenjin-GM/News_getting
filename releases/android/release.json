@@ -1,0 +1,21 @@
+{
+  "version": "3.0.0",
+  "package": "cn.yilan.news",
+  "file": "yilan-standalone-3.0.0.apk",
+  "bytes": 62219,
+  "sha256": "09058b85632f74d7417615ed93fcbcfd9170b29c08ae3a31dd9f8e1cd69f6e83",
+  "certificateSha256": "9ec80e3b71cd34a0c642da7d9e3399b59ae8d6c955d36209b43b7a89a5c442f9",
+  "minAndroid": "8.0",
+  "minSdk": 26,
+  "targetSdk": 36,
+  "permissions": [
+    "android.permission.INTERNET"
+  ],
+  "runtime": "native-android",
+  "collection": "direct-on-device",
+  "backendRequired": false,
+  "accountRequired": false,
+  "webView": false,
+  "privateStorageOnly": true,
+  "apkShare": "read-only URI grant to user-selected receiver"
+}

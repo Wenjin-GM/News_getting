@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.apk binary
+*.zip binary
+# Preserve upstream license text, including its original trailing whitespace.
+docs/desktop/licenses/** -whitespace

@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'../..');
+const catalog=JSON.parse(await fs.readFile(path.join(root,'internal/catalog/ai_catalog.json'),'utf8'));
+const urls=[...new Set(catalog.tools.map(t=>t.url))];
+const results=[];let index=0;
+await Promise.all(Array.from({length:5},async()=>{while(index<urls.length){const url=urls[index++];try{const response=await fetch(url,{signal:AbortSignal.timeout(12000)});const row={url,status:response.status,finalUrl:response.url};await response.body?.cancel();results.push(row);if(response.status>=400)console.log(JSON.stringify(row));}catch(e){const row={url,error:e.cause?.code||e.message};results.push(row);console.log(JSON.stringify(row));}}}));
+await fs.mkdir(path.join(root,'.cache'),{recursive:true});
+await fs.writeFile(path.join(root,'.cache/ai-link-check.json'),JSON.stringify(results,null,2));
+console.log(JSON.stringify({checked:results.length,ok:results.filter(r=>r.status>=200&&r.status<400).length,notFound:results.filter(r=>r.status===404).length,restrictedOrNetwork:results.filter(r=>!r.status||r.status===403).length}));

@@ -1,0 +1,183 @@
+{
+  "checkedAt": "2026-10-28T23:52:38.543269900Z",
+  "checks": [
+    {
+      "ms": 1734,
+      "id": "chinanews",
+      "error": "",
+      "items": 30
+    },
+    {
+      "ms": 1736,
+      "id": "chinanews-world",
+      "error": "",
+      "items": 30
+    },
+    {
+      "ms": 2529,
+      "id": "ithome",
+      "error": "",
+      "items": 40
+    },
+    {
+      "ms": 2517,
+      "id": "ifanr",
+      "error": "",
+      "items": 20
+    },
+    {
+      "ms": 2951,
+      "id": "thepaper",
+      "error": "",
+      "items": 20
+    },
+    {
+      "ms": 3149,
+      "id": "wallstreetcn",
+      "error": "",
+      "items": 30
+    },
+    {
+      "ms": 2329,
+      "id": "toutiao",
+      "error": "",
+      "items": 40
+    },
+    {
+      "ms": 1595,
+      "id": "v2ex",
+      "error": "",
+      "items": 9
+    },
+    {
+      "ms": 2079,
+      "id": "tieba",
+      "error": "",
+      "items": 29
+    },
+    {
+      "ms": 429,
+      "id": "v2ex-latest",
+      "error": "",
+      "items": 40
+    },
+    {
+      "ms": 1579,
+      "id": "hackernews",
+      "error": "",
+      "items": 30
+    },
+    {
+      "ms": 2484,
+      "id": "ai-media-ithome",
+      "error": "",
+      "items": 16
+    },
+    {
+      "ms": 1418,
+      "id": "ai-media-ifanr",
+      "error": "",
+      "items": 6
+    },
+    {
+      "ms": 1581,
+      "id": "ai-openai",
+      "error": "",
+      "items": 40
+    },
+    {
+      "ms": 1744,
+      "id": "ai-codex",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 1395,
+      "id": "ai-anthropic",
+      "error": "",
+      "items": 19
+    },
+    {
+      "ms": 1546,
+      "id": "ai-claude-code",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 2513,
+      "id": "ai-google",
+      "error": "",
+      "items": 20
+    },
+    {
+      "ms": 1943,
+      "id": "ai-gemini-cli",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 2683,
+      "id": "ai-qwen-code",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 1282,
+      "id": "ai-kimi-code",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 800,
+      "id": "ai-mistral-vibe",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 506,
+      "id": "ai-minimax-code",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 981,
+      "id": "ai-copilot-news",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 505,
+      "id": "ai-copilot-cli",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 1301,
+      "id": "ai-huggingface",
+      "error": "",
+      "items": 40
+    },
+    {
+      "ms": 1664,
+      "id": "ai-deepseek",
+      "error": "",
+      "items": 22
+    },
+    {
+      "ms": 806,
+      "id": "ai-deepseek-harness",
+      "error": "",
+      "items": 10
+    },
+    {
+      "ms": 1639,
+      "id": "ai-zcode",
+      "error": "",
+      "items": 8
+    }
+  ],
+  "sources": 29,
+  "success": 29,
+  "runtime": "Java HTTPS direct collector; no proxy/backend",
+  "items": 589
+}

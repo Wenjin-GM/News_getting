@@ -1,0 +1,38 @@
+# Reproducible build tools, build output and private local state
+/.cache/
+/.local/
+/dist/
+/android/assets/
+/android/res/mipmap-*/
+
+# Never publish signing keys, credentials or personal databases
+**/.signing/
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.pem
+*.key
+*keystore-password*
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+**/runtime.json
+
+# Tool/editor state
+**/node_modules/
+**/__pycache__/
+*.pyc
+*.class
+*.dex
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+/.idea/
+/.vscode/

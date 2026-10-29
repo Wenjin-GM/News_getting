@@ -1,0 +1,641 @@
+[
+  {
+    "category": "news",
+    "color": "#b83b3b",
+    "custom": false,
+    "description": "官方 RSS · 综合即时新闻",
+    "enabled": true,
+    "endpoints": [
+      "https://www.chinanews.com.cn/rss/scroll-news.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.chinanews.com.cn",
+    "icon": "中",
+    "id": "chinanews",
+    "interval": 300,
+    "kind": "rss",
+    "name": "中国新闻网"
+  },
+  {
+    "category": "news",
+    "color": "#3b7d86",
+    "custom": false,
+    "description": "官方 RSS · 国际新闻",
+    "enabled": true,
+    "endpoints": [
+      "https://www.chinanews.com.cn/rss/world.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.chinanews.com.cn/world",
+    "icon": "世",
+    "id": "chinanews-world",
+    "interval": 600,
+    "kind": "rss",
+    "name": "中新网 · 国际"
+  },
+  {
+    "category": "news",
+    "color": "#ae4947",
+    "custom": false,
+    "description": "官方 RSS · 当前发现长期停更",
+    "enabled": false,
+    "endpoints": [
+      "https://www.people.com.cn/rss/politics.xml"
+    ],
+    "experimental": true,
+    "home": "https://politics.people.com.cn",
+    "icon": "人",
+    "id": "people",
+    "interval": 600,
+    "kind": "rss",
+    "name": "人民网 · 时政"
+  },
+  {
+    "category": "tech",
+    "color": "#c74c43",
+    "custom": false,
+    "description": "官方 RSS · 科技资讯",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ithome.com/rss/"
+    ],
+    "experimental": false,
+    "home": "https://www.ithome.com",
+    "icon": "IT",
+    "id": "ithome",
+    "interval": 600,
+    "kind": "rss",
+    "name": "IT之家"
+  },
+  {
+    "category": "tech",
+    "color": "#ba6449",
+    "custom": false,
+    "description": "官方 RSS · 科技与生活",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ifanr.com/feed"
+    ],
+    "experimental": false,
+    "home": "https://www.ifanr.com",
+    "icon": "范",
+    "id": "ifanr",
+    "interval": 600,
+    "kind": "rss",
+    "name": "爱范儿"
+  },
+  {
+    "category": "news",
+    "color": "#32708b",
+    "custom": false,
+    "description": "公开热榜 · 非承诺开放 API",
+    "enabled": true,
+    "endpoints": [
+      "https://cache.thepaper.cn/contentapi/wwwIndex/rightSidebar"
+    ],
+    "experimental": false,
+    "home": "https://www.thepaper.cn",
+    "icon": "澎",
+    "id": "thepaper",
+    "interval": 600,
+    "kind": "json",
+    "name": "澎湃新闻"
+  },
+  {
+    "category": "finance",
+    "color": "#5273ac",
+    "custom": false,
+    "description": "公开快讯 · 非承诺开放 API",
+    "enabled": true,
+    "endpoints": [
+      "https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel\u0026client=pc\u0026limit=30",
+      "https://api.wallstcn.com/apiv1/content/lives?channel=global-channel\u0026client=pc\u0026limit=30"
+    ],
+    "experimental": false,
+    "home": "https://wallstreetcn.com",
+    "icon": "见",
+    "id": "wallstreetcn",
+    "interval": 300,
+    "kind": "json",
+    "name": "华尔街见闻"
+  },
+  {
+    "category": "hot",
+    "color": "#4471cf",
+    "custom": false,
+    "description": "公开页面 · 实时热搜榜",
+    "enabled": false,
+    "endpoints": [
+      "https://top.baidu.com/board?tab=realtime"
+    ],
+    "experimental": true,
+    "home": "https://top.baidu.com/board?tab=realtime",
+    "icon": "百",
+    "id": "baidu",
+    "interval": 300,
+    "kind": "html",
+    "name": "百度热搜"
+  },
+  {
+    "category": "hot",
+    "color": "#dd4c50",
+    "custom": false,
+    "description": "公开热点榜 · 非承诺开放 API",
+    "enabled": true,
+    "endpoints": [
+      "https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc"
+    ],
+    "experimental": false,
+    "home": "https://www.toutiao.com",
+    "icon": "头",
+    "id": "toutiao",
+    "interval": 300,
+    "kind": "json",
+    "name": "今日头条"
+  },
+  {
+    "category": "hot",
+    "color": "#dd6c94",
+    "custom": false,
+    "description": "公开热搜词 · 非承诺开放 API",
+    "enabled": false,
+    "endpoints": [
+      "https://s.search.bilibili.com/main/hotword?limit=30"
+    ],
+    "experimental": true,
+    "home": "https://www.bilibili.com",
+    "icon": "哔",
+    "id": "bilibili",
+    "interval": 300,
+    "kind": "json",
+    "name": "哔哩哔哩"
+  },
+  {
+    "category": "community",
+    "color": "#b66b91",
+    "custom": false,
+    "description": "公开热门视频 · 非承诺开放 API",
+    "enabled": false,
+    "endpoints": [
+      "https://api.bilibili.com/x/web-interface/popular?ps=30\u0026pn=1"
+    ],
+    "experimental": true,
+    "home": "https://www.bilibili.com/v/popular/all",
+    "icon": "B",
+    "id": "bilibili-video",
+    "interval": 600,
+    "kind": "json",
+    "name": "B站 · 热门视频"
+  },
+  {
+    "category": "hot",
+    "color": "#d77a36",
+    "custom": false,
+    "description": "公开热搜 · 可能受访问限制",
+    "enabled": false,
+    "endpoints": [
+      "https://weibo.com/ajax/side/hotSearch",
+      "https://weibo.com/ajax/statuses/hot_band"
+    ],
+    "experimental": true,
+    "home": "https://s.weibo.com/top/summary",
+    "icon": "微",
+    "id": "weibo",
+    "interval": 300,
+    "kind": "json",
+    "name": "微博热搜"
+  },
+  {
+    "category": "community",
+    "color": "#3979cf",
+    "custom": false,
+    "description": "公开热榜 · 可能受访问限制",
+    "enabled": false,
+    "endpoints": [
+      "https://www.zhihu.com/api/v3/feed/topstory/hot-list-web?limit=30\u0026desktop=true"
+    ],
+    "experimental": true,
+    "home": "https://www.zhihu.com/hot",
+    "icon": "知",
+    "id": "zhihu",
+    "interval": 600,
+    "kind": "json",
+    "name": "知乎热榜"
+  },
+  {
+    "category": "community",
+    "color": "#6a6d70",
+    "custom": false,
+    "description": "公开 API · 社区热门主题",
+    "enabled": true,
+    "endpoints": [
+      "https://www.v2ex.com/api/topics/hot.json"
+    ],
+    "experimental": false,
+    "home": "https://www.v2ex.com",
+    "icon": "V",
+    "id": "v2ex",
+    "interval": 600,
+    "kind": "json",
+    "name": "V2EX"
+  },
+  {
+    "category": "community",
+    "color": "#5286bb",
+    "custom": false,
+    "description": "公开话题榜 · 非承诺开放 API",
+    "enabled": true,
+    "endpoints": [
+      "https://tieba.baidu.com/hottopic/browse/topicList"
+    ],
+    "experimental": false,
+    "home": "https://tieba.baidu.com",
+    "icon": "贴",
+    "id": "tieba",
+    "interval": 600,
+    "kind": "json",
+    "name": "百度贴吧"
+  },
+  {
+    "category": "community",
+    "color": "#6b8880",
+    "custom": false,
+    "description": "官方 Atom · 最新主题（非热榜）",
+    "enabled": true,
+    "endpoints": [
+      "https://www.v2ex.com/index.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.v2ex.com",
+    "icon": "V",
+    "id": "v2ex-latest",
+    "interval": 600,
+    "kind": "rss",
+    "name": "V2EX · 最新"
+  },
+  {
+    "category": "tech",
+    "color": "#d48242",
+    "custom": false,
+    "description": "Algolia 搜索 API · 首页热门",
+    "enabled": true,
+    "endpoints": [
+      "https://hn.algolia.com/api/v1/search?tags=front_page\u0026hitsPerPage=30"
+    ],
+    "experimental": false,
+    "home": "https://news.ycombinator.com",
+    "icon": "Y",
+    "id": "hackernews",
+    "interval": 600,
+    "kind": "json",
+    "name": "Hacker News"
+  },
+  {
+    "category": "news",
+    "color": "#4a4a4a",
+    "custom": false,
+    "description": "官方 RSS · 英文国际新闻",
+    "enabled": false,
+    "endpoints": [
+      "https://feeds.bbci.co.uk/news/world/rss.xml"
+    ],
+    "experimental": true,
+    "home": "https://www.bbc.com/news/world",
+    "icon": "B",
+    "id": "bbc",
+    "interval": 900,
+    "kind": "rss",
+    "name": "BBC · World"
+  },
+  {
+    "category": "ai",
+    "color": "#b77964",
+    "custom": false,
+    "description": "媒体补充 · 按 AI 关键词筛选，非厂商公告",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ithome.com/rss/"
+    ],
+    "experimental": false,
+    "home": "https://www.ithome.com",
+    "icon": "IT",
+    "id": "ai-media-ithome",
+    "interval": 900,
+    "kind": "rss-ai",
+    "name": "AI 资讯 · IT之家"
+  },
+  {
+    "category": "ai",
+    "color": "#a28d68",
+    "custom": false,
+    "description": "媒体补充 · 按 AI 关键词筛选，非厂商公告",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ifanr.com/feed"
+    ],
+    "experimental": false,
+    "home": "https://www.ifanr.com",
+    "icon": "范",
+    "id": "ai-media-ifanr",
+    "interval": 900,
+    "kind": "rss-ai",
+    "name": "AI 资讯 · 爱范儿"
+  },
+  {
+    "category": "ai",
+    "color": "#36866b",
+    "custom": false,
+    "description": "官方新闻 · RSS",
+    "enabled": true,
+    "endpoints": [
+      "https://openai.com/news/rss.xml"
+    ],
+    "experimental": false,
+    "home": "https://openai.com/news/",
+    "icon": "O",
+    "id": "ai-openai",
+    "interval": 900,
+    "kind": "rss",
+    "name": "OpenAI · 官方动态",
+    "provider": "openai"
+  },
+  {
+    "category": "ai",
+    "color": "#36866b",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/openai/codex/releases.atom",
+      "https://api.github.com/repos/openai/codex/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/openai/codex/releases",
+    "icon": "O",
+    "id": "ai-codex",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Codex · 版本发布",
+    "provider": "openai"
+  },
+  {
+    "category": "ai",
+    "color": "#bd8461",
+    "custom": false,
+    "description": "官方新闻页 · 结构化解析",
+    "enabled": true,
+    "endpoints": [
+      "https://www.anthropic.com/news"
+    ],
+    "experimental": false,
+    "home": "https://www.anthropic.com/news",
+    "icon": "A",
+    "id": "ai-anthropic",
+    "interval": 1800,
+    "kind": "anthropic",
+    "name": "Anthropic · 官方动态",
+    "provider": "anthropic"
+  },
+  {
+    "category": "ai",
+    "color": "#bd8461",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/anthropics/claude-code/releases.atom",
+      "https://api.github.com/repos/anthropics/claude-code/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/anthropics/claude-code/releases",
+    "icon": "A",
+    "id": "ai-claude-code",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Claude Code · 版本发布",
+    "provider": "anthropic"
+  },
+  {
+    "category": "ai",
+    "color": "#688ac7",
+    "custom": false,
+    "description": "官方新闻 · RSS",
+    "enabled": true,
+    "endpoints": [
+      "https://blog.google/technology/ai/rss/"
+    ],
+    "experimental": false,
+    "home": "https://blog.google/technology/ai/",
+    "icon": "G",
+    "id": "ai-google",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Google AI · 官方动态",
+    "provider": "google"
+  },
+  {
+    "category": "ai",
+    "color": "#688ac7",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/google-gemini/gemini-cli/releases.atom",
+      "https://api.github.com/repos/google-gemini/gemini-cli/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/google-gemini/gemini-cli/releases",
+    "icon": "G",
+    "id": "ai-gemini-cli",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Gemini CLI · 版本发布",
+    "provider": "google"
+  },
+  {
+    "category": "ai",
+    "color": "#8871be",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/QwenLM/qwen-code/releases.atom",
+      "https://api.github.com/repos/QwenLM/qwen-code/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/QwenLM/qwen-code/releases",
+    "icon": "通",
+    "id": "ai-qwen-code",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Qwen Code · 版本发布",
+    "provider": "alibaba"
+  },
+  {
+    "category": "ai",
+    "color": "#607eb0",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/MoonshotAI/kimi-code/releases.atom",
+      "https://api.github.com/repos/MoonshotAI/kimi-code/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/MoonshotAI/kimi-code/releases",
+    "icon": "K",
+    "id": "ai-kimi-code",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Kimi Code · 版本发布",
+    "provider": "moonshot"
+  },
+  {
+    "category": "ai",
+    "color": "#d08b48",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/mistralai/mistral-vibe/releases.atom",
+      "https://api.github.com/repos/mistralai/mistral-vibe/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/mistralai/mistral-vibe/releases",
+    "icon": "Mi",
+    "id": "ai-mistral-vibe",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Mistral Vibe · 版本发布",
+    "provider": "mistral"
+  },
+  {
+    "category": "ai",
+    "color": "#ca7864",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/MiniMax-AI/minimax-code/releases.atom",
+      "https://api.github.com/repos/MiniMax-AI/minimax-code/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/MiniMax-AI/minimax-code/releases",
+    "icon": "M",
+    "id": "ai-minimax-code",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "MiniMax Code · 版本发布",
+    "provider": "minimax"
+  },
+  {
+    "category": "ai",
+    "color": "#6f7582",
+    "custom": false,
+    "description": "官方新闻 · RSS",
+    "enabled": true,
+    "endpoints": [
+      "https://github.blog/changelog/feed/?label=copilot"
+    ],
+    "experimental": false,
+    "home": "https://github.blog/changelog/label/copilot/",
+    "icon": "GH",
+    "id": "ai-copilot-news",
+    "interval": 900,
+    "kind": "rss",
+    "name": "GitHub Copilot · 官方动态",
+    "provider": "github"
+  },
+  {
+    "category": "ai",
+    "color": "#6f7582",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/github/copilot-cli/releases.atom",
+      "https://api.github.com/repos/github/copilot-cli/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/github/copilot-cli/releases",
+    "icon": "GH",
+    "id": "ai-copilot-cli",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "Copilot CLI · 版本发布",
+    "provider": "github"
+  },
+  {
+    "category": "ai",
+    "color": "#bfaa52",
+    "custom": false,
+    "description": "官方新闻 · RSS",
+    "enabled": true,
+    "endpoints": [
+      "https://huggingface.co/blog/feed.xml"
+    ],
+    "experimental": false,
+    "home": "https://huggingface.co/blog",
+    "icon": "HF",
+    "id": "ai-huggingface",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Hugging Face · 官方动态",
+    "provider": "huggingface"
+  },
+  {
+    "category": "ai",
+    "color": "#567fc2",
+    "custom": false,
+    "description": "官方 API 更新日志 · 非每日新闻",
+    "enabled": true,
+    "endpoints": [
+      "https://api-docs.deepseek.com/updates/"
+    ],
+    "experimental": false,
+    "home": "https://api-docs.deepseek.com/updates/",
+    "icon": "D",
+    "id": "ai-deepseek",
+    "interval": 1800,
+    "kind": "deepseek",
+    "name": "DeepSeek · 更新日志",
+    "provider": "deepseek"
+  },
+  {
+    "category": "ai",
+    "color": "#567fc2",
+    "custom": false,
+    "description": "官方仓库 · 版本发布（含预发布）",
+    "enabled": true,
+    "endpoints": [
+      "https://github.com/deepseek-ai/deepseek-harness/releases.atom",
+      "https://api.github.com/repos/deepseek-ai/deepseek-harness/releases?per_page=15"
+    ],
+    "experimental": false,
+    "home": "https://github.com/deepseek-ai/deepseek-harness/releases",
+    "icon": "D",
+    "id": "ai-deepseek-harness",
+    "interval": 1800,
+    "kind": "releases",
+    "name": "DeepSeek Harness · 版本发布",
+    "provider": "deepseek"
+  },
+  {
+    "category": "ai",
+    "color": "#698ac3",
+    "custom": false,
+    "description": "官方产品更新日志",
+    "enabled": true,
+    "endpoints": [
+      "https://zcode.z.ai/en/changelog"
+    ],
+    "experimental": false,
+    "home": "https://zcode.z.ai/en/changelog",
+    "icon": "Z",
+    "id": "ai-zcode",
+    "interval": 1800,
+    "kind": "zcode",
+    "name": "ZCode · 更新日志",
+    "provider": "zai"
+  }
+]
