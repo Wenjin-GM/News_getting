@@ -24,11 +24,13 @@ prepare.py 从官方来源下载校验工具，只写工作空间；有匹配 re
 
 build.py 在已验证生成边界内清理 classes/dex/gen，复制维护 JSON 和 PNG，执行 AAPT2 → javac --release 8 → D8 → zipalign → apksigner。输出到 `dist/android/`，公开包身份真值与升级约束见 C01。
 
+3.7 背景原图维护在 `android/res/drawable-nodpi/`，生成提示词在 `assets/android-background-prompts.json`，不是只保留工具缓存。输出路径限制的实际陷阱见 pitfalls F18。Git 提交源码/资源不自动发布 dist APK；新克隆没有本机测试包和原签名材料，不能按交接中的本机产物链接推断可直接下载。
+
 签名密码以子进程环境变量传递；当前报告在 `dist/android/android-verification.txt`，同目录 release.json/sha256 为本次测试产物身份。脚本从 Manifest 取版本，日常不写 releases。`-dev` 构建必须已有原签名材料并匹配正式证书，缺失会失败，不自动生成身份。构建检查 INTERNET、SDK、内置 JSON 和旧 WebView/站点/部分 SDK 标识，不是全面安全扫描；非 dev 首次构建生成的自有签名不能覆盖原正式安装。
 
 默认 `test.py` 只准备固定 SHA-256 的 `org.json:json:20250517` JVM JAR，运行 fixture；JAR 不进 APK，手机用系统 org.json。
 
-测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules，不编译或运行 MainActivity。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
+测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules/ReaderTheme，不编译或运行 MainActivity。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
 
 ```powershell
 python scripts/android/test.py --live

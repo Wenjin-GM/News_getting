@@ -8,6 +8,37 @@ import org.json.*;
 public final class NativeEngineTest {
   private static void check(boolean test,String message){if(!test)throw new AssertionError(message);}
   private static void rejects(NewsEngine.Source s,String input,long now)throws Exception{boolean failed=false;try{NewsEngine.parse(s,input,now);}catch(Exception e){failed=true;}check(failed,"Expected rejected feed");}
+  private static double luminance(int color){double out=0;double[] weights={0.2126,0.7152,0.0722};for(int i=0;i<3;i++){double channel=((color>>(16-i*8))&255)/255.0;out+=weights[i]*(channel<=0.04045?channel/12.92:Math.pow((channel+0.055)/1.055,2.4));}return out;}
+  private static double contrast(int foreground,int background){double a=luminance(foreground),b=luminance(background);return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);}
+  private static int over(int foreground,int background){double alpha=((foreground>>>24)&255)/255.0;int color=0xff000000;for(int shift:new int[]{16,8,0})color|=((int)Math.round(((foreground>>>shift)&255)*alpha+((background>>>shift)&255)*(1-alpha)))<<shift;return color;}
+  private static void glassThemes(){
+    Set<String> scenes=new HashSet<>();for(int page=0;page<3;page++)check(!ReaderTheme.scene(page).isEmpty()&&scenes.add(ReaderTheme.scene(page)),"Reading pages have distinct bundled scenes");check(ReaderTheme.scene(3).isEmpty(),"Settings page has no picture");
+    for(String mode:new String[]{"day","night"}){
+      ReaderTheme p=ReaderTheme.forMode(mode);
+      for(int image:new int[]{0xff000000,0xffffffff})for(int scrim:new int[]{p.scrimTop(),p.scrimBottom()}){
+        int background=over(scrim,image);check(contrast(p.ink,background)>=4.5,"Unboxed filters readable over image extreme: "+mode);
+        for(int fill:new int[]{p.glassTop(false),p.glassBottom(false)}){int card=over(fill,background);check(contrast(p.ink,card)>=4.5&&contrast(p.muted,card)>=4.5&&contrast(p.accent,card)>=4.5,"Glass title/metadata/action contrast over image extreme: "+mode);}
+        for(int fill:new int[]{p.glassTop(true),p.glassBottom(true)})check(contrast(p.onAccent,over(fill,background))>=4.5,"Translucent primary action contrast: "+mode);
+      }
+      check((p.glassTop(false)>>>24)<255&&(p.glassBottom(false)>>>24)<255,"Reading cards retain actual transparency");
+    }
+    System.out.println("PASS: distinct reading backgrounds, settings exclusion, genuine translucent fills and layered text contrast on black/white image extremes");
+  }
+  private static void themePreferences(NewsEngine engine)throws Exception{
+    NewsEngine.Article a=report("chinanews","日夜切换保留原收藏",1,"theme-favorite");NewsEngine.Snapshot feed=new NewsEngine.Snapshot(a.source);feed.items.add(a);feed.fetched=1;
+    JSONObject legacy=new JSONObject().put("schema",3).put("favorites",new JSONArray().put(a.json())).put("read",new JSONArray().put(a.id)).put("feeds",new JSONObject().put(a.source,feed.json())).put("enabled",new JSONObject().put(a.source,false)).put("large",true);
+    NewsState state=new NewsState();state.restore(engine,legacy);check(state.themeMode.equals("day"),"Pre-theme installations default to day without migration");
+    for(String mode:new String[]{"night","day","night"}){
+      state.themeMode=mode;NewsState next=new NewsState();next.restore(engine,new JSONObject(state.json().toString()));
+      check(next.themeMode.equals(mode)&&next.large,"Theme survives reload with existing reading preference");
+      check(next.favorites.get(0).id.equals(a.id)&&next.read.contains(a.id)&&!next.sourceEnabled.get(a.source)&&next.snapshots.get(a.source).items.get(0).id.equals(a.id),"Theme changes preserve favorite/read/source/cache identities");state=next;
+    }
+    state.restore(engine,new JSONObject(legacy.toString()).put("themeMode","unknown"));check(state.themeMode.equals("day"),"Unknown theme mode has a safe default");
+    for(String mode:new String[]{"day","night"}){ReaderTheme p=ReaderTheme.forMode(mode);for(int surface:new int[]{p.surface,p.background,p.raised}){
+      check(contrast(p.ink,surface)>=4.5,"Body text contrast: "+mode);check(contrast(p.muted,surface)>=4.5,"Metadata contrast: "+mode);check(contrast(p.accent,surface)>=4.5,"Accent text contrast: "+mode);
+    }check(contrast(p.onAccent,p.accent)>=4.5,"Primary button contrast: "+mode);check(contrast(p.accent,p.soft)>=4.5,"Selected tab contrast: "+mode);}
+    System.out.println("PASS: day/night persistence, legacy fallback, preserved reading data and WCAG AA text contrast tokens");
+  }
   private static void dialogChoiceState(){
     List<String> ids=Arrays.asList("all","news","tech","finance");Set<String> values=new LinkedHashSet<>();boolean[] checked=new boolean[ids.size()];
     ReadingRules.syncChoices(ids,values,checked);check(Arrays.equals(checked,new boolean[]{true,false,false,false}),"Empty selection checks only All on opening");
@@ -285,6 +316,8 @@ public final class NativeEngineTest {
     featuredAndArchive(engine);
     readingFiltersAndAI(engine,args[0]);
     deviceCorrections(engine,args[0]);
+    themePreferences(engine);
+    glassThemes();
     System.out.println("PASS: native RSS/Atom/JSON, HTML cleanup, draft/stale rejection, URL safety, stable IDs and offline snapshot persistence");
     if(args.length>1&&args[1].equals("--live")){
       List<NewsEngine.Source> selected=new ArrayList<>();for(NewsEngine.Source s:engine.sources)if(s.defaultEnabled)selected.add(s);

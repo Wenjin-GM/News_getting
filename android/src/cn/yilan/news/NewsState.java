@@ -12,10 +12,12 @@ public final class NewsState {
   public final List<Article> favorites=new ArrayList<>();
   public final Set<String> read=new LinkedHashSet<>();
   public boolean compact,large,unread,hotMode;
+  public String themeMode="day";
 
   public void restore(NewsEngine engine,JSONObject j){
     snapshots.clear();sourceEnabled.clear();favorites.clear();read.clear();
     compact=large=unread=hotMode=false;
+    themeMode="day";
     for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);
     if(j==null)return;
     JSONObject feeds=j.optJSONObject("feeds"),enabled=j.optJSONObject("enabled");
@@ -34,6 +36,7 @@ public final class NewsState {
       String id=ids.optString(i);if(id.length()<=128)read.add(id);
     }
     compact=j.optBoolean("compact");large=j.optBoolean("large");unread=j.optBoolean("unread");hotMode=j.optBoolean("hotMode");
+    themeMode=ReaderTheme.mode(j.optString("themeMode"));
   }
 
   public JSONObject json()throws org.json.JSONException{
@@ -44,6 +47,6 @@ public final class NewsState {
     for(Article a:favorites)fav.put(a.json());
     for(String id:read)ids.put(id);
     return j.put("schema",3).put("feeds",feeds).put("enabled",enabled).put("favorites",fav).put("read",ids)
-      .put("compact",compact).put("large",large).put("unread",unread).put("hotMode",hotMode);
+      .put("compact",compact).put("large",large).put("unread",unread).put("hotMode",hotMode).put("themeMode",ReaderTheme.mode(themeMode));
   }
 }

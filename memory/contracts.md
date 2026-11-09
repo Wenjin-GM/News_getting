@@ -61,7 +61,7 @@ Activity 启动/回前台用 `shouldAutoCheck` 决定请求：已启用官方 AI
 
 ## C05 · P1 / Active · 本机状态 schema 与兼容性
 
-MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsState` 保存/恢复：`schema=3`、`feeds`、`enabled`、`favorites`、`read`、`compact/large/unread/hotMode`。读取上限 8 MiB；收藏最多 500，已读 ID 最多 2,000，列表分页 30。缺少 hotMode 等新字段按 false 读；compact 保留兼容但无设置控件。资料不写入状态文件。
+MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsState` 保存/恢复：`schema=3`、`feeds`、`enabled`、`favorites`、`read`、`compact/large/unread/hotMode`、`themeMode`。读取上限 8 MiB；收藏最多 500，已读 ID 最多 2,000，列表分页 30。缺少 hotMode 等新布尔字段按 false 读；themeMode 只接受 day/night，缺字段或未知值默认为 day；compact 保留兼容但无设置控件。资料不写入状态文件。
 
 注意：当前 load 读取已有字段，但没有根据 schema 值执行严格拒绝/迁移分支；不要把 schema 标记误记为已交付通用迁移机制。更改字段/ID 时须显式设计兼容性。
 

@@ -1,6 +1,6 @@
 # 高价值失败经验
 
-增量核实：2026-11-09。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F16 为当前会话新增核对。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
+增量核实：2026-11-09。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F18 为后续开发/工具调用新增核对。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
 
 ## F01 · P1 / Active · 方案看似可安装，实际仍依赖云
 
@@ -97,7 +97,7 @@
 - 条件：原生 AlertDialog 的“全部”与具体类别互斥，其余类别多选；用户在 3.5 首包真机仍报告未修好。
 - 已尝试：ReadingRules.choose 不再因程序取消 All 而清集合，Activity 加 syncing 回调保护；JVM 只测集合，仍遗漏 UI 适配器状态，不能称为控件问题已解决。
 - 代码证据：pickMany 传给 setMultiChoiceItems 的 checked[] 只在初始化赋值；程序更新 ListView 未同步数组。AOSP AlertController 点击只更新被点数组槽位，getView 重绘又用数组的 true 恢复勾选，因此残留 All 或具体项可再次亮起。此遗漏已确认，但未在用户手机完整复现。
-- 当前修正：ReadingRules.syncChoices 先同步整个同一数组，再设置全部 ListView 项；初始化也用此方法，仍保留同步保护。JVM dialogChoiceState 覆盖两向互斥、连续多选、空选/最后一项、重开初始状态；实际 UI 重绘与重开仍待用户复验。
+- 当前修正：ReadingRules.syncChoices 先同步整个同一数组，再设置全部 ListView 项；初始化也用此方法，仍保留同步保护。JVM dialogChoiceState 覆盖两向互斥、连续多选、空选/最后一项、重开初始状态；该修正版后续已获用户真机复验通过反馈；当前新 UI 版仍须重新验收，状态由 HANDOFF 维护。
 - 防复发：集合、适配器数组与控件须一致；不要只测纯集合就宣称真机通过。证据为 MainActivity.pickMany、ReadingRules.syncChoices、NativeEngineTest.dialogChoiceState，以及 [AOSP 源码](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/core/java/com/android/internal/app/AlertController.java#1220)（会话中已打开核对）。
 
 ## F15 · P1 / Active · 动态检查时间不能刷新整份资料的事实日期
@@ -109,9 +109,23 @@
 
 ## F16 · P1 / Active · 正式包与开发源码版本不同会触发旧交接检查器
 
-- 条件：保留正式 3.0.0，继续交付 dist 下 3.5.0-dev；scripts/check-handoff.py 仍把 Manifest 版本等同 releases 元数据。
+- 条件：保留正式 3.0.0，继续交付 dist 下开发版（例如 3.5/3.6）；scripts/check-handoff.py 仍把 Manifest 版本等同 releases 元数据。
 - 根因/影响：静态检查器的发布同版假设已过窄，版本不一致不等于交接失真。正式资产与维护模型资料不同也会有预期警告。
 - 处理边界：核对正式包和测试包各自哈希、身份、权限及记忆索引，原样报告失败；不改回开发版本、不替换正式 APK 来凑通过。后续可经授权让检查器区分两种身份，本轮不修改脚本。
+
+## F17 · P1 / Active · 纵向布局的文字仍可能与居中图标错位
+
+- 用户真机截图显示 3.6 底栏图标居中、文字偏左；不是新闻标题或数据归并问题。
+- 源码确认：item.setGravity(CENTER) 只居中子 View；纵向 LinearLayout 对未指定布局参数的 TextView 默认给整行宽度，TextView 自身文字仍靠左。仅设置父容器 gravity 不足以对齐。
+- 3.7 改为文字显式 wrap-content、Gravity.CENTER、单行，与固定尺寸图标共用父容器中线；横栏关闭 baseline 对齐。源码和构建检查已完成，真机复验待用户反馈，不称为实机已通过。
+- 适用：原生图标+标签、主题选择或自绘导航；检查子项宽度和内部 gravity 两层。证据 MainActivity.drawNav 与本会话用户截图；视觉规范由 UI_DESIGN 维护。
+
+## F18 · P1 / Active · 成图提示词不能保证工具的本地保存位置
+
+- 条件：3.7 背景生成时，提示词指定只保存到工作区，但内置工具实际将原图写到 `$CODEX_HOME/generated_images/` 默认缓存；提示词不是文件输出参数。这与 AGENTS 的工作区写入边界存在冲突，不能略过不报。
+- 已做处理：三张选定图复制到 `android/res/drawable-nodpi/`，提示词及资源路径见 `assets/android-background-prompts.json`；APK 只依赖项目资源。工具原缓存保留，已向用户披露，没有擅自跨目录清理。
+- 防复发：使用成图工具前确认其真实落盘机制，不能凭提示词宣称写入已受限；不能将这次实际缓存视为永久的工作区外写入授权。边界仍有效时优先采用已授权且能限定工作区落盘的公开图片获取方案，或取得明确的缓存例外授权。
+- 证据：本会话 image_gen 返回的默认保存路径、项目资源与提示词记录；生成资产归属与呈现规范由 UI_DESIGN 维护，不重复保存图片/提示词副本。
 
 ## P3 / Obsolete · 已退役层的临时排障
 

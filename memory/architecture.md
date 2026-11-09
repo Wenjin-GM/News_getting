@@ -30,13 +30,16 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |
 | [FeaturedNews.java](../android/src/cn/yilan/news/FeaturedNews.java) | 无模型标题归并、机构去重与上海日期分组 |
 | [ReadingRules.java](../android/src/cn/yilan/news/ReadingRules.java) | 筛选/勾选同步、来源分流、资料排序和新模型提示规则 |
+| [ReaderTheme.java](../android/src/cn/yilan/news/ReaderTheme.java)、[ReaderIcon.java](../android/src/cn/yilan/news/ReaderIcon.java) | 日夜配色 token、偏好归一化与无外部依赖的原生图标 |
+| [ReaderBackdrop.java](../android/src/cn/yilan/news/ReaderBackdrop.java)、[GlassPanelDrawable.java](../android/src/cn/yilan/news/GlassPanelDrawable.java) | 内置背景的有界解码、渐变遮罩与静态半透明泛光面板；设置页不铺图 |
+| [styles.xml](../android/res/values/styles.xml) | 与配色对应的原生主题、输入/勾选/弹窗默认属性 |
 | [ApkProvider.java](../android/src/cn/yilan/news/ApkProvider.java) | 仅分享本应用安装文件的只读 Provider |
 | [AndroidManifest.xml](../android/AndroidManifest.xml) | 身份、SDK、权限、组件导出和备份配置 |
 | [network_security_config.xml](../android/res/xml/network_security_config.xml) | 系统证书信任与禁止明文 |
 | [data_extraction_rules.xml](../android/res/xml/data_extraction_rules.xml) | 数据提取边界 |
 | [NativeEngineTest.java](../android/tests/NativeEngineTest.java) | JVM 解析/安全/快照 fixture 和可选直连验证 |
 
-Activity 使用原生控件，底栏为新闻、AI 专栏、收藏、设置。新闻有最新、分站热榜、精选；AI 有平台动态、工具、模型、分站热榜、精选。工具合并产品/Harness/SDK 类型筛选；最多三项对比针对模型。列表为标题及小字来源/发布时间，详情保留摘要、收藏、分享、原文。紧凑模式控件已移除，旧字段仍兼容。各流规则见 contracts C08。
+Activity 使用原生控件，底栏为新闻、AI 专栏、收藏、设置。新闻有最新、分站热榜、精选；AI 有平台动态、工具、模型、分站热榜、精选。工具合并产品/Harness/SDK 类型筛选；最多三项对比针对模型。列表为标题及小字来源/发布时间，详情保留摘要、收藏、分享、原文。紧凑模式控件已移除，旧字段仍兼容。各流规则见 contracts C08；视觉规范与待验收范围见 [UI_DESIGN](../docs/android/UI_DESIGN.md)。
 
 网络线程池固定四线程；UI 由主线程刷新，磁盘使用独立单线程与去抖保存。首次启动与回前台按条件检查来源，没有常驻后台推送。状态持久化的字段与兼容边界由 contracts 维护。
 
