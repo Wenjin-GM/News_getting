@@ -22,8 +22,46 @@ import javax.net.ssl.HttpsURLConnection;
 /** Pure Java collection/normalization engine. No WebView, cloud aggregator, account or model API. */
 public final class NewsEngine {
   public static final int MAX_BODY=5*1024*1024;
+  public static final List<String> HOT_SOURCES=Collections.unmodifiableList(Arrays.asList("toutiao","v2ex","hackernews","tieba"));
+  /** Separate source lists, never a numeric comparison of unrelated heat strings. */
+  public static List<Article> hotItems(String source,Snapshot snapshot){
+    List<Article> items=new ArrayList<>();
+    if(!HOT_SOURCES.contains(source)||snapshot==null||!source.equals(snapshot.source))return items;
+    for(Article a:snapshot.items)if(source.equals(a.source))items.add(a);
+    items.sort(Comparator.comparingInt(a->a.rank));
+    return items;
+  }
+  public static String heatLabel(Article a){return a.heat==null||a.heat.isEmpty()?"未提供":a.heat;}
   private static final int FLAGS=Pattern.CASE_INSENSITIVE|Pattern.DOTALL|Pattern.UNICODE_CASE;
   private static final Pattern AI=Pattern.compile("\\bAI\\b|人工智能|大模型|智能体|openai|chatgpt|codex|\\bgpt\\b|claude|anthropic|gemini|antigravity|deepseek|通义|千问|qwen|灵码|kimi|月之暗面|minimax|智谱|\\bglm\\b|zcode|grok|mistral|copilot|codebuddy|文心|trae|豆包|kiro|hugging.?face",FLAGS);
+  private static final Pattern TECH=Pattern.compile("编程|程序员|代码|芯片|半导体|显卡|处理器|软件|开源|操作系统|手机系统|安卓|鸿蒙|互联网|浏览器|数据库|云计算|算法|开发者|\\b(?:android|ios|linux|windows|macos|github|cpu|gpu|sdk|api|python|java|javascript|rust)\\b",FLAGS);
+  public static boolean isAIOrTech(Article a){return "hackernews".equals(a.source)||AI.matcher(a.title+" "+a.summary).find()||TECH.matcher(a.title+" "+a.summary).find();}
+  public static List<Article> hotItems(String source,Snapshot snapshot,boolean ai){
+    List<Article> items=hotItems(source,snapshot);items.removeIf(a->isAIOrTech(a)!=ai);return items;
+  }
+  public static Set<String> aiHotURLs(Map<String,Snapshot> snapshots,Map<String,Boolean> enabled){
+    Set<String> urls=new HashSet<>();
+    for(String id:HOT_SOURCES)if(Boolean.TRUE.equals(enabled.get(id)))for(Article a:hotItems(id,snapshots.get(id)))if(!a.url.isEmpty()&&isAIOrTech(a))urls.add(a.url);
+    return urls;
+  }
+  public static List<Article> hotItems(String source,Snapshot snapshot,boolean ai,Set<String> aiURLs){
+    List<Article> items=hotItems(source,snapshot);items.removeIf(a->(isAIOrTech(a)||aiURLs.contains(a.url))!=ai);return items;
+  }
+  public static boolean officialAI(Source s){return "ai".equals(s.category)&&!"rss-ai".equals(s.kind);}
+  public static boolean shouldAutoCheck(Source s,Snapshot snapshot,long now){
+    if(snapshot==null)return true;
+    if(!snapshot.error.isEmpty()&&now-snapshot.checked<60000)return false;
+    long interval=officialAI(s)?86400000L:s.interval*1000L;
+    return snapshot.fetched<=0||now-snapshot.fetched>=interval;
+  }
+  public Snapshot toolSnapshot(JSONObject tool,Map<String,Snapshot> snapshots){
+    String id=tool.optString("sourceId");Source s=sourceMap.get(id);Snapshot snapshot=snapshots.get(id);
+    return s!=null&&officialAI(s)&&snapshot!=null&&id.equals(snapshot.source)?snapshot:null;
+  }
+  public static Article latestItem(Snapshot snapshot){
+    Article latest=null;if(snapshot!=null)for(Article a:snapshot.items)if(latest==null||a.published>latest.published||a.published==latest.published&&a.rank<latest.rank)latest=a;
+    return latest;
+  }
   private static final Pattern DATE=Pattern.compile("\\d{4}-\\d{2}-\\d{2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},\\s+\\d{4}",FLAGS);
   public static final class Source {
     public final String id,name,category,provider,kind,home,color,icon;
@@ -53,8 +91,12 @@ public final class NewsEngine {
   public final Map<String,Source> sourceMap=new LinkedHashMap<>();
   public NewsEngine(String config)throws Exception{JSONArray a=new JSONArray(config);if(a.length()>100)throw new IOException("来源配置过大");for(int i=0;i<a.length();i++){Source s=new Source(a.getJSONObject(i));sources.add(s);sourceMap.put(s.id,s);}}
   public Snapshot fetch(Source source,Snapshot previous,boolean force){
+    return fetchInternal(source,previous,force,false);
+  }
+  public Snapshot recheck(Source source,Snapshot previous){return fetchInternal(source,previous,true,true);}
+  private Snapshot fetchInternal(Source source,Snapshot previous,boolean force,boolean recheck){
     long now=System.currentTimeMillis();
-    if(previous!=null&&((!previous.error.isEmpty()&&now-previous.checked<60000)||(previous.fetched>0&&now-previous.fetched<(force?60:source.interval)*1000L))){Snapshot s=previous.copy();s.checked=now;return s;}
+    if(!recheck&&previous!=null&&((!previous.error.isEmpty()&&now-previous.checked<60000)||(previous.fetched>0&&now-previous.fetched<(force?60:source.interval)*1000L)))return previous.copy();
     List<String> errors=new ArrayList<>();
     for(int i=0;i<source.endpoints.size();i++)try{
       String body=download(source,source.endpoints.get(i));List<Article> items=parse(source,body,System.currentTimeMillis());Snapshot s=new Snapshot(source.id);s.items.addAll(items);s.fetched=s.checked=System.currentTimeMillis();s.channel=i==0?"手机直连 · 主渠道":"手机直连 · 同平台备用";return s;

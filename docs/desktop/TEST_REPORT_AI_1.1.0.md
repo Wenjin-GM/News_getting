@@ -1,5 +1,7 @@
 # NewsDesk 1.1.0 · AI 专栏验收
 
+> 历史快照：以下记录对应 1.1 AI 升级时点。整理后测试数、路径和安卓架构已有变化，不能把旧包路径或 12 项测试当作当前状态。先读 [HANDOFF](../../HANDOFF.md) 和 [文档身份](../../memory/architecture.md)。
+
 日期：2026-10-28，Asia/Shanghai。
 
 ## 已交付

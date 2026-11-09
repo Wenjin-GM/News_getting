@@ -2,6 +2,8 @@
 
 手机和电脑上的轻量新闻、热点与 AI 动态阅读器。主交付是 **Android 原生独立版 3.0**：安装并联网即可使用，手机自行采集、解析和展示新闻，不依赖 ChatGPT 平台、电脑或自建后端。
 
+维护或让 AI 接续项目时，先读 **[HANDOFF.md 核心交接入口](HANDOFF.md)**，再按其中索引查阅 `memory/`。项目规则入口为 [AGENTS.md](AGENTS.md)，无需翻阅历史聊天。
+
 ## 安装安卓独立版
 
 **[下载 APK 3.0.0](https://github.com/Wenjin-GM/News_getting/raw/refs/heads/main/releases/android/yilan-standalone-3.0.0.apk)** · [校验与版本信息](releases/android/release.json) · [安装与使用说明](android/README.md)
@@ -27,6 +29,7 @@
 | `scripts/android/` | 安卓工具准备、构建、测试脚本 |
 | `scripts/desktop/` | 电脑版构建、启动、测试、打包脚本 |
 | `docs/` | 安全说明、目录说明、验收与截图 |
+| `HANDOFF.md`、`memory/` | 项目全貌、决策、偏好、知识、状态与 AI 接续规则 |
 | `releases/android/` | 已签名的正式 APK、SHA-256 与版本信息 |
 | `dist/` | 本机构建结果，Git 忽略 |
 | `.cache/` | 可重新生成的工具与构建缓存，Git 忽略 |

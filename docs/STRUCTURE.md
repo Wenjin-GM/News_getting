@@ -2,6 +2,8 @@
 
 根目录以 Android 独立版为主入口，保留 Windows 版作为单独可运行的程序。没有 PWA、Sites、Node 前端依赖或嵌套 Git 仓库。
 
+AI 接手项目的核心入口为 [HANDOFF.md](../HANDOFF.md)，阅读规则见 [AGENTS.md](../AGENTS.md)。模块与文档身份见 [架构记忆](../memory/architecture.md)；仅维护记忆时读取根 [MEMORY_PROTOCOL.md](../MEMORY_PROTOCOL.md)。
+
 | 原位置 | 现位置 / 处理方式 |
 | --- | --- |
 | `mobile/android/` | `android/` 原生源码；生成的资源进入 Git 忽略目录 |

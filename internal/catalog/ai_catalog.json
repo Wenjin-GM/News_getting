@@ -2,54 +2,4565 @@
   "checkedAt": "2026-10-28",
   "note": "目录依据官方产品页、文档及官方组织仓库人工核对；动态和版本记录实时采集，目录说明随程序版本维护，不会根据新闻自动认定新产品归属。未确认开源不等于确认闭源；开源组件不代表模型或托管服务免费。",
   "providers": [
-    {"id":"openai","name":"OpenAI","region":"global","color":"#36866b","icon":"O","newsUrl":"https://openai.com/news/","note":"Codex 的产品界面、开源 harness 与模型服务分层列出。"},
-    {"id":"anthropic","name":"Anthropic","region":"global","color":"#bd8461","icon":"A","newsUrl":"https://www.anthropic.com/news","note":"Claude Code 是编程产品；Agent SDK 提供可编程的智能体运行能力。"},
-    {"id":"google","name":"Google","region":"global","color":"#688ac7","icon":"G","newsUrl":"https://blog.google/technology/ai/","note":"Antigravity 与 Gemini CLI 同时列出，后者附个人用户迁移提示。"},
-    {"id":"github","name":"GitHub / Microsoft","region":"global","color":"#6f7582","icon":"GH","newsUrl":"https://github.blog/changelog/label/copilot/","note":"Copilot 的 IDE、CLI 和 SDK 是不同使用入口。"},
-    {"id":"alibaba","name":"阿里 / Qwen","region":"china","color":"#8871be","icon":"通","newsUrl":"https://qwen.ai/","note":"Qwen Code 的发布动态自动采集，通义灵码目录指向阿里云官方页面。"},
-    {"id":"moonshot","name":"月之暗面 / Kimi","region":"china","color":"#607eb0","icon":"K","newsUrl":"https://code.kimi.com/","note":"跟踪当前 MoonshotAI/kimi-code 官方仓库，而非只保留旧的 kimi-cli 名称。"},
-    {"id":"deepseek","name":"DeepSeek","region":"china","color":"#567fc2","icon":"D","newsUrl":"https://api-docs.deepseek.com/updates/","note":"官方已有开源 DeepSeek Harness 预览版，不能仅将其视为模型 API 厂商。"},
-    {"id":"minimax","name":"MiniMax","region":"china","color":"#ca7864","icon":"M","newsUrl":"https://agent.minimax.io/","note":"MiniMax Code 是可直接使用的编程智能体；OpenAgentCore 为编排集成层。"},
-    {"id":"mistral","name":"Mistral AI","region":"global","color":"#d08b48","icon":"Mi","newsUrl":"https://mistral.ai/news","note":"Vibe 的 CLI、编辑器与 Web 使用方式以官方文档为准。"},
-    {"id":"zai","name":"智谱 / Z.ai","region":"china","color":"#698ac3","icon":"Z","newsUrl":"https://zcode.z.ai/en/changelog","note":"ZCode 官方更新日志自动采集；GLM Coding Plan 是模型服务方案，不单独当作 harness。"},
-    {"id":"bytedance","name":"字节 / TRAE","region":"china","color":"#5d9d88","icon":"T","newsUrl":"https://www.trae.ai/","note":"TRAE IDE 与开源 Trae Agent 分开列出。目前提供官方入口，尚未接入可靠自动动态渠道。"},
-    {"id":"tencent","name":"腾讯 / CodeBuddy","region":"china","color":"#508eb1","icon":"腾","newsUrl":"https://www.codebuddy.ai/","note":"提供官方产品和 CLI 文档入口；尚未接入可靠自动动态渠道。"},
-    {"id":"baidu","name":"百度 / 文心快码","region":"china","color":"#697fbc","icon":"百","newsUrl":"https://comate.baidu.com/zh","note":"提供官方产品与文档入口；尚未接入可靠自动动态渠道。"},
-    {"id":"xai","name":"xAI / Grok","region":"global","color":"#626d78","icon":"X","newsUrl":"https://docs.x.ai/build/overview","note":"官方文档现使用 SpaceXSI 品牌。Grok Build 已核实，空的发布 feed 不作为成功渠道。"},
-    {"id":"amazon","name":"AWS / Kiro","region":"global","color":"#ba925a","icon":"Ki","newsUrl":"https://kiro.dev/changelog/","note":"收录官方 Kiro IDE 与 CLI；当前通过官方入口查看动态。"},
-    {"id":"huggingface","name":"Hugging Face","region":"global","color":"#bfaa52","icon":"HF","newsUrl":"https://huggingface.co/blog","note":"跟踪官方博客；smolagents 属通用 Agent 框架，不是完整的专用编程产品。"}
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "region": "global",
+      "color": "#36866b",
+      "icon": "O",
+      "newsUrl": "https://openai.com/news/",
+      "note": "Codex 的产品界面、开源 harness 与模型服务分层列出。"
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "region": "global",
+      "color": "#bd8461",
+      "icon": "A",
+      "newsUrl": "https://www.anthropic.com/news",
+      "note": "Claude Code 是编程产品；Agent SDK 提供可编程的智能体运行能力。"
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "region": "global",
+      "color": "#688ac7",
+      "icon": "G",
+      "newsUrl": "https://blog.google/technology/ai/",
+      "note": "Antigravity 与 Gemini CLI 同时列出，后者附个人用户迁移提示。"
+    },
+    {
+      "id": "github",
+      "name": "GitHub / Microsoft",
+      "region": "global",
+      "color": "#6f7582",
+      "icon": "GH",
+      "newsUrl": "https://github.blog/changelog/label/copilot/",
+      "note": "Copilot 的 IDE、CLI 和 SDK 是不同使用入口。"
+    },
+    {
+      "id": "alibaba",
+      "name": "阿里 / Qwen",
+      "region": "china",
+      "color": "#8871be",
+      "icon": "通",
+      "newsUrl": "https://qwen.ai/",
+      "note": "Qwen Code 的发布动态自动采集，通义灵码目录指向阿里云官方页面。"
+    },
+    {
+      "id": "moonshot",
+      "name": "月之暗面 / Kimi",
+      "region": "china",
+      "color": "#607eb0",
+      "icon": "K",
+      "newsUrl": "https://code.kimi.com/",
+      "note": "跟踪当前 MoonshotAI/kimi-code 官方仓库，而非只保留旧的 kimi-cli 名称。"
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "region": "china",
+      "color": "#567fc2",
+      "icon": "D",
+      "newsUrl": "https://api-docs.deepseek.com/updates/",
+      "note": "官方已有开源 DeepSeek Harness 预览版，不能仅将其视为模型 API 厂商。"
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "region": "china",
+      "color": "#ca7864",
+      "icon": "M",
+      "newsUrl": "https://agent.minimax.io/",
+      "note": "MiniMax Code 是可直接使用的编程智能体；OpenAgentCore 为编排集成层。"
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral AI",
+      "region": "global",
+      "color": "#d08b48",
+      "icon": "Mi",
+      "newsUrl": "https://mistral.ai/news",
+      "note": "Vibe 的 CLI、编辑器与 Web 使用方式以官方文档为准。"
+    },
+    {
+      "id": "zai",
+      "name": "智谱 / Z.ai",
+      "region": "china",
+      "color": "#698ac3",
+      "icon": "Z",
+      "newsUrl": "https://zcode.z.ai/en/changelog",
+      "note": "ZCode 官方更新日志自动采集；GLM Coding Plan 是模型服务方案，不单独当作 harness。"
+    },
+    {
+      "id": "bytedance",
+      "name": "字节 / TRAE",
+      "region": "china",
+      "color": "#5d9d88",
+      "icon": "T",
+      "newsUrl": "https://www.trae.ai/",
+      "note": "TRAE IDE 与开源 Trae Agent 分开列出。目前提供官方入口，尚未接入可靠自动动态渠道。"
+    },
+    {
+      "id": "tencent",
+      "name": "腾讯 / CodeBuddy",
+      "region": "china",
+      "color": "#508eb1",
+      "icon": "腾",
+      "newsUrl": "https://www.codebuddy.ai/",
+      "note": "提供官方产品和 CLI 文档入口；尚未接入可靠自动动态渠道。"
+    },
+    {
+      "id": "baidu",
+      "name": "百度 / 文心快码",
+      "region": "china",
+      "color": "#697fbc",
+      "icon": "百",
+      "newsUrl": "https://comate.baidu.com/zh",
+      "note": "提供官方产品与文档入口；尚未接入可靠自动动态渠道。"
+    },
+    {
+      "id": "xai",
+      "name": "xAI / Grok",
+      "region": "global",
+      "color": "#626d78",
+      "icon": "X",
+      "newsUrl": "https://docs.x.ai/build/overview",
+      "note": "官方文档现使用 SpaceXSI 品牌。Grok Build 已核实，空的发布 feed 不作为成功渠道。"
+    },
+    {
+      "id": "amazon",
+      "name": "AWS / Kiro",
+      "region": "global",
+      "color": "#ba925a",
+      "icon": "Ki",
+      "newsUrl": "https://kiro.dev/changelog/",
+      "note": "收录官方 Kiro IDE 与 CLI；当前通过官方入口查看动态。"
+    },
+    {
+      "id": "huggingface",
+      "name": "Hugging Face",
+      "region": "global",
+      "color": "#bfaa52",
+      "icon": "HF",
+      "newsUrl": "https://huggingface.co/blog",
+      "note": "跟踪官方博客；smolagents 属通用 Agent 框架，不是完整的专用编程产品。"
+    }
   ],
   "tools": [
-    {"id":"codex-app","provider":"openai","name":"Codex · App / IDE","kinds":["desktop","ide"],"description":"在桌面或编辑器中开展编程智能体任务，结合项目上下文、工具和审批流程。","role":"产品界面；复用 Codex harness","open":"mixed","license":"界面、开源组件与托管服务分别适用其许可","url":"https://developers.openai.com/learn/codex","references":["https://developers.openai.com/blog/codex-as-a-platform"],"platforms":["以官方发布入口为准"],"sourceId":"ai-codex","status":"active"},
-    {"id":"codex-cli","provider":"openai","name":"Codex CLI / app-server","kinds":["cli","harness"],"description":"终端编程智能体及可嵌入的会话服务，处理工具执行、上下文和审批。","role":"编程智能体执行层 / harness","open":"open","license":"以官方仓库 LICENSE 为准","url":"https://developers.openai.com/blog/codex-as-a-platform","repo":"https://github.com/openai/codex","references":["https://developers.openai.com/blog/codex-as-a-platform"],"platforms":["终端","本地服务"],"sourceId":"ai-codex","status":"active"},
-    {"id":"codex-sdk","provider":"openai","name":"Codex SDK","kinds":["sdk"],"description":"通过程序启动、恢复和流式处理 Codex 任务，适合接入自有工作流。","role":"Codex harness 的程序化集成层","open":"open","license":"以官方组件许可为准","url":"https://developers.openai.com/codex/sdk","repo":"https://github.com/openai/codex","references":["https://developers.openai.com/blog/codex-as-a-platform"],"platforms":["SDK"],"sourceId":"ai-codex","status":"active"},
-    {"id":"claude-code","provider":"anthropic","name":"Claude Code","kinds":["cli","ide","harness"],"description":"在终端和编辑器中执行代码理解、修改、命令运行等开发任务。","role":"面向使用者的编程智能体与运行循环","open":"not-verified","license":"商业产品条款；公开发布仓库不等于核心代码开源","url":"https://code.claude.com/docs/en/overview","repo":"https://github.com/anthropics/claude-code","references":["https://code.claude.com/docs/en/overview"],"platforms":["终端","编辑器集成"],"sourceId":"ai-claude-code","status":"active"},
-    {"id":"claude-agent-sdk","provider":"anthropic","name":"Claude Agent SDK","kinds":["sdk"],"description":"使用 Claude Code 的工具与智能体循环，构建自己的代理工作流。","role":"复用既有 harness 能力的 SDK","open":"mixed","license":"SDK 及所依赖运行组件分别查看许可","url":"https://code.claude.com/docs/en/agent-sdk/overview","references":["https://code.claude.com/docs/en/agent-sdk/overview"],"platforms":["Python","TypeScript"],"sourceId":"ai-claude-code","status":"active"},
-    {"id":"antigravity-app","provider":"google","name":"Antigravity App / IDE","kinds":["desktop","ide"],"description":"管理多个开发智能体、工作空间和编程任务的官方开发平台。","role":"与 Antigravity CLI 共享执行体系的产品入口","open":"not-verified","license":"以 Google 官方产品条款为准","url":"https://antigravity.google/","references":["https://antigravity.google/"],"platforms":["桌面","IDE"],"status":"active"},
-    {"id":"antigravity-cli","provider":"google","name":"Antigravity CLI","kinds":["cli","harness"],"description":"Google 的终端编程智能体入口，支持自主任务与后台子智能体。","role":"与桌面产品共用的 agent harness 终端入口","open":"not-verified","license":"未确认核心运行组件的独立开源许可","url":"https://antigravity.google/product/antigravity-cli","references":["https://antigravity.google/product/antigravity-cli","https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"],"platforms":["终端"],"status":"active"},
-    {"id":"antigravity-sdk","provider":"google","name":"Antigravity SDK","kinds":["sdk"],"description":"用 Python 复用 Antigravity 的工具、agent loop 与上下文管理。","role":"既有编程 harness 的集成层","open":"mixed","license":"SDK 仓库与预编译运行时分别查看许可","url":"https://antigravity.google/product/antigravity-sdk","references":["https://antigravity.google/product/antigravity-sdk"],"platforms":["Python"],"status":"active","note":"官方明确依赖平台 wheel 中的编译运行时；仅克隆仓库不足以运行。"},
-    {"id":"gemini-cli","provider":"google","name":"Gemini CLI","kinds":["cli","harness"],"description":"Google 开源终端智能体；继续跟踪仓库发布，但须注意不同账号的服务迁移。","role":"开源终端 agent 运行层","open":"open","license":"以 google-gemini/gemini-cli LICENSE 为准","url":"https://github.com/google-gemini/gemini-cli","repo":"https://github.com/google-gemini/gemini-cli","references":["https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"],"platforms":["终端"],"sourceId":"ai-gemini-cli","status":"transition","note":"2026-05-19 官方通知个人用户转向 Antigravity；企业与付费 API 接入情况不同，请查看原文。"},
-    {"id":"google-adk","provider":"google","name":"Google ADK","kinds":["framework"],"description":"用于构建和编排通用智能体的开发框架。","role":"通用 Agent 框架；不等同于现成编程 harness","open":"open","license":"以官方仓库 LICENSE 为准","url":"https://google.github.io/adk-docs/","repo":"https://github.com/google/adk-python","references":["https://github.com/google/adk-python"],"platforms":["开发框架"],"status":"active"},
-    {"id":"copilot","provider":"github","name":"GitHub Copilot","kinds":["ide","web"],"description":"GitHub 提供的 AI 编程产品，覆盖编辑器与 GitHub 开发工作流。","role":"编程产品与托管工作流入口","open":"not-verified","license":"以 GitHub Copilot 产品条款为准","url":"https://github.com/features/copilot","references":["https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli"],"platforms":["IDE","Web"],"sourceId":"ai-copilot-news","status":"active"},
-    {"id":"copilot-cli","provider":"github","name":"GitHub Copilot CLI","kinds":["cli","harness"],"description":"在终端直接开展 Copilot 智能体任务。","role":"终端 agent 执行入口","open":"not-verified","license":"发布仓库存在，不据此断言核心开源","url":"https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli","repo":"https://github.com/github/copilot-cli","references":["https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli"],"platforms":["终端"],"sourceId":"ai-copilot-cli","status":"active"},
-    {"id":"copilot-sdk","provider":"github","name":"GitHub Copilot SDK","kinds":["sdk"],"description":"在应用与服务中集成 Copilot Agent 能力的多语言 SDK。","role":"既有 agent 能力的程序化集成层","open":"open","license":"以官方 SDK 仓库 LICENSE 为准","url":"https://github.com/github/copilot-sdk","repo":"https://github.com/github/copilot-sdk","references":["https://github.com/github/copilot-sdk"],"platforms":["多语言 SDK"],"status":"active"},
-    {"id":"qwen-code","provider":"alibaba","name":"Qwen Code","kinds":["cli","harness"],"description":"Qwen 团队的开源终端编程智能体。","role":"编程 agent 工具执行与任务循环","open":"open","license":"Apache-2.0（以仓库为准）","url":"https://github.com/QwenLM/qwen-code","repo":"https://github.com/QwenLM/qwen-code","references":["https://github.com/QwenLM/qwen-code"],"platforms":["终端"],"sourceId":"ai-qwen-code","status":"active"},
-    {"id":"lingma","provider":"alibaba","name":"通义灵码 / Lingma IDE","kinds":["ide","desktop"],"description":"阿里云官方智能编码助手与 IDE，提供规划、检索、编辑和工具能力。","role":"面向开发者的编程产品","open":"not-verified","license":"以阿里云官方产品条款为准","url":"https://lingma.aliyun.com/lingma","references":["https://lingma.aliyun.com/lingma"],"platforms":["IDE","编辑器插件"],"status":"active"},
-    {"id":"kimi-code","provider":"moonshot","name":"Kimi Code CLI","kinds":["cli","harness"],"description":"月之暗面的终端编程智能体，支持文件、命令与 ACP 编辑器集成。","role":"编程 agent 执行循环与终端界面","open":"open","license":"MIT（以当前官方仓库为准）","url":"https://github.com/MoonshotAI/kimi-code","repo":"https://github.com/MoonshotAI/kimi-code","references":["https://github.com/MoonshotAI/kimi-code"],"platforms":["终端","ACP"],"sourceId":"ai-kimi-code","status":"active"},
-    {"id":"deepseek-harness","provider":"deepseek","name":"DeepSeek Harness","kinds":["desktop","web","harness"],"description":"DeepSeek 官方开源 harness，覆盖编程、资料处理与可组合插件。","role":"基于 Cordis 的插件化 agent 运行体系","open":"open","license":"MIT（官方产品页标注）","url":"https://www.deepseek.com/en/harness/","repo":"https://github.com/deepseek-ai/deepseek-harness","references":["https://www.deepseek.com/en/harness/"],"platforms":["Windows","macOS","Web UI"],"sourceId":"ai-deepseek-harness","status":"preview","note":"官方仍标记 public preview，核心插件与 API 可能继续变化。"},
-    {"id":"minimax-code","provider":"minimax","name":"MiniMax Code","kinds":["cli","harness"],"description":"MiniMax 的开源终端编程智能体，可使用 MiniMax 或兼容的自有模型。","role":"编程 agent harness / ACP 入口","open":"open","license":"见仓库 LICENSE 及附加许可文件","url":"https://github.com/MiniMax-AI/minimax-code","repo":"https://github.com/MiniMax-AI/minimax-code","references":["https://github.com/MiniMax-AI/minimax-code"],"platforms":["终端","ACP"],"sourceId":"ai-minimax-code","status":"active"},
-    {"id":"minimax-agent","provider":"minimax","name":"MiniMax Agent","kinds":["web"],"description":"MiniMax 官方 Web 智能体产品，可处理开发与多步骤工作。","role":"托管智能体产品入口","open":"not-verified","license":"以官方服务条款为准","url":"https://agent.minimax.io/","references":["https://github.com/MiniMax-AI/MiniMax-M2.1"],"platforms":["Web"],"status":"active"},
-    {"id":"openagentcore","provider":"minimax","name":"OpenAgentCore","kinds":["framework"],"description":"MiniMax 官方的智能体编排与会话集成项目，可选择不同 harness。","role":"harness 编排层；不是模型，也不是单一编程客户端","open":"open","license":"以官方项目许可证为准","url":"https://github.com/MiniMax-AI/OpenAgentCore","repo":"https://github.com/MiniMax-AI/OpenAgentCore","references":["https://github.com/MiniMax-AI/OpenAgentCore/blob/main/docs/api/public-agent-api.md"],"platforms":["开发框架"],"status":"active"},
-    {"id":"mistral-vibe","provider":"mistral","name":"Mistral Vibe CLI","kinds":["cli","harness"],"description":"Mistral 官方终端编程智能体，提供项目理解、修改与命令执行。","role":"终端编程 agent 执行循环","open":"open","license":"以 mistralai/mistral-vibe LICENSE 为准","url":"https://docs.mistral.ai/getting-started/quickstarts/vibe-code/install-cli","repo":"https://github.com/mistralai/mistral-vibe","references":["https://docs.mistral.ai/getting-started/quickstarts/vibe-code/install-cli"],"platforms":["Windows","macOS","Linux"],"sourceId":"ai-mistral-vibe","status":"active"},
-    {"id":"zcode","provider":"zai","name":"ZCode","kinds":["desktop","harness"],"description":"Z.ai 的桌面智能体产品，提供端到端开发与工具工作流。","role":"内置 ZCode Agent 的桌面运行入口","open":"not-verified","license":"未确认整个桌面产品的开源许可","url":"https://zcode.z.ai/en/docs/install","references":["https://zcode.z.ai/en/docs/install","https://zcode.z.ai/en/docs/configuration"],"platforms":["Windows","macOS","Linux"],"sourceId":"ai-zcode","status":"active"},
-    {"id":"trae","provider":"bytedance","name":"TRAE IDE","kinds":["ide","desktop"],"description":"TRAE 官方 AI 开发产品，与开源 Trae Agent 项目分别列出。","role":"面向使用者的编程产品","open":"not-verified","license":"IDE 产品以官网条款为准","url":"https://www.trae.ai/","references":["https://www.trae.ai/","https://github.com/bytedance/trae-agent"],"platforms":["桌面 IDE"],"status":"active"},
-    {"id":"trae-agent","provider":"bytedance","name":"Trae Agent","kinds":["cli","harness"],"description":"字节官方开源软件工程 agent，便于研究和扩展多工具开发流程。","role":"模块化软件工程 agent / harness","open":"open","license":"MIT（以仓库为准）","url":"https://github.com/bytedance/trae-agent","repo":"https://github.com/bytedance/trae-agent","references":["https://github.com/bytedance/trae-agent"],"platforms":["Python","终端"],"status":"active","note":"开源 Trae Agent 不等于 TRAE IDE 的完整源码。"},
-    {"id":"codebuddy-ide","provider":"tencent","name":"CodeBuddy IDE","kinds":["ide","desktop"],"description":"腾讯官方 AI 代码编辑器和开发助手。","role":"AI 编程产品入口","open":"not-verified","license":"以腾讯官方产品条款为准","url":"https://www.codebuddy.ai/","references":["https://www.codebuddy.ai/"],"platforms":["IDE"],"status":"active"},
-    {"id":"codebuddy-cli","provider":"tencent","name":"CodeBuddy Code","kinds":["cli","harness"],"description":"腾讯官方 CLI 编程智能体，支持无界面运行与开发工作流。","role":"终端编程 agent 入口","open":"not-verified","license":"以官方文档及分发许可为准","url":"https://www.codebuddy.ai/docs/cli/installation","references":["https://www.codebuddy.ai/docs/cli/installation"],"platforms":["终端"],"status":"active"},
-    {"id":"comate","provider":"baidu","name":"文心快码 / Baidu Comate","kinds":["ide","desktop"],"description":"百度官方 AI 编程助手，提供 IDE、插件和 Zulu 编程智能体。","role":"集成编程 agent 的产品，不另行假定独立开源 harness","open":"not-verified","license":"以百度官方产品条款为准","url":"https://comate.baidu.com/docs/vscode.html","references":["https://comate.baidu.com/docs/vscode.html"],"platforms":["IDE","VS Code","JetBrains"],"status":"active"},
-    {"id":"grok-build","provider":"xai","name":"Grok Build","kinds":["cli","harness"],"description":"Grok 官方编程智能体，文档列有会话、权限、工具与后台任务。","role":"面向编程任务的终端 agent 执行入口","open":"not-verified","license":"未据空的发布仓库断言核心开源","url":"https://docs.x.ai/build/overview","references":["https://docs.x.ai/build/overview"],"platforms":["终端"],"status":"active"},
-    {"id":"kiro-ide","provider":"amazon","name":"Kiro IDE","kinds":["desktop","ide"],"description":"AWS 的 agentic 开发产品，提供 IDE 与相关任务入口。","role":"面向使用者的 AI 开发产品","open":"not-verified","license":"以 Kiro 官方产品条款为准","url":"https://kiro.dev/","references":["https://kiro.dev/docs/cli/"],"platforms":["IDE"],"status":"active"},
-    {"id":"kiro-cli","provider":"amazon","name":"Kiro CLI","kinds":["cli","harness"],"description":"Kiro 官方终端 agent，用自然语言完成开发与工具任务。","role":"终端智能体运行入口","open":"not-verified","license":"以 Kiro 官方许可为准","url":"https://kiro.dev/docs/cli/","references":["https://kiro.dev/docs/cli/"],"platforms":["终端"],"status":"active"},
-    {"id":"smolagents","provider":"huggingface","name":"smolagents","kinds":["framework"],"description":"Hugging Face 的轻量通用 agent 开发框架。","role":"通用 Agent 框架；不当作现成编程产品或专用 harness","open":"open","license":"以官方仓库 LICENSE 为准","url":"https://github.com/huggingface/smolagents","repo":"https://github.com/huggingface/smolagents","references":["https://github.com/huggingface/smolagents"],"platforms":["Python"],"status":"active"}
-  ]
+    {
+      "id": "codex-app",
+      "provider": "openai",
+      "name": "Codex · App / IDE",
+      "kinds": [
+        "desktop",
+        "ide"
+      ],
+      "description": "在桌面或编辑器中开展编程智能体任务，结合项目上下文、工具和审批流程。",
+      "role": "产品界面；复用 Codex harness",
+      "open": "mixed",
+      "license": "界面、开源组件与托管服务分别适用其许可",
+      "url": "https://developers.openai.com/learn/codex",
+      "references": [
+        "https://developers.openai.com/blog/codex-as-a-platform"
+      ],
+      "platforms": [
+        "以官方发布入口为准"
+      ],
+      "sourceId": "ai-codex",
+      "status": "active"
+    },
+    {
+      "id": "codex-cli",
+      "provider": "openai",
+      "name": "Codex CLI / app-server",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "终端编程智能体及可嵌入的会话服务，处理工具执行、上下文和审批。",
+      "role": "编程智能体执行层 / harness",
+      "open": "open",
+      "license": "以官方仓库 LICENSE 为准",
+      "url": "https://developers.openai.com/blog/codex-as-a-platform",
+      "repo": "https://github.com/openai/codex",
+      "references": [
+        "https://developers.openai.com/blog/codex-as-a-platform"
+      ],
+      "platforms": [
+        "终端",
+        "本地服务"
+      ],
+      "sourceId": "ai-codex",
+      "status": "active"
+    },
+    {
+      "id": "codex-sdk",
+      "provider": "openai",
+      "name": "Codex SDK",
+      "kinds": [
+        "sdk"
+      ],
+      "description": "通过程序启动、恢复和流式处理 Codex 任务，适合接入自有工作流。",
+      "role": "Codex harness 的程序化集成层",
+      "open": "open",
+      "license": "以官方组件许可为准",
+      "url": "https://developers.openai.com/codex/sdk",
+      "repo": "https://github.com/openai/codex",
+      "references": [
+        "https://developers.openai.com/blog/codex-as-a-platform"
+      ],
+      "platforms": [
+        "SDK"
+      ],
+      "sourceId": "ai-codex",
+      "status": "active"
+    },
+    {
+      "id": "claude-code",
+      "provider": "anthropic",
+      "name": "Claude Code",
+      "kinds": [
+        "cli",
+        "ide",
+        "harness"
+      ],
+      "description": "在终端和编辑器中执行代码理解、修改、命令运行等开发任务。",
+      "role": "面向使用者的编程智能体与运行循环",
+      "open": "not-verified",
+      "license": "商业产品条款；公开发布仓库不等于核心代码开源",
+      "url": "https://code.claude.com/docs/en/overview",
+      "repo": "https://github.com/anthropics/claude-code",
+      "references": [
+        "https://code.claude.com/docs/en/overview"
+      ],
+      "platforms": [
+        "终端",
+        "编辑器集成"
+      ],
+      "sourceId": "ai-claude-code",
+      "status": "active"
+    },
+    {
+      "id": "claude-agent-sdk",
+      "provider": "anthropic",
+      "name": "Claude Agent SDK",
+      "kinds": [
+        "sdk"
+      ],
+      "description": "使用 Claude Code 的工具与智能体循环，构建自己的代理工作流。",
+      "role": "复用既有 harness 能力的 SDK",
+      "open": "mixed",
+      "license": "SDK 及所依赖运行组件分别查看许可",
+      "url": "https://code.claude.com/docs/en/agent-sdk/overview",
+      "references": [
+        "https://code.claude.com/docs/en/agent-sdk/overview"
+      ],
+      "platforms": [
+        "Python",
+        "TypeScript"
+      ],
+      "sourceId": "ai-claude-code",
+      "status": "active"
+    },
+    {
+      "id": "antigravity-app",
+      "provider": "google",
+      "name": "Antigravity App / IDE",
+      "kinds": [
+        "desktop",
+        "ide"
+      ],
+      "description": "管理多个开发智能体、工作空间和编程任务的官方开发平台。",
+      "role": "与 Antigravity CLI 共享执行体系的产品入口",
+      "open": "not-verified",
+      "license": "以 Google 官方产品条款为准",
+      "url": "https://antigravity.google/",
+      "references": [
+        "https://antigravity.google/"
+      ],
+      "platforms": [
+        "桌面",
+        "IDE"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "antigravity-cli",
+      "provider": "google",
+      "name": "Antigravity CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Google 的终端编程智能体入口，支持自主任务与后台子智能体。",
+      "role": "与桌面产品共用的 agent harness 终端入口",
+      "open": "not-verified",
+      "license": "未确认核心运行组件的独立开源许可",
+      "url": "https://antigravity.google/product/antigravity-cli",
+      "references": [
+        "https://antigravity.google/product/antigravity-cli",
+        "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "antigravity-sdk",
+      "provider": "google",
+      "name": "Antigravity SDK",
+      "kinds": [
+        "sdk"
+      ],
+      "description": "用 Python 复用 Antigravity 的工具、agent loop 与上下文管理。",
+      "role": "既有编程 harness 的集成层",
+      "open": "mixed",
+      "license": "SDK 仓库与预编译运行时分别查看许可",
+      "url": "https://antigravity.google/product/antigravity-sdk",
+      "references": [
+        "https://antigravity.google/product/antigravity-sdk"
+      ],
+      "platforms": [
+        "Python"
+      ],
+      "status": "active",
+      "note": "官方明确依赖平台 wheel 中的编译运行时；仅克隆仓库不足以运行。"
+    },
+    {
+      "id": "gemini-cli",
+      "provider": "google",
+      "name": "Gemini CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Google 开源终端智能体；继续跟踪仓库发布，但须注意不同账号的服务迁移。",
+      "role": "开源终端 agent 运行层",
+      "open": "open",
+      "license": "以 google-gemini/gemini-cli LICENSE 为准",
+      "url": "https://github.com/google-gemini/gemini-cli",
+      "repo": "https://github.com/google-gemini/gemini-cli",
+      "references": [
+        "https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "sourceId": "ai-gemini-cli",
+      "status": "transition",
+      "note": "2026-05-19 官方通知个人用户转向 Antigravity；企业与付费 API 接入情况不同，请查看原文。"
+    },
+    {
+      "id": "google-adk",
+      "provider": "google",
+      "name": "Google ADK",
+      "kinds": [
+        "framework"
+      ],
+      "description": "用于构建和编排通用智能体的开发框架。",
+      "role": "通用 Agent 框架；不等同于现成编程 harness",
+      "open": "open",
+      "license": "以官方仓库 LICENSE 为准",
+      "url": "https://google.github.io/adk-docs/",
+      "repo": "https://github.com/google/adk-python",
+      "references": [
+        "https://github.com/google/adk-python"
+      ],
+      "platforms": [
+        "开发框架"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "copilot",
+      "provider": "github",
+      "name": "GitHub Copilot",
+      "kinds": [
+        "ide",
+        "web"
+      ],
+      "description": "GitHub 提供的 AI 编程产品，覆盖编辑器与 GitHub 开发工作流。",
+      "role": "编程产品与托管工作流入口",
+      "open": "not-verified",
+      "license": "以 GitHub Copilot 产品条款为准",
+      "url": "https://github.com/features/copilot",
+      "references": [
+        "https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli"
+      ],
+      "platforms": [
+        "IDE",
+        "Web"
+      ],
+      "sourceId": "ai-copilot-news",
+      "status": "active"
+    },
+    {
+      "id": "copilot-cli",
+      "provider": "github",
+      "name": "GitHub Copilot CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "在终端直接开展 Copilot 智能体任务。",
+      "role": "终端 agent 执行入口",
+      "open": "not-verified",
+      "license": "发布仓库存在，不据此断言核心开源",
+      "url": "https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli",
+      "repo": "https://github.com/github/copilot-cli",
+      "references": [
+        "https://docs.github.com/en/copilot/concepts/copilot-surfaces/copilot-cli"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "sourceId": "ai-copilot-cli",
+      "status": "active"
+    },
+    {
+      "id": "copilot-sdk",
+      "provider": "github",
+      "name": "GitHub Copilot SDK",
+      "kinds": [
+        "sdk"
+      ],
+      "description": "在应用与服务中集成 Copilot Agent 能力的多语言 SDK。",
+      "role": "既有 agent 能力的程序化集成层",
+      "open": "open",
+      "license": "以官方 SDK 仓库 LICENSE 为准",
+      "url": "https://github.com/github/copilot-sdk",
+      "repo": "https://github.com/github/copilot-sdk",
+      "references": [
+        "https://github.com/github/copilot-sdk"
+      ],
+      "platforms": [
+        "多语言 SDK"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "qwen-code",
+      "provider": "alibaba",
+      "name": "Qwen Code",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Qwen 团队的开源终端编程智能体。",
+      "role": "编程 agent 工具执行与任务循环",
+      "open": "open",
+      "license": "Apache-2.0（以仓库为准）",
+      "url": "https://github.com/QwenLM/qwen-code",
+      "repo": "https://github.com/QwenLM/qwen-code",
+      "references": [
+        "https://github.com/QwenLM/qwen-code"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "sourceId": "ai-qwen-code",
+      "status": "active"
+    },
+    {
+      "id": "lingma",
+      "provider": "alibaba",
+      "name": "通义灵码 / Lingma IDE",
+      "kinds": [
+        "ide",
+        "desktop"
+      ],
+      "description": "阿里云官方智能编码助手与 IDE，提供规划、检索、编辑和工具能力。",
+      "role": "面向开发者的编程产品",
+      "open": "not-verified",
+      "license": "以阿里云官方产品条款为准",
+      "url": "https://lingma.aliyun.com/lingma",
+      "references": [
+        "https://lingma.aliyun.com/lingma"
+      ],
+      "platforms": [
+        "IDE",
+        "编辑器插件"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "kimi-code",
+      "provider": "moonshot",
+      "name": "Kimi Code CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "月之暗面的终端编程智能体，支持文件、命令与 ACP 编辑器集成。",
+      "role": "编程 agent 执行循环与终端界面",
+      "open": "open",
+      "license": "MIT（以当前官方仓库为准）",
+      "url": "https://github.com/MoonshotAI/kimi-code",
+      "repo": "https://github.com/MoonshotAI/kimi-code",
+      "references": [
+        "https://github.com/MoonshotAI/kimi-code"
+      ],
+      "platforms": [
+        "终端",
+        "ACP"
+      ],
+      "sourceId": "ai-kimi-code",
+      "status": "active"
+    },
+    {
+      "id": "deepseek-harness",
+      "provider": "deepseek",
+      "name": "DeepSeek Harness",
+      "kinds": [
+        "desktop",
+        "web",
+        "harness"
+      ],
+      "description": "DeepSeek 官方开源 harness，覆盖编程、资料处理与可组合插件。",
+      "role": "基于 Cordis 的插件化 agent 运行体系",
+      "open": "open",
+      "license": "MIT（官方产品页标注）",
+      "url": "https://www.deepseek.com/en/harness/",
+      "repo": "https://github.com/deepseek-ai/deepseek-harness",
+      "references": [
+        "https://www.deepseek.com/en/harness/"
+      ],
+      "platforms": [
+        "Windows",
+        "macOS",
+        "Web UI"
+      ],
+      "sourceId": "ai-deepseek-harness",
+      "status": "preview",
+      "note": "官方仍标记 public preview，核心插件与 API 可能继续变化。"
+    },
+    {
+      "id": "minimax-code",
+      "provider": "minimax",
+      "name": "MiniMax Code",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "MiniMax 的开源终端编程智能体，可使用 MiniMax 或兼容的自有模型。",
+      "role": "编程 agent harness / ACP 入口",
+      "open": "open",
+      "license": "见仓库 LICENSE 及附加许可文件",
+      "url": "https://github.com/MiniMax-AI/minimax-code",
+      "repo": "https://github.com/MiniMax-AI/minimax-code",
+      "references": [
+        "https://github.com/MiniMax-AI/minimax-code"
+      ],
+      "platforms": [
+        "终端",
+        "ACP"
+      ],
+      "sourceId": "ai-minimax-code",
+      "status": "active"
+    },
+    {
+      "id": "minimax-agent",
+      "provider": "minimax",
+      "name": "MiniMax Agent",
+      "kinds": [
+        "web"
+      ],
+      "description": "MiniMax 官方 Web 智能体产品，可处理开发与多步骤工作。",
+      "role": "托管智能体产品入口",
+      "open": "not-verified",
+      "license": "以官方服务条款为准",
+      "url": "https://agent.minimax.io/",
+      "references": [
+        "https://github.com/MiniMax-AI/MiniMax-M2.1"
+      ],
+      "platforms": [
+        "Web"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "openagentcore",
+      "provider": "minimax",
+      "name": "OpenAgentCore",
+      "kinds": [
+        "framework"
+      ],
+      "description": "MiniMax 官方的智能体编排与会话集成项目，可选择不同 harness。",
+      "role": "harness 编排层；不是模型，也不是单一编程客户端",
+      "open": "open",
+      "license": "以官方项目许可证为准",
+      "url": "https://github.com/MiniMax-AI/OpenAgentCore",
+      "repo": "https://github.com/MiniMax-AI/OpenAgentCore",
+      "references": [
+        "https://github.com/MiniMax-AI/OpenAgentCore/blob/main/docs/api/public-agent-api.md"
+      ],
+      "platforms": [
+        "开发框架"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "mistral-vibe",
+      "provider": "mistral",
+      "name": "Mistral Vibe CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Mistral 官方终端编程智能体，提供项目理解、修改与命令执行。",
+      "role": "终端编程 agent 执行循环",
+      "open": "open",
+      "license": "以 mistralai/mistral-vibe LICENSE 为准",
+      "url": "https://docs.mistral.ai/getting-started/quickstarts/vibe-code/install-cli",
+      "repo": "https://github.com/mistralai/mistral-vibe",
+      "references": [
+        "https://docs.mistral.ai/getting-started/quickstarts/vibe-code/install-cli"
+      ],
+      "platforms": [
+        "Windows",
+        "macOS",
+        "Linux"
+      ],
+      "sourceId": "ai-mistral-vibe",
+      "status": "active"
+    },
+    {
+      "id": "zcode",
+      "provider": "zai",
+      "name": "ZCode",
+      "kinds": [
+        "desktop",
+        "harness"
+      ],
+      "description": "Z.ai 的桌面智能体产品，提供端到端开发与工具工作流。",
+      "role": "内置 ZCode Agent 的桌面运行入口",
+      "open": "not-verified",
+      "license": "未确认整个桌面产品的开源许可",
+      "url": "https://zcode.z.ai/en/docs/install",
+      "references": [
+        "https://zcode.z.ai/en/docs/install",
+        "https://zcode.z.ai/en/docs/configuration"
+      ],
+      "platforms": [
+        "Windows",
+        "macOS",
+        "Linux"
+      ],
+      "sourceId": "ai-zcode",
+      "status": "active"
+    },
+    {
+      "id": "trae",
+      "provider": "bytedance",
+      "name": "TRAE IDE",
+      "kinds": [
+        "ide",
+        "desktop"
+      ],
+      "description": "TRAE 官方 AI 开发产品，与开源 Trae Agent 项目分别列出。",
+      "role": "面向使用者的编程产品",
+      "open": "not-verified",
+      "license": "IDE 产品以官网条款为准",
+      "url": "https://www.trae.ai/",
+      "references": [
+        "https://www.trae.ai/",
+        "https://github.com/bytedance/trae-agent"
+      ],
+      "platforms": [
+        "桌面 IDE"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "trae-agent",
+      "provider": "bytedance",
+      "name": "Trae Agent",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "字节官方开源软件工程 agent，便于研究和扩展多工具开发流程。",
+      "role": "模块化软件工程 agent / harness",
+      "open": "open",
+      "license": "MIT（以仓库为准）",
+      "url": "https://github.com/bytedance/trae-agent",
+      "repo": "https://github.com/bytedance/trae-agent",
+      "references": [
+        "https://github.com/bytedance/trae-agent"
+      ],
+      "platforms": [
+        "Python",
+        "终端"
+      ],
+      "status": "active",
+      "note": "开源 Trae Agent 不等于 TRAE IDE 的完整源码。"
+    },
+    {
+      "id": "codebuddy-ide",
+      "provider": "tencent",
+      "name": "CodeBuddy IDE",
+      "kinds": [
+        "ide",
+        "desktop"
+      ],
+      "description": "腾讯官方 AI 代码编辑器和开发助手。",
+      "role": "AI 编程产品入口",
+      "open": "not-verified",
+      "license": "以腾讯官方产品条款为准",
+      "url": "https://www.codebuddy.ai/",
+      "references": [
+        "https://www.codebuddy.ai/"
+      ],
+      "platforms": [
+        "IDE"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "codebuddy-cli",
+      "provider": "tencent",
+      "name": "CodeBuddy Code",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "腾讯官方 CLI 编程智能体，支持无界面运行与开发工作流。",
+      "role": "终端编程 agent 入口",
+      "open": "not-verified",
+      "license": "以官方文档及分发许可为准",
+      "url": "https://www.codebuddy.ai/docs/cli/installation",
+      "references": [
+        "https://www.codebuddy.ai/docs/cli/installation"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "comate",
+      "provider": "baidu",
+      "name": "文心快码 / Baidu Comate",
+      "kinds": [
+        "ide",
+        "desktop"
+      ],
+      "description": "百度官方 AI 编程助手，提供 IDE、插件和 Zulu 编程智能体。",
+      "role": "集成编程 agent 的产品，不另行假定独立开源 harness",
+      "open": "not-verified",
+      "license": "以百度官方产品条款为准",
+      "url": "https://comate.baidu.com/docs/vscode.html",
+      "references": [
+        "https://comate.baidu.com/docs/vscode.html"
+      ],
+      "platforms": [
+        "IDE",
+        "VS Code",
+        "JetBrains"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "grok-build",
+      "provider": "xai",
+      "name": "Grok Build",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Grok 官方编程智能体，文档列有会话、权限、工具与后台任务。",
+      "role": "面向编程任务的终端 agent 执行入口",
+      "open": "not-verified",
+      "license": "未据空的发布仓库断言核心开源",
+      "url": "https://docs.x.ai/build/overview",
+      "references": [
+        "https://docs.x.ai/build/overview"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "kiro-ide",
+      "provider": "amazon",
+      "name": "Kiro IDE",
+      "kinds": [
+        "desktop",
+        "ide"
+      ],
+      "description": "AWS 的 agentic 开发产品，提供 IDE 与相关任务入口。",
+      "role": "面向使用者的 AI 开发产品",
+      "open": "not-verified",
+      "license": "以 Kiro 官方产品条款为准",
+      "url": "https://kiro.dev/",
+      "references": [
+        "https://kiro.dev/docs/cli/"
+      ],
+      "platforms": [
+        "IDE"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "kiro-cli",
+      "provider": "amazon",
+      "name": "Kiro CLI",
+      "kinds": [
+        "cli",
+        "harness"
+      ],
+      "description": "Kiro 官方终端 agent，用自然语言完成开发与工具任务。",
+      "role": "终端智能体运行入口",
+      "open": "not-verified",
+      "license": "以 Kiro 官方许可为准",
+      "url": "https://kiro.dev/docs/cli/",
+      "references": [
+        "https://kiro.dev/docs/cli/"
+      ],
+      "platforms": [
+        "终端"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "smolagents",
+      "provider": "huggingface",
+      "name": "smolagents",
+      "kinds": [
+        "framework"
+      ],
+      "description": "Hugging Face 的轻量通用 agent 开发框架。",
+      "role": "通用 Agent 框架；不当作现成编程产品或专用 harness",
+      "open": "open",
+      "license": "以官方仓库 LICENSE 为准",
+      "url": "https://github.com/huggingface/smolagents",
+      "repo": "https://github.com/huggingface/smolagents",
+      "references": [
+        "https://github.com/huggingface/smolagents"
+      ],
+      "platforms": [
+        "Python"
+      ],
+      "status": "active"
+    }
+  ],
+  "modelData": {
+    "asOf": "2026-10-21",
+    "datasetVersion": "0.2.0",
+    "origin": "AI情报站/local-site/data/dataset.js",
+    "profiles": [
+      {
+        "id": "moonshot",
+        "name": "月之暗面",
+        "nameEn": "Moonshot AI",
+        "group": "cn",
+        "overview": "以长上下文起家的北京厂商，2026 年靠 2.8T 开放权重的 K3 拿到「DeepSeek 时刻」，编程与长程 Agent 是当前主打。",
+        "strategy": "双线：K3 / K2.6 / K2.7 Code 开放权重（K3 用自研 Kimi K3 License，非 OSI），K2.8 Preview 闭源仅走 API 与会员。",
+        "lastEventDate": "2026-10-11",
+        "toolNote": "工具形态在国内最完整的一档：CLI（MIT 开源）+ VS Code 插件 + 桌面客户端 + Web + API 同一套 Agent 体系，可国内直连。",
+        "strengths": [
+          {
+            "text": "长上下文有实证而非营销：官方报告称 BrowseComp 在完整 1M 窗口、不做上下文压缩时仍达 90.4%。",
+            "sourceIds": [
+              "kimi-tr"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "长程 Agent 能力有第三方交叉验证：Fireworks 在 1030 个真实 Agent 任务上评 K3 接近 Claude Fable 5 而成本约其一半；SWE-Marathon（24 小时 GPU 内核优化）42.0 高于对照的 35.0。",
+            "sourceIds": [
+              "kimi-bench"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "全球首个 3T 级开放权重，权重上线 30 分钟登顶 HF 趋势榜，SGLang 与昇腾发布当日完成适配。",
+            "sourceIds": [
+              "k3-gh"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "商业化已被验证：ARR 从 3 月 1 亿美元增至 8 月 10 亿美元；K2.5 上线 20 天收入超过 2025 全年，海外收入反超国内。",
+            "sourceIds": [
+              "kimi-baike"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "编程工具链开源（Kimi Code CLI 为 MIT），自建与二开无门槛。",
+            "sourceIds": [
+              "kimi-code"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "绝对能力仍非第一：官方自认落后 Claude Fable 5 与 GPT-5.6 Sol，且在自家 Kimi Code Bench 2.0 上输给对手；未公布 SWE-bench Verified 标准分，横向可比性差。",
+            "sourceIds": [
+              "kimi-bench"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "性价比叙事松动且缺 Flash 级产品：K3 较 K2.6 涨价三倍以上，而同期 OpenAI/Anthropic 在降价。",
+            "sourceIds": [
+              "kimi-price"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "算力挤兑已影响服务：2026-07-20 因 K3 调用激增暂停新用户订阅；K2.6 上线期间出现功能异常并全员补偿。",
+            "sourceIds": [
+              "kimi-baike",
+              "kimi-platform"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "「开源」被许可证打折：Kimi K3 License 含 2000 万美元/12 个月收入门槛与 1 亿 MAU 署名义务，非 OSI 批准，自托管需过法务审查。",
+            "sourceIds": [
+              "k3-gh"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "地缘与合规敞口大，路线图不透明：K3.1、K4 与上市均依赖第三方或泄露信息，官方未表态。",
+            "sourceIds": [],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "超长上下文工程与整仓代码/长文档直喂",
+          "长程自主 Agent 与终端、前端编程",
+          "需私有化部署且可过许可证审查的中文场景",
+          "成本敏感的日常高频编码用 K2.7/2.8 承接，K3 只留给关键难任务"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "zai",
+        "name": "智谱",
+        "nameEn": "Z.ai / BigModel",
+        "group": "cn",
+        "overview": "清华 KEG 背景，2026-01 港交所上市（02513.HK），海外品牌 Z.ai、国内入口 BigModel。走「基座开源 + 旗舰分层」，同一基座靠后训练快速迭代。",
+        "strategy": "GLM-5/5.2/5.3-Flash 用 MIT，旗舰 GLM-5.3 改回自订许可（>100 亿美元营收且提供 MaaS 需过安全审查），垂直模型 GLM-Legal 不开权重。",
+        "lastEventDate": "2026-10-13",
+        "toolNote": "模型 + ZCode Harness + Coding Plan + AutoClaw 构成闭环，Coding Plan 兼容 Claude Code/Cursor/Cline 等 20+ 第三方工具。",
+        "strengths": [
+          {
+            "text": "开源档位罕见地高：GLM-5.3-Flash 用 MIT 把前沿级能力、原生多模态、1M 上下文与 320B-A18B 低激活成本放进同一个模型，FP8 权重公开并给出 SGLang/vLLM/KTransformers 部署路径。",
+            "sourceIds": [
+              "zai-docs"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "智能/成本比突出：第三方 Artificial Analysis 智能指数 60 与旗舰档持平而 API 价格约其 1/3–1/5；Flash 档 $0.15/$0.50，缓存命中 $0.03。",
+            "sourceIds": [
+              "zai-price"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "迭代成本低：5.2→5.3 基座不变、提升全来自后训练，Terminal-Bench 3.0 从 4.6 跳到 28.3。",
+            "sourceIds": [
+              "glm53-doc"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "国产算力可交付性成叙事资产：约 10 万张国产芯片集群承载推理，FlashX 达 200 tok/s。",
+            "sourceIds": [
+              "zai-price"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "防御侧安全指标强：CyberGym 84.5 高于同期闭源旗舰（官方自报）。",
+            "sourceIds": [
+              "glm53-doc"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "ZCode 静默上传事件造成信任损伤：2026-09-18 被逆向披露打包上传整仓快照（含 .git 历史）且失败重试 564 次；开源仓库仅 2 个提交、84 万行一次性倒入，CLI 非交互默认高权限。",
+            "sourceIds": [
+              "glm-leak",
+              "zcode-gh"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "旗舰许可证退回到自订条款，对大型云厂商构成准入闸门，削弱「可自由商用」卖点。",
+            "sourceIds": [
+              "zai-docs"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "评测以厂商自报为主且复现门槛高：多数分数绑定自定 harness 与 max 推理档，744B 权重 FP8 约 756GB，本地几乎不可行。",
+            "sourceIds": [
+              "glm53-doc"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "财务与估值承压：2026 上半年营收 9.54 亿元（+399.7%）但归母亏损 20.71 亿元；股价自 6 月峰值大幅回落，两个月内两次大额摊薄配售。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "关键官方入口可达性差：z.ai/blog 正文、HuggingFace 与 GitHub org 页多次抓取失败或限流，第三方核验依赖二手中文源。",
+            "sourceIds": [],
+            "confidence": "unverified",
+            "originalConfidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "成本敏感的高吞吐 Coding Agent 与终端自动化",
+          "需自托管、数据不出域且要真 MIT 许可的中文场景",
+          "中文办公与桌面 GUI 自动化（AutoClaw / AutoGLM）",
+          "代码审查与漏洞发现（分数高但需自建护栏）"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "bytedance",
+        "name": "字节跳动",
+        "nameEn": "Seed / Doubao / 火山引擎",
+        "group": "cn",
+        "overview": "Seed 团队供模型、豆包做品牌、火山方舟做 B2B 交付。多模态与端侧分发是国内最强一档，纯代码工程相对落后。",
+        "strategy": "商用模型全部闭源（Seed 2.x / Seedance / Seedream / ASR / TTS 均无权重），仅研究性子项目开源（Seed-OSS-36B、BAGEL、UI-TARS 等，多 Apache-2.0）。",
+        "lastEventDate": "2026-10-23",
+        "toolNote": "TRAE 是国产 AI IDE 里迭代最激进的一档，但产品命名与组织在 2026 年剧烈震荡：SOLO→TraeWork→合并回 TRAE，TraeWork 于 2026-10-23 停止服务。",
+        "strengths": [
+          {
+            "text": "价格优势可核：Seed-2.1-Pro ¥6/¥30，官方称综合成本较同级闭源旗舰低近 80%；lite 档 ¥0.8/¥2.7 属同级最低。",
+            "sourceIds": [
+              "ark-list"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "规模已被验证：截至 2026-06 日均 Token 调用 180 万亿（同比 +10 倍）；IDC 口径 2025 年中国公有云 MaaS 份额 49.5% 第一。",
+            "sourceIds": [
+              "ark-rel"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "视觉/多模态差异化：官方表内 ERQA 72.0、BabyVision 73.7、WorldVQA 53.0 高于同期闭源旗舰；Seedance 2.5 支持 30 秒单次生成与 50 个多模态参考。",
+            "sourceIds": [
+              "seed21"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "端侧分发唯一性：接入豆包、TRAE、扣子与特斯拉中国车机、努比亚手机，百科口径运行于 7 亿+ 终端。",
+            "sourceIds": [
+              "ark-rel"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "Seed-Evolving 用统一 Model ID 做周级滚动升级，企业不改接入地址即可跟进。",
+            "sourceIds": [
+              "ark-rel"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "组织与产品高频震荡：SOLO→TraeWork（6 月）→并入豆包体系（8 月）→合并回 TRAE（10-09）→TraeWork 停服（10-23），四个月一个产品生命周期，原负责人离职。",
+            "sourceIds": [
+              "trae-merge"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "「永久免费」承诺破裂：2026-07 起免费用户触发额度耗尽，2026-08-21 转积分计费，旗舰需会员档。",
+            "sourceIds": [
+              "trae-cn"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "纯代码工程是明确短板：官方表内 NL2Repo 47.0 大幅低于对照闭源旗舰的 58.2，SWE-Atlas 35.2 对 44.7。",
+            "sourceIds": [
+              "seed21"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "信息黑箱，可核查性极差：Seed 2.x 从不披露参数规模、无技术报告、无权重，benchmark 全为自测，第三方数据库数值互相矛盾。",
+            "sourceIds": [
+              "seed21"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "合规与海外可得性受限：美国 IP 访问豆包提示地区限制；2026-07-15 因拟人智能体新规下线智能体身份功能；TRAE 国际版需特殊网络。",
+            "sourceIds": [
+              "trae-cn"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "高并发且成本敏感的中文多模态与全模态输入",
+          "国内直连的 Agentic Coding（TRAE + 方舟 Coding Plan）",
+          "视频/图像/音频批量生产",
+          "不适合：需要可审计权重、旗舰私有微调或海外部署的团队"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "google",
+        "name": "Google DeepMind",
+        "nameEn": "Gemini",
+        "group": "intl",
+        "overview": "模型全线闭源，靠超长上下文、原生多模态与工具链完整度做对照基准。2026 年在代码工具上动作最激进。",
+        "strategy": "纯闭源，仅 API 与订阅交付；第三方模型（Claude、GPT-OSS）以配额制形式进入 Antigravity。",
+        "lastEventDate": "2026-10-13",
+        "toolNote": "Antigravity 已取代 Gemini CLI 成为主力（后者 2026-06-18 停服），Jules 异步 Agent 并入 Antigravity 2.0。",
+        "strengths": [
+          {
+            "text": "上下文与多模态均衡：Gemini 4 Argon 输入+输出合计 1M 上下文，文本/图像/音频/视频统一输入。",
+            "sourceIds": [
+              "gem4"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "价格进攻性强：Argon 首促 $2/$10，约为同级对手的 1/5（12-01 起翻倍，缓存输入 95% 折扣）。",
+            "sourceIds": [
+              "gem4"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "工具链闭环最完整：Antigravity 桌面 IDE + CLI（agy）+ 本地 SDK + Managed Agents + Jules 一体化。",
+            "sourceIds": [
+              "antigrav"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "大陆不可达，API 需海外区域、海外支付与凭据。",
+            "sourceIds": [],
+            "confidence": "unverified",
+            "originalConfidence": "verified"
+          },
+          {
+            "text": "免费层持续收缩：2026-04 起 Pro 级模型退出免费 API 层。",
+            "sourceIds": [
+              "g-changelog"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "跑分与真实体验有落差：内部员工称 Argon 实际编程体验不及自报分数；所有 benchmark 均为厂商自报。",
+            "sourceIds": [
+              "gem4"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "超长上下文多模态检索与整库理解",
+          "需要成熟 Agent 编排与工具链的团队",
+          "不适合：大陆直连、合规不出域"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "xai",
+        "name": "xAI",
+        "nameEn": "Grok",
+        "group": "intl",
+        "overview": "编程与 Agent 优先定位，算力投入极端（Colossus 2 约 55 万 GPU）。长时程复杂任务仍落后头部闭源旗舰。",
+        "strategy": "全线闭源 API；Grok Build 终端 harness 以 Apache-2.0 开源，但旗舰模型不进公开 API。",
+        "lastEventDate": "2026-09-21",
+        "toolNote": "grok-4.7 Fast 仅在 Cursor 与 Grok Build 内可用，不对外开放 API——旗舰能力与 API 可得性已经脱钩。",
+        "strengths": [
+          {
+            "text": "编程定位明确：CursorBench、SWE-bench 复核成绩强，Terminal-Bench 4.0 38.0（自报）。",
+            "sourceIds": [
+              "grok47"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "算力雄厚：Colossus 2 于 2026-01-17 上线，为报道称的首个 GW 级训练集群，约 55 万 GPU。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "价格中低（$2/$6）且编程 harness 开源，可自建。",
+            "sourceIds": [
+              "grokbuild"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "大陆不可达；美国区端点加价 10%。",
+            "sourceIds": [],
+            "confidence": "unverified",
+            "originalConfidence": "verified"
+          },
+          {
+            "text": "复杂长时程任务明显落后 Claude/GPT（Terminal-Bench、DeepSWE 差距可见）。",
+            "sourceIds": [
+              "grok46"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "财务与组织承压：ARR 约 5 亿美元而月燃烧约 10 亿美元，11 位联创在 2026-03 前全部离职；Grok 5 连续跳票。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "来源可信度低：多篇报道混用 SpaceXAI 名义，部分事实只能靠二手中文源交叉。",
+            "sourceIds": [
+              "grok47"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "终端与 IDE 内的高强度编码 Agent",
+          "不适合：需要开放权重、大陆可达或财务稳定的长期供应商"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "meta",
+        "name": "Meta",
+        "nameEn": "Muse（原 Llama）",
+        "group": "intl",
+        "overview": "2026 年开源路线两次反转，是国产开源对比中最值得盯的样本：结束 Llama 开放线、转闭源、再用自订许可回归开放权重。",
+        "strategy": "旗舰 Muse Wonder 纯闭源 API；Muse Spark Open 816B 开放权重但使用「Muse Model License」（免费商用需署名，年营收 >2000 万美元的 MaaS 提供商需另行签约）；仅小模型 Glimmer 30B 用真 Apache-2.0。",
+        "lastEventDate": "2026-10-15",
+        "toolNote": "Llama API 已于 2026-07-06 关停，仅保留权重下载；编程工具为 Muse Code（2026-08-05 Beta）。",
+        "strengths": [
+          {
+            "text": "816B/42B 激活的开放权重，对标国产开源旗舰，可本地部署。",
+            "sourceIds": [
+              "muse-open"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "生态适配面历史最广：vLLM/SGLang/TensorRT-LLM/llama.cpp/MLX/Unsloth 全覆盖，多家推理平台已上架。",
+            "sourceIds": [
+              "muse-open"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "开源旗号名不副实：旧 Llama Community License 本就被 OSI 判为非开源，2026-10 回归开放权重仍用带营收门槛的自订许可，纯 Apache-2.0 只给 30B 小模型。",
+            "sourceIds": [
+              "llama-lic",
+              "muse-open"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "已砍掉最强模型的权重（Wonder 全闭源），且开放版性能低于闭源版。",
+            "sourceIds": [
+              "muse-open"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "承诺落地反复（结束→回归→改许可→API 关停），企业难做长期路线规划。",
+            "sourceIds": [
+              "llama-api"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "需要大体量可下载权重且不介意署名/营收条款的自建场景",
+          "不适合作为长期依赖：许可证与 API 可得性变动频繁"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "mistral",
+        "name": "Mistral AI",
+        "nameEn": "Mistral / Le Chat / Vibe",
+        "group": "intl",
+        "overview": "法国厂商，坚持开放权重路线作为欧洲对照中国的定位；旗舰万亿参数模型号称「中国以外最强开放权重」。",
+        "strategy": "开放权重为主，但旗舰 Large 4 截至 2026-10 仅公开预览、许可证未定、权重未放出。",
+        "lastEventDate": "2026-10-06",
+        "toolNote": "Le Chat 于 2026-05 升级为统一 Vibe 产品（Work + Code 双模式），Vibe CLI 为编码 Agent，默认模型由 Devstral 2 换成 Medium 3.5。",
+        "strengths": [
+          {
+            "text": "万亿参数（1.05T MoE，约 49–52B 激活）开放权重在欧洲稀缺，服务成本低、定价低。",
+            "sourceIds": [
+              "large4"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "工具链完整且可自托管，主权 AI 定位明确。",
+            "sourceIds": [
+              "mistral-vibe"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "「开放权重」承诺尚未落地：截至 2026-10-08 未见命名许可证与 HF 仓库，权重可得性不可核实。",
+            "sourceIds": [
+              "large4",
+              "sina-large4"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "第三方智能指数（AA 38.4）低于 Kimi K3 与 Qwen 系，能力位次落后国产开源旗舰。",
+            "sourceIds": [
+              "aa-large4"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "中文生态与大陆可达性均弱。",
+            "sourceIds": [],
+            "confidence": "unverified"
+          }
+        ],
+        "scenarios": [
+          "欧洲主权与合规优先的自托管场景",
+          "不适合作为国产开源的能力对标上限"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "alibaba",
+        "name": "阿里巴巴",
+        "nameEn": "Qwen / 千问",
+        "group": "cn",
+        "overview": "通义实验室供模型、阿里云做商业化，2026-03 品牌统一为「千问」。开源梯队最完整、芯片适配最中立的一家。",
+        "strategy": "API 侧 Max/Plus/Flash 闭源生产档；权重侧长期开源，27B 档保持 Apache 2.0，Max 级权重首次开放但改用自定义 qwen3.8-max 许可。",
+        "lastEventDate": "2026-09-22",
+        "toolNote": "全栈闭环：千问AI平台 + 百炼 + 魔搭 + Qoder + Qwen Code + 平头哥芯片。通义灵码已更名 Qoder CN 并进入退市时间表。",
+        "strengths": [
+          {
+            "text": "同价位上下文与价格最激进：1M 上下文 + 旗舰 ¥12/¥36、缓存命中 ¥1.5，Flash 档 ¥0.8/¥2.7（缓存 ¥0.1），显著低于美国同级。",
+            "sourceIds": [
+              "qwen-price",
+              "qwen-max-doc"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "开源梯队「去低端化」：Max 级 2.4T-A95B 权重首次开放，同时保住 27B Apache 2.0 单卡可跑档位（HF 下载 758 万+）。",
+            "sourceIds": [
+              "qwen-changelog",
+              "qwen-27b"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "芯片与推理框架中立：FlagOS 完成 9 家国产芯片（含昇腾、平头哥、沐曦）Day-0 适配，vLLM/SGLang/Transformers 首日支持——信创场景稀缺。",
+            "sourceIds": [
+              "modelscope"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "多协议兼容降低迁移成本：API 同时兼容 OpenAI chat/completions、responses 与 Anthropic 接口，可直接被 Claude Code / Codex 指向。",
+            "sourceIds": [
+              "qwen-changelog"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "魔搭作为开源分发主渠道已成型：2026-03 口径 2500 万用户、17 万模型、9200+ MCP Server。",
+            "sourceIds": [
+              "modelscope"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "许可证漂移：Max 级权重改为自定义许可，Qwen3.8-Flash-Next 用 Qwen Community License 1.0（月活超 1 亿或月收入超 2000 万美元须显著署名，编码/办公类 MaaS 须另行授权），商用合规成本上升。",
+            "sourceIds": [
+              "qwen-changelog"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "迭代过快、版本生命周期短：2026 年 2→4→5→8→9 月连续换代，快照与别名并行，选型极易过时；部分 preview 档定价与文档口径不统一。",
+            "sourceIds": [
+              "qwen-price",
+              "qwen-changelog"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "工具线「改名 + 砍免费」造成信任损耗：灵码更名 Qoder CN 后原 6 个 SKU 停新购并确定 2027-09-15 停服；Qwen Code 的免费 OAuth 额度于 2026-04-15 终止。",
+            "sourceIds": [
+              "qwen-notice"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "C 端黏性显著弱于豆包：2026-09 千问月活 1.58 亿对豆包 4.19 亿；人均使用次数 17.4 次对 76.7 次。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "一手资料难以核验：qwen.ai/blog、GitHub org 与 HuggingFace 直连均不可达，多数跑分依赖厂商自评与二手转载；SWE-bench Pro 与 HLE 仍落后 Anthropic 系。",
+            "sourceIds": [
+              "qwen-27b"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "中文长文档/整仓代码一次性喂入（1M + 低价缓存）",
+          "信创与私有化自持权重（27B Apache 2.0 或多芯片 2.4T）",
+          "高调用量 Agent 后端（Flash + Batch 五折）",
+          "国内合规 IDE/CLI 编码栈（Qoder + Qwen Code，注意灵码退市时间表）"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "deepseek",
+        "name": "DeepSeek",
+        "nameEn": "深度求索",
+        "group": "cn",
+        "overview": "幻方系，效率架构路线的代表。V4 系列把 1M 上下文的单 token 计算量压到前代 27%，并用 MIT 全栈开放权重 + 开源 harness 参与 Agent 生态竞争。",
+        "strategy": "开放权重 + API 双轨，V4/V4.1 全系 MIT；Harness、Deep Code、TileLang 昇腾组件同样 MIT，无 MAU 或署名限制。",
+        "lastEventDate": "2026-10-20",
+        "toolNote": "常见误判需纠正：DeepSeek 并非「只有 API + 聊天客户端」。官方自研 Harness（dsh）与 Deep Code 已在官方 Agent Tools 文档中列为主力工具，只是没有 IDE、没有企业托管版与 SLA。",
+        "strengths": [
+          {
+            "text": "价格地板：flash 非缓存输入平峰 ¥1/M、输出 ¥4/M，缓存命中低至 ¥0.02/M（较未命中便宜 50 倍），直接改写 Agent 高命中场景的成本结构。",
+            "sourceIds": [
+              "ds-pricing"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "MIT 全栈开放权重，可商用、可自托管、无署名与收入门槛——是本数据集里许可最干净的旗舰级权重。",
+            "sourceIds": [
+              "ds-news1017",
+              "ds-tools"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "架构级效率有报告支撑：1M 上下文下 V4-Pro 单 token FLOPs 仅 V3.2 的 27%、KV Cache 10%；V4.1 Flash 的 HBM 需求降至上一代 1/4。",
+            "sourceIds": [
+              "ds-v4",
+              "ds-news0910"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "Agent/编程实测位次进入第一梯队：官方表内 DeepSWE v1.1 77.0、ApexBench 72.1、Automation-Bench 60.5 超过对照闭源旗舰。",
+            "sourceIds": [
+              "ds-news1017"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "官方 harness 增速罕见（建仓 66 天 25 万+ Star，MIT/TypeScript），是少数能与 Claude Code、Codex 并列的开源 harness。",
+            "sourceIds": [
+              "ds-tools"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "服务稳定性是硬伤：2026 年内多次大面积宕机（3 月底连续 8 小时并上热搜），「服务器繁忙」高频，深度思考模式一度限流至 4 小时 1 次。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "API 契约不稳定：09-09 宣布 V4 Pro 于 09-14 下线并静默路由到 Flash，不到 48 小时遭开发者集体抗议后撤回、原公告被原地删除。对生产环境的版本冻结要求是实质风险。",
+            "sourceIds": [
+              "ds-retract"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "峰谷定价抬升成本：2026-08 起 Pro 高峰输出 ¥27/M，缓存输入最高涨幅达 1100%；Pro 并发仅 500。",
+            "sourceIds": [
+              "ds-pricing"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "纯知识与世界知识维度落后自家 Pro 与竞品：官方表内 GPQA Diamond 90.9、HLE 39.1 均低于 V4 Pro。",
+            "sourceIds": [
+              "ds-news0910"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "工具生态「框架强、产品弱」：Harness 官方明确标注开发者预览、未经安全审计，建议容器/虚拟机运行；无 IDE、无企业托管与 SLA，C 端功能还在收缩。",
+            "sourceIds": [
+              "ds-tools"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "高并发长上下文 Agent 与编程流水线（1M + ¥0.02 缓存 + 2500 并发）",
+          "国产芯片私有化部署（昇腾 Day-0 + MIT + TileLang）",
+          "中文 + 数学/竞赛代码任务",
+          "不适合：HLE 类重度知识问答、对 SLA 与模型版本冻结有硬要求的场景"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "minimax",
+        "name": "MiniMax",
+        "nameEn": "稀宇科技",
+        "group": "cn",
+        "overview": "四条模态线（文本/视频/语音/音乐）全自研并用单一订阅打通，港股 00100.HK。核心卖点是价格与全模态，而非单模态质量上限。",
+        "strategy": "混合「开放权重 + 自定义商业许可」，非 OSI 开源：M2.7 用禁止商用的 Modified-MIT，M3 用带署名与收入门槛的 Community License，H3 许可直接排除美/欧/英/韩。",
+        "lastEventDate": "2026-10-19",
+        "toolNote": "编程工具链闭环且可审计：自研模型 + MIT 开源 CLI（mcode）+ 桌面 Agent + MCP + BYOK 不锁自家模型；但桌面端源码不开源。",
+        "strengths": [
+          {
+            "text": "单位成本极低且档位透明：M3.1 Flash ¥1/¥4、缓存 ¥0.1；M3 在 ≤512K 档 ¥2.1/¥8.4（永久五折后）。官方称 1M 上下文下每 token 计算量降至前代 1/20。",
+            "sourceIds": [
+              "mm-price",
+              "mm-blog"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "全模态自研 + 单一订阅：文本/视频/语音/音乐共池，M Plan 一档覆盖图文音视频，国内少见。",
+            "sourceIds": [
+              "mm-price"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "开源分发速度快：M3（6 月）→ H3 权重（发布后 3 天）→ Code CLI（9 月）→ M3.1 Flash（10 月），H3 生态三周下载 2400 万。",
+            "sourceIds": [
+              "mm-h3",
+              "mm-cli"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "B 端商业化出现拐点：2026H1 开放平台及企业服务收入 7390 万美元、占比 63.4%，首次超过 C 端（同比 +703.1%）。",
+            "sourceIds": [
+              "mm-fin"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "毛利与预期背离：2026H1 毛利率 17.9%（大摩预期 29.5%），经调整净亏 2.93 亿美元、同比扩大 111.2%，研发开支为半年收入的 2.5 倍；市值自峰值 4100 亿港元跌至约 1058 亿。",
+            "sourceIds": [
+              "mm-fin"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "许可证反复收紧形成「伪开源」争议：M2.7 非商用条款导致 OpenRouter 等平台无法托管，M3 设署名与收入门槛，H3 排除美欧英韩——海外采用与合规成本高。",
+            "sourceIds": [
+              "mm-price",
+              "mm-h3"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "无单一模态压倒性优势：H3 在时长（15s）、参考素材（12）、分辨率（2K）三项核心参数上全面落后同日发布的海报级对手（30s/50/4K）。",
+            "sourceIds": [
+              "mm-h3"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "关键事实不透明：M3.1 Flash 无参数量、无模型卡，benchmark 全为厂商自报且无第三方复现；权重开放日期只写「稍后」。独立测试给出 53/80（66.25%）与同批闭源旗舰 93.75% 的差距，并报告极高幻觉率。",
+            "sourceIds": [
+              "mm-blog"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "部分模态商业化未跑通：音乐生成付费 API 于 2026-08-20 起停止新用户服务。",
+            "sourceIds": [
+              "mm-price"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "高频 Agent / CI 编码流水线的低成本执行层",
+          "大代码库、长文档、长视频理解",
+          "广告/电商/动效类短视频批量产出（可自托管）",
+          "中文 TTS 流水线（注意音乐 API 已对新用户关闭）"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "openai",
+        "name": "OpenAI",
+        "nameEn": "GPT",
+        "group": "intl",
+        "overview": "闭源前沿实验室，分发面最广（ChatGPT 约 12 亿用户 + Codex 四端）。价格带从 $0.10 拉到 $10，五档覆盖。",
+        "strategy": "模型权重闭源（仅 gpt-oss 系列开放权重，Apache 2.0）；工具链开源（Codex CLI Apache-2.0、Agents SDK MIT）。",
+        "lastEventDate": "2026-10-05",
+        "toolNote": "Codex 已从 CLI 扩展为云端 + IDE 扩展 + 桌面 + Code Review 四端，DevDay 2026 云端正式 GA，可在手机发起、由 OpenAI 托管云电脑续跑。",
+        "strengths": [
+          {
+            "text": "抽象推理与数学已到饱和级：自报 ARC-AGI-3 99.9%、FrontierMath Tier4 97.6%、GPQA Diamond 96.0%。",
+            "sourceIds": [
+              "oai-astra"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "长任务 Agent 工程化：1.05M 上下文 + 自主记笔记（不依赖摘要压缩），OSWorld 2.0 72.6%。",
+            "sourceIds": [
+              "oai-devday"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "价格带极宽：从 Luna $0.10/$0.50（缓存 $0.01）到 Astra $10/$50 共五档，同一厂商内即可完成成本分层。",
+            "sourceIds": [
+              "oai-price"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "分发与集成面最广：ChatGPT、Codex 四端、Agents SDK/API、Bedrock/Azure 多渠道，MCP 作为 connector 基座。",
+            "sourceIds": [
+              "oai-codex"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "中文与多语言证据薄：无官方中文编码榜，多以 GMMLU 等替代指标推断。",
+            "sourceIds": [],
+            "confidence": "unverified",
+            "originalConfidence": "verified"
+          },
+          {
+            "text": "旗舰极贵且长上下文触发改档定价（Astra >272K）。",
+            "sourceIds": [
+              "oai-price"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "模型 ID 生命周期风险：gpt-5.5 已于 2026-10-14 下线；权重闭源意味着无自托管退路。",
+            "sourceIds": [
+              "oai-changelog"
+            ],
+            "confidence": "verified"
+          },
+          {
+            "text": "无国产合规路径：官方支持地区清单不含中国大陆，不支持数据出境豁免，机密推理仍在预览；大陆实际依赖第三方中转，合规与调包风险由报道方明确指出。",
+            "sourceIds": [
+              "region-block"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "长链复杂 Agent 与电脑操作",
+          "跨语言软件工程（Codex 生态）",
+          "科研级数学/推理",
+          "不适合：需自托管权重或大陆合规交付"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "anthropic",
+        "name": "Anthropic",
+        "nameEn": "Claude",
+        "group": "intl",
+        "overview": "分层为 Fable/Mythos > Opus > Sonnet > Haiku。智能体编码与终端任务的长期第一梯队，企业订阅份额已反超 OpenAI。",
+        "strategy": "全线闭源，是 2026-07 开放权重联署中唯一未签名的头部厂商。MCP 由 Anthropic 创制、2025-12 捐入 Linux 基金会。",
+        "lastEventDate": "2026-10-18",
+        "toolNote": "工具链最平台化：CLI + VS Code/JetBrains + 桌面 + Web + Agent SDK + Managed Agents，并进入 Xcode 26.3 原生集成。Claude Code 已成为多家国产 IDE 与国产模型的对标 harness。",
+        "strengths": [
+          {
+            "text": "智能体编码与终端任务长期第一梯队：Sonnet 5.5 的 Terminal-Bench 4.0 70.6%、Opus 5.5 的 DeepSWE v1.1 74.2%（自报）。",
+            "sourceIds": [
+              "ant-sonnet55",
+              "ant-opus55"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "同价档性价比压制对手：Opus 5.5（$4/$20）声称编码榜优于同级且成本约其 1/3。",
+            "sourceIds": [
+              "ant-opus55"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "多语言基准公开且数值高：GMMLU 42 语言 94.3%、SWE-bench Multilingual 93.9%（自报），是本数据集中少数有公开多语言口径的一家。",
+            "sourceIds": [
+              "ant-opus55"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "企业渗透领先：2026-05 企业 AI 订阅份额首超 OpenAI（41% vs 39.5%）；5–7 月 39% 全球 / 47% 美国开发者使用 Claude Code。",
+            "sourceIds": [
+              "ant-wiki"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "顶层 Fable/Mythos 档 $10/$50 且受安全护栏限制（阻断部分网安任务），研究者被引导改用低一档。",
+            "sourceIds": [
+              "ant-wiki"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "长上下文定价陡增：Haiku >100K 输入价格跳 5 倍；新分词器使同文本 token 数增加约 30%，实际成本变动被单价掩盖。",
+            "sourceIds": [
+              "ant-haiku55"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "封号与政策风险：2026 H1 封禁 1,140 万账号，39.8 万申诉仅 4.2 万成功。",
+            "sourceIds": [],
+            "confidence": "partial"
+          },
+          {
+            "text": "无任何国产合规或私有化权重路径：官方支持地区约 150 国不含中国大陆，2025-09 起政策禁止由中国控制的公司使用；本次抓取中 platform.claude.com 被 307 重定向到区域不可用页。",
+            "sourceIds": [
+              "region-block"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "大型仓库重构与长时编码 Agent",
+          "文档/法律/金融知识工作自动化",
+          "需 1M 上下文一次性读全项目",
+          "子 Agent 编排与企业治理（managed MCP / Skills）"
+        ],
+        "region": "global"
+      },
+      {
+        "id": "stepfun",
+        "name": "阶跃星辰",
+        "nameEn": "StepFun",
+        "group": "tier2",
+        "overview": "单位任务成本叙事最强的一档，且工具真开源。Step 5 Preview 从发布到开源权重仅 25 天。",
+        "strategy": "开放权重但使用自订 StepFun Model License 1.0（含署名与商业条款），非 OSI 开源。",
+        "lastEventDate": "2026-10-15",
+        "strengths": [
+          {
+            "text": "Step Code 终端编程 Agent 以 MIT 开源，自报 Terminal-Bench 2.1 80.9% 并列第一，且内置 StepPage 发布能力。",
+            "sourceIds": [
+              "step-doc"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "价格与缓存激进：OpenRouter 输入 $1.00/M、缓存 $0.05/M；旧款 Step-3.7-Flash ¥1.35/¥8.1/缓存 ¥0.27。",
+            "sourceIds": [
+              "step-news"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "许可证非标准开源，且品牌集中度与开发者认知显著低于头部六家。",
+            "sourceIds": [
+              "step-news"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "AA 智能指数 44，能力位次仍在头部之后。",
+            "sourceIds": [
+              "step-news"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "成本敏感的规模化 Agent 执行层",
+          "需要可审计开源 CLI 的中文编码场景"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "baidu",
+        "name": "百度",
+        "nameEn": "文心 / 千帆",
+        "group": "tier2",
+        "overview": "自研全栈（飞桨 + 昆仑芯）与搜索、政企分发是护城河；模型层闭源，开源影响力弱于 DeepSeek/Kimi。",
+        "strategy": "旗舰闭源（文心 5.0/5.1），但 4.5 系列与 ERNIE-Image 已按 Apache 2.0 开源。",
+        "lastEventDate": "2026-08-01",
+        "strengths": [
+          {
+            "text": "预训练成本效率口径激进：文心 5.1 官方称预训练成本仅同规模约 6%，LMArena 搜索榜国内第一（自报）。",
+            "sourceIds": [
+              "ernie-baike"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "文心快码 Comate 个人免费，2026-08 补齐能力扩展中心、自主记忆与代码变更可视化；千帆 Token Plan ¥9.9/月起且模型池含 GLM/Kimi/DeepSeek。",
+            "sourceIds": [
+              "comate"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "开发者口碑与开源影响力弱于同梯队，版本下线节奏对开发者不友好（有报道称 ERNIE 5.1 已下线，口径未核实）。",
+            "sourceIds": [
+              "ernie-baike"
+            ],
+            "confidence": "unverified"
+          }
+        ],
+        "scenarios": [
+          "搜索增强与政企私有化交付",
+          "飞桨/昆仑芯全栈自持"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "tencent",
+        "name": "腾讯",
+        "nameEn": "混元 / CodeBuddy",
+        "group": "tier2",
+        "overview": "场景与分发（元宝/ima/QQ）+ 自研算力是长板，外部榜单存在感与开源口碑落后同级。",
+        "strategy": "Hy3 用 Apache 2.0，Hy4 preview 发布即开源权重（HF/GitHub/ModelScope/GitCode 同步）。",
+        "lastEventDate": "2026-09-10",
+        "toolNote": "Hy3/Hy4 preview 多次限免并延长，说明当前主要靠免费换用量，商业定价尚未站稳。",
+        "strengths": [
+          {
+            "text": "Hy4 preview 发布即开源：770B/49B 激活、1M 上下文、输入约 ¥6/百万，多仓库同步上架。",
+            "sourceIds": [
+              "hy-tag"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "内部盲测口径可观：163 名专家 203 个工程任务均分 2.99/4，高于同级国产旗舰（官方口径，第三方未复核）。",
+            "sourceIds": [
+              "hy-dev"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "CodeBuddy + WorkBuddy + 云端 NPC 构成完整工具面，TokenBuddy 侧称消耗降 90%。",
+            "sourceIds": [
+              "hy-dev"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "旗舰仍带 preview 标签，外部榜单与开发者口碑落后同级开源模型。",
+            "sourceIds": [
+              "hy-tag"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "腾讯生态内的场景分发与 IM 集成",
+          "需要大厂算力与私有化的内部工程提效"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "huawei",
+        "name": "华为",
+        "nameEn": "盘古 / CodeArts",
+        "group": "tier2",
+        "overview": "模型 + 昇腾 + 鸿蒙的闭环与政企私有化壁垒是唯一性资产；通用能力仍处追赶位。",
+        "strategy": "openPangu 2.0 开源权重与推理代码，昇腾亲和设计。",
+        "lastEventDate": "2026-09-21",
+        "strengths": [
+          {
+            "text": "openPangu 2.0-Pro 权重 + 基础推理代码 + 技术报告于 2026-07-31 开源，最高 505B MoE、512K 上下文，官方称单卡推理吞吐为业界主流开源模型 2 倍。",
+            "sourceIds": [
+              "pangu-36kr"
+            ],
+            "confidence": "partial"
+          },
+          {
+            "text": "CodeArts 代码智能体原生适配鲲鹏/昇腾，支持本地推理、数据不出内网；2026-09-21 面向鸿蒙全面升级。",
+            "sourceIds": [
+              "codearts"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "通用能力位次落后，且管理层公开承认参数规模受算力分配制约（明确不做万亿参数）。",
+            "sourceIds": [
+              "pangu-36kr"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "scenarios": [
+          "信创与鸿蒙生态的强制选型场景",
+          "昇腾硬件上的自有推理栈"
+        ],
+        "region": "china"
+      },
+      {
+        "id": "zero1",
+        "name": "零一万物",
+        "nameEn": "01.AI / Yi",
+        "group": "tier2",
+        "overview": "已主动退出超大基座迭代，全面转 ToB 多智能体交付。模型层不再处于前沿竞争。",
+        "strategy": "早期 Yi 系列开放权重；2026 年无新旗舰基座发布。",
+        "lastEventDate": "2026-08-27",
+        "strengths": [
+          {
+            "text": "企业多智能体交付与私有化落地故事清晰：万智平台 2026-01 升至 2.5 企业级多智能体，并与德勤中国签署战略合作。",
+            "sourceIds": [
+              "yi-official"
+            ],
+            "confidence": "partial"
+          }
+        ],
+        "weaknesses": [
+          {
+            "text": "最新公开基座仍停留在 Yi-Lightning，模型层已掉出前沿竞争；无自研 AI 编程终端或 IDE 产品。",
+            "sourceIds": [
+              "yi-official"
+            ],
+            "confidence": "verified"
+          }
+        ],
+        "scenarios": [
+          "企业级多智能体流程外包",
+          "不适合作为模型能力对标对象"
+        ],
+        "region": "china"
+      }
+    ],
+    "models": [
+      {
+        "id": "kimi-k3",
+        "name": "Kimi K3",
+        "role": "flagship",
+        "releasedAt": "2026-07-16",
+        "version": "kimi-k3",
+        "contextLength": 1048576,
+        "params": "2.8T 总参 / 约 104B 激活（MoE）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": "partial",
+        "license": "Kimi K3 License（非 OSI；12 个月收入 >2000 万美元须提供第三方推理/微调访问需签约，MAU >1 亿须署名 Kimi K3）",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 3,
+          "outputPerMTok": 15,
+          "cachedInput": 0.3,
+          "notes": "国内口径 ¥20 输入 / ¥100 输出，缓存命中 ¥2；阿里云全球站同价"
+        },
+        "benchmarks": [
+          {
+            "name": "GPQA-Diamond",
+            "score": "93.5",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "88.3",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "FrontierSWE",
+            "score": "81.2",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "ProgramBench",
+            "score": "77.8",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "BrowseComp",
+            "score": "91.2（1M 无压缩 90.4）",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "SWE-Marathon",
+            "score": "42.0",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "67.5",
+            "asOf": "2026-07",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "全球首个 3T 级开放权重模型，1M 上下文、原生视觉输入，长程 Agent 与终端编程是主打。官方明确承认整体仍落后 Claude Fable 5 与 GPT-5.6 Sol。",
+        "analysis": "K3 的意义不在「跑分第一」，而在把 3T 级权重放进可下载、可自建的范围，并且用 1M 完整窗口不压缩的 BrowseComp 成绩为长上下文做了实证。\n风险有两面：一是许可证打折了「开源」二字，商业自建要过法务；二是定价较 K2.6 涨了 3 倍以上，而闭源对手同期在降价，性价比叙事在松动。",
+        "sourceIds": [
+          "k3-gh",
+          "kimi-tr",
+          "kimi-bench",
+          "kimi-price"
+        ],
+        "confidence": "verified",
+        "provider": "moonshot"
+      },
+      {
+        "id": "kimi-k27-code",
+        "name": "Kimi K2.7 Code",
+        "role": "production",
+        "releasedAt": "2026-06-12",
+        "version": "K2.7 Code (+ HighSpeed 06-17)",
+        "contextLength": 262144,
+        "params": "1T（二手口径）",
+        "modalities": [
+          "文本",
+          "代码"
+        ],
+        "openSource": true,
+        "license": "开放权重",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.95,
+          "outputPerMTok": 4,
+          "cachedInput": 0.19,
+          "notes": "国内 ¥6.5/¥27；高速版 ¥13/¥54，180→260 tok/s"
+        },
+        "summary": "编程专用主力，承接高频日常编码，把 K3 留给关键难任务。",
+        "sourceIds": [
+          "kimi-baike",
+          "kimi-price"
+        ],
+        "confidence": "partial",
+        "provider": "moonshot"
+      },
+      {
+        "id": "kimi-k28-preview",
+        "name": "Kimi K2.8 Preview",
+        "role": "production",
+        "releasedAt": "2026-09-11",
+        "contextLength": 1000000,
+        "params": "未公布",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "USD",
+          "notes": "不按 token 单卖，含在 Kimi Code 会员内；第三方路由约 $1/$4"
+        },
+        "summary": "闭源 Preview，三档思考强度、1M 上下文向全会员开放，用来给 K3 做价格下探。",
+        "sourceIds": [
+          "kimi-baike"
+        ],
+        "confidence": "partial",
+        "provider": "moonshot"
+      },
+      {
+        "id": "kimi-k26",
+        "name": "Kimi K2.6",
+        "role": "legacy",
+        "releasedAt": "2026-04-20",
+        "contextLength": 262144,
+        "params": "1T（二手口径）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "开放权重",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.95,
+          "outputPerMTok": 4,
+          "cachedInput": 0.16
+        },
+        "summary": "主打 300 子 Agent 并行，Agent 集群能力由此成型；上线期间曾出现功能异常并全员补偿。",
+        "sourceIds": [
+          "kimi-price",
+          "kimi-baike"
+        ],
+        "confidence": "partial",
+        "provider": "moonshot"
+      },
+      {
+        "id": "glm-53",
+        "name": "GLM-5.3",
+        "role": "flagship",
+        "releasedAt": "2026-08-14",
+        "contextLength": 1000000,
+        "params": "744B 总参 / 40B 激活（MoE；第三方另有 753B/743B 口径，存在冲突）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": "partial",
+        "license": "GLM-5.3 License（非 MIT；连续 12 个月总收入 >100 亿美元且对外提供 MaaS 须先过 Z.ai 安全审查）",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 1.4,
+          "outputPerMTok": 4.4,
+          "cachedInput": 0.26,
+          "notes": "人民币 8 / 28 / 缓存命中 2"
+        },
+        "benchmarks": [
+          {
+            "name": "Terminal-Bench 3.0",
+            "score": "28.3（5.2 为 4.6）",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "88.2",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "CyberGym",
+            "score": "84.5",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "66.9",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "SWE-Marathon",
+            "score": "42.5",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "60（Agentic 59）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "与 GLM-5.2 共用同一基座，提升全部来自后训练。强制 thinking，reasoning_effort 三档（low/high/max，默认 max），最大输出 128K。",
+        "analysis": "GLM-5.3 的看点是「同基座 + 后训练」带来的低边际成本迭代：Terminal-Bench 3.0 从 4.6 跳到 28.3，说明此前分数低不是基座不行而是后训练没跟上。\n但旗舰这次改用自订许可证，等于对大型云厂商设了准入闸门；同时权重 744B、FP8 约 756GB，本地复现基本不可行，自托管价值远不如 Flash 档。",
+        "sourceIds": [
+          "glm53-doc",
+          "zai-price",
+          "bm-price",
+          "zai-docs"
+        ],
+        "confidence": "verified",
+        "provider": "zai"
+      },
+      {
+        "id": "glm-53-flash",
+        "name": "GLM-5.3-Flash",
+        "role": "open-weights",
+        "releasedAt": "2026-08-26",
+        "contextLength": 1000000,
+        "params": "320B 总参 / 18B 激活（稀疏 + 线性注意力混合）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": true,
+        "license": "MIT",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.15,
+          "outputPerMTok": 0.5,
+          "cachedInput": 0.03,
+          "notes": "人民币 0.8 / 2.8；限时五折至 2026-09-09"
+        },
+        "summary": "GLM-5 系首个原生多模态，MIT 权重（FP8 约 306–328 GB）。匿名期代号 Ox Alpha，OpenRouter 6 天超 20 万亿 token。",
+        "analysis": "这是整个国产开源里性价比最极端的一格：MIT + 前沿级 + 原生多模态 + 1M 上下文 + $0.15 输入。要真开源许可、要自托管、要中文，这一档几乎没有替代品。",
+        "sourceIds": [
+          "zai-docs",
+          "zai-price"
+        ],
+        "confidence": "verified",
+        "provider": "zai"
+      },
+      {
+        "id": "glm-53-flashx",
+        "name": "GLM-5.3-FlashX",
+        "role": "production",
+        "releasedAt": "2026-09-18",
+        "contextLength": 1000000,
+        "params": "同 Flash 底座",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": false,
+        "license": "API only",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.37,
+          "outputPerMTok": 1.25,
+          "notes": "人民币 2 / 7（Flash 的 2.5 倍）"
+        },
+        "summary": "同底座高速档，最高 200 tok/s（Flash 的 5 倍），由约 10 万张国产芯片集群承载。",
+        "sourceIds": [
+          "zai-price",
+          "zai-docs"
+        ],
+        "confidence": "verified",
+        "provider": "zai"
+      },
+      {
+        "id": "glm-52",
+        "name": "GLM-5.2",
+        "role": "legacy",
+        "releasedAt": "2026-06-16",
+        "params": "未公开",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "MIT",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 1.4,
+          "outputPerMTok": 4.4
+        },
+        "summary": "1M 无损上下文，LMArena 代码榜开源第一，是 5.3 的基座来源。",
+        "sourceIds": [
+          "zhipu-cn",
+          "bm-price"
+        ],
+        "confidence": "partial",
+        "provider": "zai"
+      },
+      {
+        "id": "glm-legal",
+        "name": "GLM-Legal",
+        "role": "other",
+        "releasedAt": "2026-10-13",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": false,
+        "license": "闭源 Beta",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "未定价"
+        },
+        "summary": "基于 5.3-Flash 的法律垂直模型，Beta，不开权重。",
+        "sourceIds": [
+          "zai-docs"
+        ],
+        "confidence": "partial",
+        "provider": "zai"
+      },
+      {
+        "id": "doubao-seed-21-pro",
+        "name": "Doubao-Seed-2.1-Pro",
+        "role": "flagship",
+        "releasedAt": "2026-06-23",
+        "version": "doubao-seed-2-1-pro-260915",
+        "contextLength": 1048576,
+        "params": "官方从未披露",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频",
+          "深度思考",
+          "GUI 任务"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 6,
+          "outputPerMTok": 30,
+          "cachedInput": 1.2,
+          "notes": "约 $0.83/$4.17；官方称综合成本较同级闭源旗舰低近 80%"
+        },
+        "benchmarks": [
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "71.0（对照 Claude Opus 4.7 为 71.7）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "NL2Repo-Bench",
+            "score": "47.0（对照 58.2）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "SWE-Atlas",
+            "score": "35.2（对照 GPT-5.5 44.7）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "ERQA 空间推理",
+            "score": "72.0（高于对照 71.3 / 64.5）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "BabyVision",
+            "score": "73.7（对照 62.9）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "MMMU-Pro",
+            "score": "81.6（带工具 82.7）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "VideoMME",
+            "score": "89.2",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "2026-09-16 迭代起上下文从 256K 升至 1M，最大输出/CoT 256K。多模态与空间推理领先，纯代码工程明确落后。",
+        "analysis": "字节的官方表格本身就写出了结论：ERQA、BabyVision、WorldVQA 全部领先闭源旗舰，而 NL2Repo 与 SWE-Atlas 差出 10 分以上。选它做多模态理解与视觉密集型任务合理，选它做重代码工程则与官方数据相悖。\n更需要注意的是可核查性——Seed 2.x 从不披露参数、无技术报告、无权重，所有分数均为自测，第三方数据库数值彼此矛盾。",
+        "sourceIds": [
+          "seed21",
+          "ark-list",
+          "ark-rel"
+        ],
+        "confidence": "verified",
+        "provider": "bytedance"
+      },
+      {
+        "id": "doubao-seed-21-lite",
+        "name": "Doubao-Seed-2.1-Lite",
+        "role": "production",
+        "releasedAt": "2026-09-16",
+        "version": "doubao-seed-2-1-lite-260915",
+        "contextLength": 1000000,
+        "params": "未公开",
+        "modalities": [
+          "文本",
+          "视觉",
+          "音频"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 0.8,
+          "outputPerMTok": 2.7,
+          "notes": "音频输入 ¥12；RPM 30000 / TPM 5M"
+        },
+        "summary": "全模态统一理解 + 1M 上下文 + 高并发配额，价格属同级最低，走量首选。",
+        "sourceIds": [
+          "ark-list"
+        ],
+        "confidence": "verified",
+        "provider": "bytedance"
+      },
+      {
+        "id": "doubao-seed-evolving",
+        "name": "Doubao-Seed-Evolving",
+        "role": "production",
+        "releasedAt": "2026-07-01",
+        "contextLength": 1000000,
+        "params": "未公开",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "以方舟统一 Model ID 计费，无独立版本号"
+        },
+        "summary": "无版本号、周级滚动迭代，接入地址不变即可跟进升级。",
+        "sourceIds": [
+          "ark-rel"
+        ],
+        "confidence": "verified",
+        "provider": "bytedance"
+      },
+      {
+        "id": "seedance-25",
+        "name": "Seedance 2.5",
+        "role": "multimodal",
+        "releasedAt": "2026-06-23",
+        "version": "doubao-seedance-2-5-260628",
+        "modalities": [
+          "视频生成",
+          "音频"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "¥42/M（含视频输入）、¥70/M（纯文本输入）；单次生成 30 秒、支持 50 个多模态参考与时间戳编辑"
+        },
+        "summary": "视频生成商用档里的第一梯队，与 Seedream 5.0-pro 图像、Seed-Audio 1.0 语音构成多模态矩阵。",
+        "sourceIds": [
+          "ark-rel",
+          "ark-list"
+        ],
+        "confidence": "verified",
+        "provider": "bytedance"
+      },
+      {
+        "id": "gemini-4-argon",
+        "name": "Gemini 4 Argon",
+        "role": "flagship",
+        "releasedAt": "2026-10-13",
+        "contextLength": 1000000,
+        "params": "稀疏 MoE（规模未公开）",
+        "modalities": [
+          "文本",
+          "图像",
+          "音频",
+          "视频"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 2,
+          "outputPerMTok": 10,
+          "cachedInput": null,
+          "notes": "首促价，12-01 起翻倍；缓存输入 95% 折扣；知识截止 2026-03"
+        },
+        "benchmarks": [
+          {
+            "name": "Vals Index",
+            "score": "68.9（自报全球第一）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "77.9",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "LMArena Coding Arena Elo",
+            "score": "1559（第三方榜第一）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "全新从头训练的稀疏 MoE，输入+输出合计 1M 上下文。发布 8 天即成为对照基准，但内部员工称实际编程体验与跑分有落差。",
+        "sourceIds": [
+          "gem4",
+          "g-changelog"
+        ],
+        "confidence": "partial",
+        "provider": "google"
+      },
+      {
+        "id": "gemini-38-flash",
+        "name": "Gemini 3.8 Flash",
+        "role": "production",
+        "releasedAt": "2026-09-02",
+        "contextLength": 1000000,
+        "modalities": [
+          "文本",
+          "图像",
+          "音频"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.75,
+          "outputPerMTok": 3.75,
+          "notes": "促销至 2026-12-31，2027-01-01 翻倍；新增 computer-use"
+        },
+        "summary": "主力档，价格与时延友好，computer-use 能力补齐后适合做自动化。",
+        "sourceIds": [
+          "g-changelog"
+        ],
+        "confidence": "partial",
+        "provider": "google"
+      },
+      {
+        "id": "grok-47",
+        "name": "Grok 4.7",
+        "role": "flagship",
+        "releasedAt": "2026-09-21",
+        "contextLength": 500000,
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "闭源",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 2,
+          "outputPerMTok": 6,
+          "notes": "知识截止 2026-05；美国区端点加价 10%；Fast 档 2 倍速 2 倍价但仅 Cursor/Grok Build 可用"
+        },
+        "benchmarks": [
+          {
+            "name": "Terminal-Bench 4.0",
+            "score": "38.0（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "71.0（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "CursorBench 4.0",
+            "score": "46.3（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "Artificial Analysis Intelligence Index",
+            "score": "46",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "编程/Agent 优先定位，价格中低。旗舰 Fast 变体不进公开 API，能力与可得性已脱钩。",
+        "sourceIds": [
+          "grok47"
+        ],
+        "confidence": "verified",
+        "provider": "xai"
+      },
+      {
+        "id": "muse-spark-open",
+        "name": "Muse Spark Open",
+        "role": "open-weights",
+        "releasedAt": "2026-10-15",
+        "contextLength": 1000000,
+        "params": "816B 总参 / 42B 激活（MoE，62 层）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": "partial",
+        "license": "Muse Model License（免费商用需标注 Built with Muse Spark Open；年营收 >2000 万美元的 MaaS 提供商需另行签约；内部部署/研究不受限）",
+        "pricing": {
+          "currency": "USD",
+          "notes": "权重下载免费，经第三方推理平台计费"
+        },
+        "summary": "Meta 结束 Llama 开放线后再度放出开放权重，自称「美国最强开源权重」直接对标国产，但许可仍是自订条款而非 OSI 开源。",
+        "analysis": "这是本数据集里最能说明「开放权重 ≠ 开源」的一条。816B 权重确实可下载可自建，但许可证带署名义务与营收门槛；而且最强型号 Muse Wonder 完全闭源，开放版性能低于闭源版。评估 Meta 作为开源靠山时，应以「Glimmer 30B（真 Apache-2.0）」为上限，而不是 Spark Open。",
+        "sourceIds": [
+          "muse-open",
+          "llama-lic"
+        ],
+        "confidence": "partial",
+        "provider": "meta"
+      },
+      {
+        "id": "muse-glimmer",
+        "name": "Muse Glimmer 30B",
+        "role": "open-weights",
+        "releasedAt": "2026-08-10",
+        "params": "30B",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "Apache-2.0",
+        "pricing": {
+          "currency": "USD",
+          "notes": "权重下载免费"
+        },
+        "summary": "Meta 在 2026 年仅有的真 Apache-2.0 开放权重模型，规模档位有限。",
+        "sourceIds": [
+          "muse-open"
+        ],
+        "confidence": "partial",
+        "provider": "meta"
+      },
+      {
+        "id": "mistral-large-4",
+        "name": "Mistral Large 4（Le Chonk）",
+        "role": "flagship",
+        "releasedAt": "2026-10-06",
+        "contextLength": 1000000,
+        "params": "1.05T 总参 / 约 49–52B 激活（MoE）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": "unverified",
+        "license": "截至 2026-10-08 未命名许可证、无 HF 仓库，权重计划 10 月下旬放出但不可核实",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 1.36,
+          "outputPerMTok": 4.18,
+          "cachedInput": 0.07,
+          "notes": "发布促销 $0.68/$2.09"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis Intelligence Index",
+            "score": "38.4（低于 Kimi K3、Qwen 3.8 Max）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "号称「中国以外最强开放权重」，但截至快照时点仍为公开预览，权重与许可证均未落地。",
+        "analysis": "在权重与许可证真正放出之前，Large 4 的「开放」二字应当当作营销口径对待。同时 AA 智能指数 38.4 已落后国产开源旗舰，即便兑现也不改变位次。",
+        "sourceIds": [
+          "large4",
+          "aa-large4",
+          "mistral-vibe"
+        ],
+        "confidence": "partial",
+        "provider": "mistral"
+      },
+      {
+        "id": "qwen38-max",
+        "name": "Qwen3.8-Max",
+        "role": "flagship",
+        "releasedAt": "2026-08-03",
+        "contextLength": 1000000,
+        "params": "2.4T 总参 / 约 95B 激活（稀疏 MoE；HF 字段 2,446,182,725,504）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": "partial",
+        "license": "权重于 2026-08-12 上架，许可证为自定义 qwen3.8-max 条款（不再是 Apache 2.0）",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 12,
+          "outputPerMTok": 36,
+          "cachedInput": 1.5,
+          "notes": "Batch 6/18；新加坡 14.988/44.965；qwen3.8-max-prime 24/72；最大输入 991,808、输出 131,072，思考模式输入 983,616 / 思维链 262,144"
+        },
+        "benchmarks": [
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "86.6（3.7-Max 为 74.5）",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "SWE-bench Pro",
+            "score": "67.7",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "GPQA Diamond",
+            "score": "92.6",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE",
+            "score": "43.6",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "阿里当前最强档，也是 Max 级权重第一次开放——但许可证同时换成了自定义条款。",
+        "analysis": "Terminal-Bench 从 74.5 跳到 86.6 是真实的代际增益，SWE-bench Pro 67.7 仍落后 Anthropic 系。¥12/¥36 买到 1M 上下文是全球同档最便宜之一。合规上要单独核对 qwen3.8-max 许可，不能沿用「Qwen 一贯 Apache」的直觉。",
+        "sourceIds": [
+          "qwen-max-doc",
+          "qwen-price",
+          "qwen-changelog"
+        ],
+        "confidence": "verified",
+        "provider": "alibaba"
+      },
+      {
+        "id": "qwen38-27b",
+        "name": "Qwen3.8-27B",
+        "role": "open-weights",
+        "releasedAt": "2026-08-14",
+        "contextLength": 262144,
+        "params": "稠密约 27.8B",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": true,
+        "license": "Apache-2.0；HF 下载 7,586,857（2026-10-21 镜像口径）",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "可自托管；百炼按量档另计"
+        },
+        "benchmarks": [
+          {
+            "name": "SWE-bench Pro",
+            "score": "61.7",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "LiveCodeBench v6",
+            "score": "90.3",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "73.0",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "OSWorld-Verified",
+            "score": "84.3",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE",
+            "score": "30.8",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "单卡可跑的原生多模态稠密档，2026 年开源侧最「能落地」的选择。",
+        "analysis": "原生 262K、YaRN 外推到 1M 属于可选能力，长上下文预算应按 262K 做。HLE 30.8 说明世界知识不是它的强项——它的位置是本地/私有化的编码与 GUI Agent，不是知识问答终点。",
+        "sourceIds": [
+          "qwen-27b",
+          "qwen-changelog",
+          "modelscope"
+        ],
+        "confidence": "partial",
+        "provider": "alibaba"
+      },
+      {
+        "id": "qwen38-flash",
+        "name": "Qwen3.8-Flash",
+        "role": "production",
+        "releasedAt": "2026-08-26",
+        "contextLength": 1000000,
+        "params": "社区转载：125B 主模型 + 51B n-gram，每 token 激活约 6B（官方未确认）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": "partial",
+        "license": "Flash-Next 变体使用 Qwen Community License 1.0：月活超 1 亿或月收入超 2000 万美元须显著署名，编码/办公类 MaaS 与 AI 工作助手须另行授权",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 0.8,
+          "outputPerMTok": 2.7,
+          "cachedInput": 0.1,
+          "notes": "新加坡 1.094/3.427；国际约 $0.15/$0.47"
+        },
+        "benchmarks": [],
+        "summary": "高并发 Agent 后端的价格锚点：¥0.8 / ¥2.7，缓存命中 ¥0.1。",
+        "analysis": "在 1M 上下文下做到这个单价，意味着它应当被当作「流水线执行层」而非「能力上限」。真正需要留意的是 Flash-Next 的社区许可条款——把编码能力转售给客户时须另行授权。",
+        "sourceIds": [
+          "qwen-changelog",
+          "qwen-price"
+        ],
+        "confidence": "verified",
+        "provider": "alibaba"
+      },
+      {
+        "id": "ds-v41-flash-1017",
+        "name": "DeepSeek-V4.1-Flash-1017",
+        "role": "flagship",
+        "releasedAt": "2026-10-17",
+        "contextLength": 1000000,
+        "params": "官方 552B 总参 / 输入激活 8B、输出激活 16B（Causal-Encoder-Decoder）；HF 镜像模型卡标注 763B，两个口径尚未澄清",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": true,
+        "license": "MIT",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 1,
+          "outputPerMTok": 4,
+          "cachedInput": 0.02,
+          "notes": "峰谷定价：高峰（周一至周五 9–12、14–18）为 2 / 8 / 0.04；最大输出 384K；并发上限 2500"
+        },
+        "benchmarks": [
+          {
+            "name": "DeepSWE v1.1",
+            "score": "77.0（官方表内 Opus 5 为 74.0、GPT-6-Sol 73.0）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 4.0",
+            "score": "42.3（前版 31.2）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "Automation-Bench",
+            "score": "60.5",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE（无工具）",
+            "score": "42.6",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "45（并列开源第二）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "V4.1-Flash 的 10-17 小版本，官方表内 11 项基准全升，同时是全场最便宜的 1M 上下文档位之一。",
+        "analysis": "552B 与 763B 的参数冲突尚未澄清，引用时必须保留两个口径。真正值得注意的是 DeepSWE 77.0 超过 Claude Opus 5——但这是厂商自报表格，本次未拿到官方原图逐条核对。缓存命中 ¥0.02/M 让高命中率 Agent 的成本结构与其他厂商不在同一量级。",
+        "sourceIds": [
+          "ds-news1017",
+          "ds-news0910",
+          "ds-pricing"
+        ],
+        "confidence": "partial",
+        "provider": "deepseek"
+      },
+      {
+        "id": "ds-v4-pro",
+        "name": "DeepSeek-V4-Pro",
+        "role": "production",
+        "releasedAt": "2026-08-13",
+        "contextLength": 1000000,
+        "params": "1.6T 总参 / 49B 激活；CSA+HCA 混合注意力、mHC、Muon、FP4 专家权重；32–33T token 预训练",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": "partial",
+        "license": "MIT（2026-04-24 预览版已开源；正式版权重完整性来源自相矛盾）",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 4.5,
+          "outputPerMTok": 13.5,
+          "cachedInput": 0.15,
+          "notes": "高峰 9 / 27 / 0.30（2026-08-16/17 启用峰谷，Pro 高峰输出较此前约 +350%）；最大输出 384K；并发仅 500"
+        },
+        "benchmarks": [
+          {
+            "name": "GPQA Diamond",
+            "score": "92.4（高于 Flash 的 90.9）",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE",
+            "score": "42.7（高于 Flash 的 39.1）",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "DeepSeek 的知识与推理上限，但它的故事重点是效率而不是跑分。",
+        "analysis": "V4 报告最有价值的数字是 1M 上下文下单 token FLOPs 降至 V3.2 的 27%、KV Cache 10%——这才是 ¥4.5/¥13.5 的底气来源。风险在合同层面：2026-09-09 官方宣布 V4 Pro 于 09-14 下线并静默路由到 Flash，不到 48 小时撤回、原公告被原地删除。API 契约稳定性必须写进选型评估。",
+        "sourceIds": [
+          "ds-pricing",
+          "ds-models",
+          "ds-v4",
+          "ds-retract"
+        ],
+        "confidence": "partial",
+        "provider": "deepseek"
+      },
+      {
+        "id": "ds-v4-flash-vision",
+        "name": "DeepSeek-V4-Flash-Vision-Exp",
+        "role": "multimodal",
+        "releasedAt": "2026-09-01",
+        "contextLength": null,
+        "params": "305B 总参 / 激活 13B",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": true,
+        "license": "MIT（2026-08-21 先上 API，2026-09-01 权重开源）",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "视觉输入按 flash 价格表的 token 计费，未单列"
+        },
+        "benchmarks": [],
+        "summary": "V4 系第一个能看图的开源权重，同时终结了「DeepSeek 没有多模态」这句流行误判。",
+        "analysis": "做站点时这句话必须删除：V4.1 Flash 已原生多模态、API 支持 Vision、另有 OCR 2。Vision-Exp 是实验线，不要当作生产档引用。",
+        "sourceIds": [
+          "ds-vision",
+          "ds-news0910"
+        ],
+        "confidence": "partial",
+        "provider": "deepseek"
+      },
+      {
+        "id": "ds-ocr-2",
+        "name": "DeepSeek-OCR 2",
+        "role": "other",
+        "releasedAt": "2026-01-27",
+        "contextLength": null,
+        "params": "3B（DeepEncoder V2）",
+        "modalities": [
+          "图像",
+          "文本"
+        ],
+        "openSource": true,
+        "license": "MIT",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "以开源权重与第三方托管为主"
+        },
+        "benchmarks": [
+          {
+            "name": "OmniDocBench v1.5",
+            "score": "91.09%",
+            "asOf": "2026-01",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "文档理解专线条，配套论文《Visual Causal Flow》。",
+        "analysis": "在「排版密集的中文文档抽取」这类具体任务上，3B 的 OCR 2 往往比调用旗舰多模态更便宜也更稳。选型时值得把它单独列为一层。",
+        "sourceIds": [
+          "ds-models"
+        ],
+        "confidence": "partial",
+        "provider": "deepseek"
+      },
+      {
+        "id": "mm-m3",
+        "name": "MiniMax-M3",
+        "role": "flagship",
+        "releasedAt": "2026-06-01",
+        "contextLength": 1000000,
+        "params": "428B 总参 / 23B 激活（MoE + MSA 稀疏注意力）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": "partial",
+        "license": "MiniMax Community License：非商用免费；商用须显著标注 Built with MiniMax M3；年收入 >2000 万美元需书面授权",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 2.1,
+          "outputPerMTok": 8.4,
+          "cachedInput": 0.42,
+          "notes": "≤512K 档（官方称 512K 为保证下限）；>512K 价格翻倍；「永久五折」原价 4.2/16.8；priority 档 1.5×；国际 $0.30/$1.20/$0.06"
+        },
+        "benchmarks": [
+          {
+            "name": "SWE-Bench Pro",
+            "score": "59.0%",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 2.1",
+            "score": "66.0%",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "MCP Atlas",
+            "score": "74.2%",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "BrowseComp",
+            "score": "83.5",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          },
+          {
+            "name": "OSWorld-Verified",
+            "score": "68.7%（100 步）→ 70.06%（200 步）",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "1M 上下文 + 原生视频输入的开放权重旗舰，长仓库与长视频理解是官方和第三方共同认可的实测强项。",
+        "analysis": "全部基准为厂商自报、无第三方复现，横向比较一律按 partial 处理。可核实的是价格结构（≤512K 与 >512K 两档）和许可条款——后者正是「开放权重」与「可以直接商用」之间的关键差别。",
+        "sourceIds": [
+          "mm-price",
+          "mm-m3",
+          "mm-blog"
+        ],
+        "confidence": "partial",
+        "provider": "minimax"
+      },
+      {
+        "id": "mm-m31-flash",
+        "name": "MiniMax-M3.1-Flash",
+        "role": "production",
+        "releasedAt": "2026-10-19",
+        "contextLength": 1000000,
+        "params": "官方未公开，无模型卡",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": "partial",
+        "license": "尚未公布；官方仅写「权重稍后开放」，媒体称 10-23",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 1,
+          "outputPerMTok": 4,
+          "cachedInput": 0.1,
+          "notes": "国际 $0.15/$0.60/$0.015；官方称成本较前代 −70%、单任务低至 $0.22；推理 170+ TPS 中位、峰值 200+"
+        },
+        "benchmarks": [
+          {
+            "name": "DeepSWE v1.1",
+            "score": "73.7%（厂商自报）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "BankerToolBench",
+            "score": "76.2（厂商自报）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "CyberGym",
+            "score": "82.2（厂商自报）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "KingBench3（第三方）",
+            "score": "53/80 = 66.25%，同批 Claude Opus 5.5 为 93.75%",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "本快照里最便宜的 1M 上下文国产档之一，同时也是幻觉率争议最集中的模型。",
+        "analysis": "官方自报与独立实测落差极大（KingBench3 66.25% vs Opus 5.5 93.75%），且被报出 93% 幻觉率（非正确答案口径）。结论是它能做高频、可验证、有外部护栏的执行层，不能直接当知识问答终点。视频输入是否支持两个来源冲突，已按 unverified 处理。前身是匿名模型 Space Bunny（累计处理 >200T token）。",
+        "sourceIds": [
+          "mm-blog",
+          "mm-price"
+        ],
+        "confidence": "partial",
+        "provider": "minimax"
+      },
+      {
+        "id": "mm-h3",
+        "name": "MiniMax H3",
+        "role": "multimodal",
+        "releasedAt": "2026-07-31",
+        "contextLength": null,
+        "params": "33B（第三方口径，官方未确认）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频",
+          "音频"
+        ],
+        "openSource": "partial",
+        "license": "开放权重排除美国/欧盟/英国/韩国；仅 H3-Base 的 FL2VA、Ref2VA 两个 768p checkpoint 开源，H3-Context-IR 与 H3-Regenerate-2K 仍为托管 API",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "官方 0.5–0.8 元/秒；媒体口径 768P 0.23 元/秒、2K 约 0.4 元/秒"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis 视频编辑榜",
+            "score": "官方称全球第一、有声文生视频第二（未逐条核对）",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "首款全模态生成模型：2K / 4–15 秒 / 32kHz 原生立体声 / 24FPS，发布 3 天后开源。",
+        "analysis": "参数短板要直说：15 秒、12 个参考素材、2K，三项核心参数全面弱于同日发布的字节 Seedance 2.5（30 秒、50 参考、4K）。它真正的优势是可自托管 + 单价低 + 生态速度（开源三周下载 2400 万、HF 衍生 300+）。地域排除条款让欧美用户直接不可用，这是「开源」叙事里最容易被忽略的一句。",
+        "sourceIds": [
+          "mm-h3",
+          "mm-price"
+        ],
+        "confidence": "partial",
+        "provider": "minimax"
+      },
+      {
+        "id": "gpt6-astra",
+        "name": "GPT-6 Astra",
+        "role": "flagship",
+        "releasedAt": "2026-09-03",
+        "contextLength": 1050000,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 10,
+          "outputPerMTok": 50,
+          "cachedInput": 1,
+          "notes": "缓存写 $12.5；Ultrafast 档 $60/$300；>272K 上下文档位改价；最大输出 128K；知识截止 2026-04-30"
+        },
+        "benchmarks": [
+          {
+            "name": "GPQA Diamond",
+            "score": "96.0%（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "ARC-AGI-3",
+            "score": "99.9%（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "FrontierMath Tier 4",
+            "score": "97.6%（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "74.1%（自报；未公布 SWE-bench Verified）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "OSWorld 2.0",
+            "score": "72.6%（自报）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "53",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "抽象推理与数学的天花板，也是本次对照里最贵的一档。",
+        "analysis": "口径变化值得注意：OpenAI 不再给 SWE-bench Verified，改用 DeepSWE v1.1。$10/$50 再加 6 倍 Ultrafast，说明 Astra 定位是「能力上限」而非「生产默认」——生产默认已经是 Sol。内部称幻觉率由 12.2% 降至 4.2%。大陆不可直连，且无合规私有化路径。",
+        "sourceIds": [
+          "oai-astra",
+          "oai-price",
+          "oai-changelog"
+        ],
+        "confidence": "partial",
+        "provider": "openai"
+      },
+      {
+        "id": "gpt61-sol",
+        "name": "GPT-6.1 Sol",
+        "role": "production",
+        "releasedAt": "2026-09-29",
+        "contextLength": 1050000,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像",
+          "音频"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 2,
+          "outputPerMTok": 10,
+          "cachedInput": 0.1,
+          "notes": "缓存写 $2.5；DevDay 2026 与 Dots、Codex Cloud、Agents API、Decisions API、Pro $500 同批发布"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "52（Astra 53），单任务成本 $0.72 vs $3.26",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "官方称追平 Astra；第三方流传 68.8% 与 75.22% 两个互斥数字",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "DevDay 主推的编码/Agent 档，用约 1/5 的输入价格换 Astra 98% 的指数。",
+        "analysis": "AA 52 vs 53、单任务 $0.72 vs $3.26 这组对照说明 Astra 的存在更像定价锚点。DeepSWE「追平 Astra」的两个数字互斥，只能标 partial。真正的产品差异在 1.05M 上下文 + 自主记笔记（不靠摘要压缩）来支撑长任务。",
+        "sourceIds": [
+          "oai-sol",
+          "oai-devday",
+          "oai-price"
+        ],
+        "confidence": "partial",
+        "provider": "openai"
+      },
+      {
+        "id": "gpt6-luna",
+        "name": "GPT-6 Luna",
+        "role": "other",
+        "releasedAt": "2026-09-22",
+        "contextLength": null,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.1,
+          "outputPerMTok": 0.5,
+          "cachedInput": 0.01,
+          "notes": "2026-09-22 随 API 价永久降 50% 上线；Decisions API 以 gpt-6-luna 为默认档（$5/$0.5/$25）"
+        },
+        "benchmarks": [],
+        "summary": "$0.10 / $0.50、缓存命中 $0.01，是海外阵营的价格地板。",
+        "analysis": "Luna 的意义在于让「高并发、可验证的机械性子任务」失去了必须换国产模型的理由。同时它是模型 ID 生命周期风险的活例：gpt-5.5 已于 2026-10-14 下线，任何硬编码 ID 的集成都会被打断。",
+        "sourceIds": [
+          "oai-price",
+          "oai-changelog"
+        ],
+        "confidence": "partial",
+        "provider": "openai"
+      },
+      {
+        "id": "claude-opus-55",
+        "name": "Claude Opus 5.5",
+        "role": "flagship",
+        "releasedAt": "2026-09-22",
+        "contextLength": 1049000,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 4,
+          "outputPerMTok": 20,
+          "notes": "ID claude-opus-5-5；1M 上下文（1,049K）/ 最大输出 128K"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "58（自报口径下全球第一）",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 4.0",
+            "score": "66.4%（xhigh 档）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "DeepSWE v1.1",
+            "score": "74.2%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "SWE-bench Multilingual",
+            "score": "93.9%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "GMMLU（42 语言）",
+            "score": "94.3%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE（带工具）",
+            "score": "67.7%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "GDPval-AA v2.1",
+            "score": "Elo 1846",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "本快照内智能指数最高（58），编码与知识工作两端都给出了官方数字。",
+        "analysis": "必须写清：Anthropic 明确未发布 Opus 5.5 的 SWE-bench Verified / GPQA / ARC-AGI 官方分数。市面流传的 ARC-AGI 98.5%、93.33% 是第三方口径，任何 Opus 5.5 的 SWE-bench Verified 数字都不是官方的。GMMLU 与 SWE-bench Multilingual 是海外阵营里唯一公开的多语言口径——这也是它相对 GPT-6 的对照价值所在。",
+        "sourceIds": [
+          "ant-opus55",
+          "ant-news"
+        ],
+        "confidence": "partial",
+        "provider": "anthropic"
+      },
+      {
+        "id": "claude-sonnet-55",
+        "name": "Claude Sonnet 5.5",
+        "role": "production",
+        "releasedAt": "2026-09-28",
+        "contextLength": 1000000,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 2,
+          "outputPerMTok": 10,
+          "cachedInput": 0.1,
+          "notes": "缓存读 2026-10-07 起由 $0.20 降至 $0.10（输入的 0.05×）；自 06-30 起定为标准价"
+        },
+        "benchmarks": [
+          {
+            "name": "Terminal-Bench 4.0",
+            "score": "70.6%（高于 Opus 5.5 的 66.4%，但 effort 档不同）",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "OSWorld 2.1",
+            "score": "80.1%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "CursorBench 4.0",
+            "score": "55.5%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE",
+            "score": "64.5%",
+            "asOf": "2026-09",
+            "confidence": "partial"
+          },
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "56",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "默认编码档，Terminal-Bench 4.0 分数反而高于自家 Opus。",
+        "analysis": "70.6 vs 66.4 不是「便宜就更强」，而是 effort 档不同——跨档比较 Claude 自家分数是最容易踩的坑。2026-09-28 的 Claude Code v2.1.284 把 claude-sonnet-5-5 设为默认 Sonnet，这条默认值变更比跑分更影响实际成本。",
+        "sourceIds": [
+          "ant-sonnet55",
+          "ant-relbot"
+        ],
+        "confidence": "partial",
+        "provider": "anthropic"
+      },
+      {
+        "id": "claude-haiku-55",
+        "name": "Claude Haiku 5.5",
+        "role": "other",
+        "releasedAt": "2026-10-07",
+        "contextLength": 1000000,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 0.1,
+          "outputPerMTok": 0.5,
+          "cachedInput": 0.01,
+          "notes": "≤100K 输入档；>100K 跳至 $0.50/$2.50（5 倍）；Batch 五折；最大输出 128K；可用 Claude 平台 / Bedrock / GCP / Azure"
+        },
+        "benchmarks": [
+          {
+            "name": "OSWorld",
+            "score": "72.4%",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "HLE",
+            "score": "45.9%",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "Terminal-Bench 4.0",
+            "score": "39.2%",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          },
+          {
+            "name": "GDPval",
+            "score": "Elo 1620",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "$0.10 / $0.50 的入门档，但超过 100K 上下文直接翻 5 倍。",
+        "analysis": "分档跳价是小模型最容易被忽略的成本陷阱：把 Haiku 用在长上下文场景，单价立刻回到 Opus 的量级。另需注意新分词器使同文本 token 数增加约 30%，历史成本预估不能直接沿用。",
+        "sourceIds": [
+          "ant-haiku55",
+          "ant-news"
+        ],
+        "confidence": "partial",
+        "provider": "anthropic"
+      },
+      {
+        "id": "claude-fable-51",
+        "name": "Claude Fable 5.1",
+        "role": "other",
+        "releasedAt": "2026-09-01",
+        "contextLength": null,
+        "params": "未公开（闭源）",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有；顶层 Fable/Mythos 档受额外安全护栏限制",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 10,
+          "outputPerMTok": 50,
+          "notes": "与 GPT-6 Astra 同价带"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "53",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "名义上的最高层（Fable/Mythos 档 > Opus > Sonnet > Haiku），实际使用面受护栏约束。",
+        "analysis": "Fable 5 曾因美国出口管制在 2026-06-12 暂停、07-01 恢复。护栏会阻断部分网络安全类任务，研究者被引导改用 Opus 档。传闻中的 Fable 5.5 只在 Azure 目录出现、官方文档未列，已按 unverified 处理。",
+        "sourceIds": [
+          "ant-wiki",
+          "ant-news"
+        ],
+        "confidence": "partial",
+        "provider": "anthropic"
+      },
+      {
+        "id": "step5-preview",
+        "name": "Step 5 Preview",
+        "role": "flagship",
+        "releasedAt": "2026-09-20",
+        "contextLength": 1000000,
+        "params": "600B 总参 / 27B 激活（稀疏 MoE，92 层）",
+        "modalities": [
+          "文本",
+          "图像",
+          "视频"
+        ],
+        "openSource": "partial",
+        "license": "StepFun Model License 1.0（含署名与商业条款，非 OSI 开源）；权重 2026-10-15 开放",
+        "pricing": {
+          "currency": "USD",
+          "inputPerMTok": 1,
+          "outputPerMTok": null,
+          "cachedInput": 0.05,
+          "notes": "OpenRouter 口径；旧款 Step-3.7-Flash ¥1.35/¥8.1、缓存 ¥0.27"
+        },
+        "benchmarks": [
+          {
+            "name": "Artificial Analysis 智能指数",
+            "score": "44",
+            "asOf": "2026-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "第二梯队里少数仍在追前沿参数的厂商，激活比 27/600 撑起了单位任务成本叙事。",
+        "analysis": "AA 44 与头部开放权重旗舰仍有代差。许可证是自定义条款，「开源」二字要按开放权重理解，别按 MIT 做合规假设。配套 Step Code 真开源（MIT）是它比同梯队更值得看的一点。",
+        "sourceIds": [
+          "step-news",
+          "step-doc",
+          "step-bench"
+        ],
+        "confidence": "partial",
+        "provider": "stepfun"
+      },
+      {
+        "id": "ernie-51",
+        "name": "文心 5.1（ERNIE 5.1）",
+        "role": "flagship",
+        "releasedAt": "2026-05-09",
+        "contextLength": 128000,
+        "params": "官方未披露；底座文心 5.0（2026-01-22）为 2.4 万亿参数原生全模态、128K",
+        "modalities": [
+          "文本",
+          "图像"
+        ],
+        "openSource": false,
+        "license": "专有；4.5 系列已按 Apache-2.0 开源，ERNIE-Image（2026-04-15，8B DiT）开源",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "千帆按量；千帆 Token Plan ¥9.9/月起，模型池含 ERNIE/GLM/Kimi/DeepSeek"
+        },
+        "benchmarks": [
+          {
+            "name": "LMArena 搜索增强榜",
+            "score": "官方称国内第一",
+            "asOf": "2026-05",
+            "confidence": "partial"
+          },
+          {
+            "name": "预训练成本",
+            "score": "官方称仅为同规模约 6%（多维弹性预训练）",
+            "asOf": "2026-05",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "全栈自研（飞桨 + 昆仑芯）带来的成本口径，是它最独特的叙事。",
+        "analysis": "有报道称 ERNIE 5.1 已于 2026-08-20 下线，与 05-09 上线的口径冲突且无法核实——这正是「版本下线节奏对开发者不友好」的具体表现，绝不能硬编码模型 ID。政企分发与搜索场景是它的实际主场，开源社区影响力弱于 DeepSeek / Kimi / MiniMax。",
+        "sourceIds": [
+          "ernie-baike",
+          "qianfan",
+          "comate"
+        ],
+        "confidence": "partial",
+        "provider": "baidu"
+      },
+      {
+        "id": "hy4-preview",
+        "name": "混元 Hy4 preview",
+        "role": "flagship",
+        "releasedAt": "2026-08-28",
+        "contextLength": 1000000,
+        "params": "770B 总参 / 49B 激活",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "开放权重（同步上 HF / GitHub / ModelScope / GitCode + 腾讯云 TokenHub / OpenRouter；许可证条款未逐条核对）",
+        "pricing": {
+          "currency": "CNY",
+          "inputPerMTok": 6,
+          "outputPerMTok": null,
+          "notes": "输入约 ¥6/百万；输出未公开单列；上线后多次限免（延至 08-31）"
+        },
+        "benchmarks": [
+          {
+            "name": "内部盲测",
+            "score": "163 名专家 × 203 个工程任务，均分 2.99/4（GLM-5.3 2.92、Kimi K3 2.94）——官方口径",
+            "asOf": "2026-08",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "把「开源 + 限免」同时做到最激进，但旗舰至今仍挂着 preview。",
+        "analysis": "官方盲测对照 GLM-5.3 / Kimi K3 的优势不足 0.1 分，且是内部口径，不能作为选型依据；真正可信的信号是「用限免换用量」这一策略。带 preview 意味着 API 契约与分数都可能变。2026-07-24 语言与多模态部门合并为基础模型部，由姚顺雨统一负责。",
+        "sourceIds": [
+          "hy-tag",
+          "hy-dev"
+        ],
+        "confidence": "partial",
+        "provider": "tencent"
+      },
+      {
+        "id": "hy3",
+        "name": "混元 Hy3",
+        "role": "open-weights",
+        "releasedAt": "2026-07-06",
+        "contextLength": null,
+        "params": "295B 总参 / 21B 激活（另有 3.8B MTP 模块）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "Apache-2.0",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "以腾讯云 / TokenHub 按量与限免为主"
+        },
+        "benchmarks": [],
+        "summary": "混元线上唯一干净的 Apache-2.0 档位。",
+        "analysis": "如果要自托管腾讯系模型，选 Hy3 而不是 Hy4 preview：许可证干净、参数小、部署成本可控，且不依赖仍会变的契约。",
+        "sourceIds": [
+          "hy-tag"
+        ],
+        "confidence": "partial",
+        "provider": "tencent"
+      },
+      {
+        "id": "openpangu-2-pro",
+        "name": "openPangu 2.0 Pro",
+        "role": "open-weights",
+        "releasedAt": "2026-07-31",
+        "contextLength": 512000,
+        "params": "最高 505B MoE（Pro / Flash 两版）",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "昇腾亲和开放权重；2026-06-30 起陆续放出 7 大核心组件，含基础推理代码与技术报告",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "以昇腾 / 华为云部署为主，无公开统一 API 单价"
+        },
+        "benchmarks": [
+          {
+            "name": "单卡推理吞吐",
+            "score": "官方称约为业界主流开源模型的 2 倍",
+            "asOf": "2026-06",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "唯一把「国产芯片亲和」当作第一卖点的开放权重模型（2026-06-12 HDC 发布，07-31 开源 Pro 权重）。",
+        "analysis": "盘古的竞争力不在通用能力位次——余承东接手后公开承认「没做好」，并说明参数规模受算力分配制约、不做万亿参数。它的价值在昇腾 + 鸿蒙 + 政企私有化的闭环。吞吐 2 倍是厂商口径，必须在目标芯片上自测。",
+        "sourceIds": [
+          "pangu-36kr",
+          "codearts"
+        ],
+        "confidence": "partial",
+        "provider": "huawei"
+      },
+      {
+        "id": "yi-lightning",
+        "name": "Yi-Lightning",
+        "role": "legacy",
+        "releasedAt": null,
+        "contextLength": null,
+        "params": "千亿级 MoE",
+        "modalities": [
+          "文本"
+        ],
+        "openSource": true,
+        "license": "开放权重",
+        "pricing": {
+          "currency": "CNY",
+          "notes": "零一万物价页未能抓取，当前 API 价格 unverified"
+        },
+        "benchmarks": [
+          {
+            "name": "LMSYS（2024-10 口径）",
+            "score": "世界第六、中国第一",
+            "asOf": "2024-10",
+            "confidence": "partial"
+          }
+        ],
+        "summary": "2026 年零一没有新旗舰基座：最新公开基座仍是 2024-10 的 Yi-Lightning。",
+        "analysis": "李开复已公开表示不再做超大基模迭代，全面转 ToB。把零一放进对照组的意义是记录另一条路线——模型层退出前沿竞争，改以万智企业多智能体平台与老板AI / 投资官AI / 销冠AI 交付。评估它应该看企业交付能力，而不是榜单。",
+        "sourceIds": [
+          "yi-official"
+        ],
+        "confidence": "partial",
+        "provider": "zero1"
+      }
+    ],
+    "sources": [
+      {
+        "id": "k3-gh",
+        "name": "MoonshotAI/Kimi-K3 (GitHub)",
+        "url": "https://github.com/MoonshotAI/Kimi-K3",
+        "type": "github",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-platform",
+        "name": "Kimi 开放平台更新日志",
+        "url": "https://platform.kimi.ai/docs/platform-changelog",
+        "type": "changelog",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-code",
+        "name": "MoonshotAI/kimi-code (GitHub)",
+        "url": "https://github.com/MoonshotAI/kimi-code",
+        "type": "github",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-baike",
+        "name": "百度百科 · 月之暗面 Kimi",
+        "url": "https://baike.baidu.com/item/%E6%9C%88%E4%B9%8B%E6%9A%97%E9%9D%A2Kimi/68612029",
+        "type": "official",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-tr",
+        "name": "Kimi K3 技术报告中译",
+        "url": "https://zhuanlan.zhihu.com/p/2065460880305644428",
+        "type": "paper",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-bench",
+        "name": "K3 中文横评",
+        "url": "https://blog.csdn.net/aidoudoulong/article/details/163462536",
+        "type": "news",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-price",
+        "name": "BenchLM · Moonshot 定价",
+        "url": "https://benchlm.ai/moonshot/api-pricing",
+        "type": "news",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "kimi-desktop",
+        "name": "极客公园 · Kimi Code 桌面端",
+        "url": "https://www.geekpark.net/topics/370830",
+        "type": "news",
+        "vendor": "moonshot"
+      },
+      {
+        "id": "zai-docs",
+        "name": "docs.z.ai 发布说明",
+        "url": "https://docs.z.ai/release-notes/new-released",
+        "type": "changelog",
+        "vendor": "zai"
+      },
+      {
+        "id": "zai-price",
+        "name": "docs.z.ai 定价",
+        "url": "https://docs.z.ai/guides/overview/pricing",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "bm-price",
+        "name": "docs.bigmodel.cn 定价",
+        "url": "https://docs.bigmodel.cn/cn/guide/start/pricing",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "glm53-doc",
+        "name": "docs.z.ai · GLM-5.3 模型页",
+        "url": "https://docs.z.ai/guides/llm/glm-5.3",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "zcode",
+        "name": "ZCode 官网",
+        "url": "https://zcode.z.ai/cn",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "zcode-gh",
+        "name": "zai-org/ZCode (GitHub)",
+        "url": "https://github.com/zai-org/ZCode",
+        "type": "github",
+        "vendor": "zai"
+      },
+      {
+        "id": "autoclaw",
+        "name": "AutoClaw 官网",
+        "url": "https://autoclaw.zhipuai.cn/",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "glm-leak",
+        "name": "ZCode 静默上传事件报道",
+        "url": "https://m.10jqka.com.cn/20260921/c680141737.shtml",
+        "type": "news",
+        "vendor": "zai"
+      },
+      {
+        "id": "glm-bedrock",
+        "name": "AWS · GLM-5.3 上架 Bedrock",
+        "url": "https://aws.amazon.com/about-aws/whats-new/2026/10/amazon-bedrock-glm-5-3/",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "zhipu-cn",
+        "name": "智谱官网",
+        "url": "https://www.zhipuai.cn/zh",
+        "type": "official",
+        "vendor": "zai"
+      },
+      {
+        "id": "ark-list",
+        "name": "火山方舟模型列表",
+        "url": "https://ark.volcengine.com/region:cn-beijing/docs/ark/model-list",
+        "type": "changelog",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "ark-rel",
+        "name": "方舟模型发布公告",
+        "url": "https://www.volcengine.com/docs/82379/1159178",
+        "type": "changelog",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "seed21",
+        "name": "Seed 2.1 官方模型页",
+        "url": "https://seed.bytedance.com/en/seed2_1",
+        "type": "official",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "trae-cn",
+        "name": "TRAE 中国 · 套餐与计费",
+        "url": "https://docs.trae.cn/ide_plans-and-billing?lang=zh",
+        "type": "official",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "trae-merge",
+        "name": "TRAE/TraeWork 合并与停服",
+        "url": "https://m.163.com/dy/article/L91K8KII055616YL.html",
+        "type": "news",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "force26",
+        "name": "FORCE 原动力大会报道",
+        "url": "https://view.inews.qq.com/wxn/20260624A04IFU00",
+        "type": "news",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "ark-cli",
+        "name": "方舟 CLI 文档",
+        "url": "https://docs.volcengine.com/docs/82379/2656115?lang=zh",
+        "type": "official",
+        "vendor": "bytedance"
+      },
+      {
+        "id": "gem4",
+        "name": "Gemini 4 Argon 发布",
+        "url": "https://tech.wmzhe.com/article/google-gemini-4-argon-launch.html",
+        "type": "news",
+        "vendor": "google"
+      },
+      {
+        "id": "g-changelog",
+        "name": "Gemini API changelog",
+        "url": "https://ai.google.dev/gemini-api/docs/changelog",
+        "type": "changelog",
+        "vendor": "google"
+      },
+      {
+        "id": "antigrav",
+        "name": "Google Antigravity 条目",
+        "url": "https://baike.baidu.com/item/Google%20Antigravity/67510312",
+        "type": "official",
+        "vendor": "google"
+      },
+      {
+        "id": "gcli-off",
+        "name": "Gemini CLI 停服与 Antigravity CLI 接替",
+        "url": "https://future-stack-reviews.com/gemini-cli-shutdown-antigravity-cli/",
+        "type": "news",
+        "vendor": "google"
+      },
+      {
+        "id": "grok47",
+        "name": "docs.x.ai · Grok 4.7",
+        "url": "https://docs.x.ai/developers/grok-4-7",
+        "type": "official",
+        "vendor": "xai"
+      },
+      {
+        "id": "grok46",
+        "name": "AWS Bedrock · Grok 4.6 model card",
+        "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-xai-grok-4-6.html",
+        "type": "official",
+        "vendor": "xai"
+      },
+      {
+        "id": "grokbuild",
+        "name": "Grok Build 终端 Agent 报道",
+        "url": "https://m.blog.csdn.net/Number241/article/details/164147106",
+        "type": "news",
+        "vendor": "xai"
+      },
+      {
+        "id": "muse-open",
+        "name": "Muse Spark Open 816B 与许可",
+        "url": "https://m.163.com/dy/article/L9COS28M0511BE1V.html",
+        "type": "news",
+        "vendor": "meta"
+      },
+      {
+        "id": "llama-api",
+        "name": "Meta Llama API 条目",
+        "url": "https://baike.baidu.com/item/Meta%20Llama%20API/68369279",
+        "type": "official",
+        "vendor": "meta"
+      },
+      {
+        "id": "muse-code",
+        "name": "Muse Code 终端 Agent",
+        "url": "https://www.51cto.com/aigc/12033.html",
+        "type": "news",
+        "vendor": "meta"
+      },
+      {
+        "id": "llama-lic",
+        "name": "Llama Community License 拆解",
+        "url": "https://m.blog.csdn.net/w13437254810/article/details/163120899",
+        "type": "paper",
+        "vendor": "meta"
+      },
+      {
+        "id": "large4",
+        "name": "Mistral Large 4 定价与参数",
+        "url": "https://www.eesel.ai/blog/mistral-large-4",
+        "type": "news",
+        "vendor": "mistral"
+      },
+      {
+        "id": "mistral-vibe",
+        "name": "Mistral 新闻 · Vibe / Medium 3.5",
+        "url": "https://mistral.ai/news/vibe-remote-agents-mistral-medium-3-5/",
+        "type": "changelog",
+        "vendor": "mistral"
+      },
+      {
+        "id": "aa-large4",
+        "name": "Artificial Analysis · Large 4",
+        "url": "https://artificialanalysis.ai/articles/mistral-large-4-france-ai",
+        "type": "paper",
+        "vendor": "mistral"
+      },
+      {
+        "id": "sina-large4",
+        "name": "Large 4 权重与许可证尚未落地",
+        "url": "https://tech.sina.cn/2026-10-07/detail-iniukxhi4667488.d.html",
+        "type": "news",
+        "vendor": "mistral"
+      },
+      {
+        "id": "qwen-price",
+        "name": "阿里云百炼 · 模型调用价格",
+        "url": "https://help.aliyun.com/zh/model-studio/model-pricing",
+        "type": "official",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-max-doc",
+        "name": "百炼 · qwen3.8-max 模型页",
+        "url": "https://help.aliyun.com/zh/model-studio/qwen3-8-max",
+        "type": "official",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-changelog",
+        "name": "QwenCloud 模型发布记录",
+        "url": "https://docs.qwencloud.com/changelog/models",
+        "type": "changelog",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-notice",
+        "name": "阿里云 · 通义灵码更名与服务调整公告",
+        "url": "https://www.aliyun.com/notice/118550",
+        "type": "changelog",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-27b",
+        "name": "Qwen3.8-27B 规格与复现表",
+        "url": "https://kingy.ai/blog/qwen3-8-27b-specs-benchmarks-local-hardware/",
+        "type": "paper",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "modelscope",
+        "name": "魔搭 ModelScope",
+        "url": "https://modelscope.cn/",
+        "type": "forum",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qoder-baike",
+        "name": "Qoder 条目",
+        "url": "https://baike.baidu.com/item/Qoder/66330854",
+        "type": "official",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "ds-pricing",
+        "name": "DeepSeek API 定价",
+        "url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+        "type": "official",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-models",
+        "name": "DeepSeek 模型列表",
+        "url": "https://api-docs.deepseek.com/zh-cn/quick_start/models",
+        "type": "official",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-news0910",
+        "name": "DeepSeek 公告 · V4.1 Flash",
+        "url": "https://api-docs.deepseek.com/zh-cn/news/news260910",
+        "type": "changelog",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-news1017",
+        "name": "DeepSeek 公告 · V4.1-Flash-1017 与 Search/Fetch API",
+        "url": "https://api-docs.deepseek.com/zh-cn/news/news261017",
+        "type": "changelog",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-tools",
+        "name": "DeepSeek Agent Tools 官方文档",
+        "url": "https://api-docs.deepseek.com/zh-cn/guides/agent_tools",
+        "type": "official",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-v4",
+        "name": "DeepSeek-V4 技术报告（镜像）",
+        "url": "https://gitcode.csdn.net/69f85b3d0a2f6a37c5a7cca4.html",
+        "type": "paper",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-ascent",
+        "name": "昇腾 950DT 采购与乌兰察布数据中心",
+        "url": "https://post.m.smzdm.com/p/agg4ppzd/",
+        "type": "news",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-retract",
+        "name": "V4 Pro 下线公告撤回事件",
+        "url": "https://finance.sina.com.cn/tech/roll/2026-09-11/doc-inirnhrw8955162.shtml",
+        "type": "news",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "mm-price",
+        "name": "MiniMax 开放平台定价",
+        "url": "https://platform.minimax.cn/docs/pricing/overview",
+        "type": "official",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-blog",
+        "name": "MiniMax 官方博客 · M3.1 Flash",
+        "url": "https://www.minimax.io/blog/minimax-m31f",
+        "type": "changelog",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-code",
+        "name": "MiniMax Code 文档",
+        "url": "https://agent.minimaxi.com/docs/code/welcome",
+        "type": "official",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-m3",
+        "name": "MiniMax M3 发布解读",
+        "url": "https://www.orcarouter.ai/zh-CN/blog/what-is-minimax-m3",
+        "type": "news",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-cli",
+        "name": "MiniMax Code CLI 开源（MIT）",
+        "url": "https://m.163.com/dy/article/L75A55VE0511D6RL.html",
+        "type": "news",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-h3",
+        "name": "MiniMax H3 开源与技术规格",
+        "url": "https://m.chinaz.com/feed/0803/1768667.shtml",
+        "type": "news",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-fin",
+        "name": "MiniMax 2026 中报",
+        "url": "http://www.nbd.com.cn/articles/2026-08-13/4541484.html",
+        "type": "news",
+        "vendor": "minimax"
+      },
+      {
+        "id": "step-doc",
+        "name": "阶跃星辰 · Step Code 文档",
+        "url": "https://platform.stepfun.com/docs/zh/step-code/overview",
+        "type": "official",
+        "vendor": "stepfun"
+      },
+      {
+        "id": "step-news",
+        "name": "Step 5 Preview 开源与规格",
+        "url": "https://news.qiniu.com/archives/1792047249878",
+        "type": "news",
+        "vendor": "stepfun"
+      },
+      {
+        "id": "yi-official",
+        "name": "零一万物公司介绍",
+        "url": "http://www.lingyiwanwu.com/about.html",
+        "type": "official",
+        "vendor": "zero1"
+      },
+      {
+        "id": "ernie-baike",
+        "name": "文心（ERNIE）条目",
+        "url": "https://baike.baidu.com/item/Ernie/0",
+        "type": "official",
+        "vendor": "baidu"
+      },
+      {
+        "id": "comate",
+        "name": "文心快码 Comate",
+        "url": "https://comate.baidu.com/zh",
+        "type": "official",
+        "vendor": "baidu"
+      },
+      {
+        "id": "hy-tag",
+        "name": "腾讯混元标签页",
+        "url": "https://www.ithome.com/tags/%E6%B7%B7%E5%85%83/",
+        "type": "news",
+        "vendor": "tencent"
+      },
+      {
+        "id": "hy-dev",
+        "name": "腾讯云开发者 · CodeBuddy/WorkBuddy",
+        "url": "https://developer.cloud.tencent.com/article/2739304",
+        "type": "news",
+        "vendor": "tencent"
+      },
+      {
+        "id": "pangu-36kr",
+        "name": "openPangu 2.0 开源",
+        "url": "https://www.36kr.com/p/4033989764667016",
+        "type": "news",
+        "vendor": "huawei"
+      },
+      {
+        "id": "codearts",
+        "name": "华为云 CodeArts 代码智能体",
+        "url": "https://blog.csdn.net/u012975197/article/details/160597633",
+        "type": "news",
+        "vendor": "huawei"
+      },
+      {
+        "id": "oai-price",
+        "name": "OpenAI API 定价指南（转述）",
+        "url": "https://devtk.ai/zh/blog/openai-api-pricing-guide-2026/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-changelog",
+        "name": "OpenAI API changelog",
+        "url": "https://developers.openai.com/api/docs/changelog",
+        "type": "changelog",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-astra",
+        "name": "GPT-6 Astra 基准解读",
+        "url": "https://blog.csdn.net/itopit/article/details/164430413",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-devday",
+        "name": "DevDay 2026 发布汇总",
+        "url": "https://m.toutiao.com/article/7691163899747418667/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-sol",
+        "name": "GPT-6.1 Sol 开发者定价与快速上手",
+        "url": "https://www.sitepoint.com/gpt-6-1-sol-developers-pricing-quickstart",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-codex",
+        "name": "Codex CLI 现状",
+        "url": "https://ai-tldr.dev/tools/openai-codex-agent/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "ant-wiki",
+        "name": "Anthropic 条目",
+        "url": "https://zh.wikipedia.org/zh-cn/Anthropic",
+        "type": "official",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-news",
+        "name": "anthropic.com/news",
+        "url": "https://www.anthropic.com/news",
+        "type": "changelog",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-relbot",
+        "name": "Anthropic 更新流（releasebot 镜像）",
+        "url": "https://releasebot.io/updates/anthropic",
+        "type": "changelog",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-opus55",
+        "name": "Claude Opus 5.5 完整指南",
+        "url": "https://codersera.com/blog/claude-opus-5-5-complete-guide-2026/",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-sonnet55",
+        "name": "Claude Sonnet 5.5 发布",
+        "url": "https://m.toutiao.com/a7692478875854488099/",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-haiku55",
+        "name": "Claude Haiku 5.5 发布与定价",
+        "url": "https://m.163.com/dy/article/L8MVORPV05511ABV6.html",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "region-block",
+        "name": "海外模型 API 大陆可达性说明",
+        "url": "https://jiekou.ai/blog/2026-%E4%BC%81%E4%B8%9A%E7%BA%A7%E6%B5%B7%E5%A4%96%E5%A4%A7%E6%A8%A1%E5%9E%8B-api-%E6%8E%A5%E5%85%A5%E6%8C%87%E5%8D%97",
+        "type": "news",
+        "vendor": null
+      },
+      {
+        "id": "mcp-spec",
+        "name": "MCP 规范 2026-07-28 版本",
+        "url": "https://www.eggstriker.com/ai-news",
+        "type": "paper",
+        "vendor": null
+      },
+      {
+        "id": "qwen-code",
+        "name": "Qwen Code 现状与配置实测",
+        "url": "https://m.blog.csdn.net/m0_53142039/article/details/163376134",
+        "type": "news",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-app",
+        "name": "QuestMobile 2026-09 千问 / 豆包月活口径",
+        "url": "https://www.pai.com.cn/news/01m5bm051x2yxjpvx427fx966a",
+        "type": "news",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "qwen-yunqi",
+        "name": "云栖 2026-09-22：Qwen4 已投入训练",
+        "url": "https://finance.sina.cn/tech/2026-09-22/detail-inissitm5734586.d.html",
+        "type": "news",
+        "vendor": "alibaba"
+      },
+      {
+        "id": "ds-harness",
+        "name": "DeepSeek Harness 建仓与星数",
+        "url": "https://m.toutiao.com/w/1879360691435532/",
+        "type": "github",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "ds-vision",
+        "name": "V4-Flash-Vision-Exp 权重 MIT 开源",
+        "url": "https://k.sina.cn/article_7879777297_1d5abdc1106801lyw2.html",
+        "type": "news",
+        "vendor": "deepseek"
+      },
+      {
+        "id": "mm-plan",
+        "name": "MiniMax M Plan 订阅档位",
+        "url": "https://coding-plan.org/plans/minimax",
+        "type": "official",
+        "vendor": "minimax"
+      },
+      {
+        "id": "mm-agent",
+        "name": "MiniMax Agent 更新日志",
+        "url": "https://agent.minimaxi.com/docs/changelog",
+        "type": "changelog",
+        "vendor": "minimax"
+      },
+      {
+        "id": "step-bench",
+        "name": "Step 5 Preview 规格与开源报道",
+        "url": "https://finance.eastmoney.com/a/202610103891896787.html",
+        "type": "news",
+        "vendor": "stepfun"
+      },
+      {
+        "id": "qianfan",
+        "name": "百度千帆 Model Platform 盘点",
+        "url": "https://www.ai345.info/ai-guide/baidu-cloud-2026-guide",
+        "type": "news",
+        "vendor": "baidu"
+      },
+      {
+        "id": "oai-terra",
+        "name": "OpenAI 新模型价格砍半（网易/第一财经转载）",
+        "url": "https://m.163.com/dy/article/LA8MUJDB055040N3.html",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-terra-infoq",
+        "name": "GPT-6.1 Terra 发布（InfoQ）",
+        "url": "https://www.infoq.cn/article/28VVsANi9FBYRKfUz8vA",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-terra-toutiao",
+        "name": "10-26 与 Anthropic 递 S-1 同日发 Terra",
+        "url": "https://m.toutiao.com/article/1880222050019530/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-terra-techtarget",
+        "name": "OpenAI slashes model price again",
+        "url": "http://www.techtarget.com/news/openai-slashes-price-for-model-again/872942/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-terra-myclaw",
+        "name": "GPT-6.1 Terra 测评（基准/价格/接入面）",
+        "url": "https://myclaw.ai/zh-CN/blog/gpt-6-1-terra-review",
+        "type": "bench",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-codex-pro",
+        "name": "OpenAI 取消 Pro 200 降额、用量翻倍",
+        "url": "https://tech.wmzhe.com/article/openai-chatgpt-pro-usage-limits-doubled.html",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-payforchat",
+        "name": "2026 ChatGPT Pro 用量翻倍细则",
+        "url": "https://www.payforchat.com/articles/chatgpt-pro-usage-limits-doubled-2026",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-36kr-codex",
+        "name": "36氪 · Codex 额度与 ChatGPT 入口更新",
+        "url": "http://36kr.com/p/4046427132744579",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-pro500-baike",
+        "name": "Pro 500 词条（含 10-30 额度反转）",
+        "url": "https://baike.baidu.com/item/Pro%20500/69322748",
+        "type": "mirror",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-retire",
+        "name": "OpenAI/Anthropic/Google 模型退役日历",
+        "url": "https://help.apiyi.com/model-retirement-calendar-nov-2026-apr-2027.html",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-12b",
+        "name": "GPT-5.5 退出产品面、ChatGPT 周活破 12 亿",
+        "url": "http://cj.sina.cn/articles/view/5703921756/153faf05c01905048k",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-qcode",
+        "name": "AI Model Releases October 2026（含 Ultrafast/Decisions）",
+        "url": "https://qcode.cc/en/ai-model-releases-october-2026",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-raise",
+        "name": "OpenAI 洽谈 1.25T 估值融资 300 亿",
+        "url": "https://aihot.virxact.com/items/wg3g8yf3e8c11smv9q88k4poz",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "oai-decisions",
+        "name": "OpenAI Decisions API 定价与问题类型",
+        "url": "https://cellcog.ai/blog/openai-decisions-api/",
+        "type": "news",
+        "vendor": "openai"
+      },
+      {
+        "id": "ant-support-notes",
+        "name": "Claude 发布说明（support.claude.com）",
+        "url": "https://support.claude.com/en/articles/12138966-release-notes",
+        "type": "changelog",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-ipo-qq",
+        "name": "Anthropic 启动 IPO：上半年营收 163 亿",
+        "url": "https://news.qq.com/rain/a/20261027A06NFJ00",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-ipo-tv",
+        "name": "Anthropic Files S-1 Under ANT（TradingView）",
+        "url": "https://fr.tradingview.com/news/coinpedia:6beccb221094b:0-anthropic-files-s-1-with-the-sec-for-proposed-ipo-under-ant-ticker/",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-ipo-baike",
+        "name": "Anthropic 词条（IPO/上市时间线）",
+        "url": "https://baike.baidu.com/item/Anthropic/62639515",
+        "type": "mirror",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-gcloud",
+        "name": "Claude Models on Google Cloud（Anthropic 托管）GA",
+        "url": "https://aihot.virxact.com/items/n9wrzngr5skbn5q1ctonjex15",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-gcloud-gh",
+        "name": "anthropic-claude-timeline（逐字日表镜像）",
+        "url": "https://github.com/jqueryscript/anthropic-claude-timeline",
+        "type": "mirror",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-gcloud-techjack",
+        "name": "Claude API 2026-10-21 版本迁移与破坏性变更",
+        "url": "https://techjacksolutions.com/ai-brief/claude-api-2026-10-21-migration-guide-breaking-changes/",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-fastmode",
+        "name": "Claude Opus 5.5 极速模式全面开放（2.5×）",
+        "url": "https://www.szhzxw.cn/190374.html",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-claude-code-316",
+        "name": "Claude Code v2.1.316 变更",
+        "url": "https://aihot.virxact.com/items/yfalcaiidlr876zdagjdwdpbm",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-haiku-cache",
+        "name": "Haiku 5.5 发布与 Sonnet 5.5 缓存读下调",
+        "url": "https://aihot.virxact.com/items/wzxmpnxf68h2plmg6537e6kao",
+        "type": "changelog",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-claude-world",
+        "name": "AI Coding Models & Tools: October 2026（默认模型与别名）",
+        "url": "https://claude-world.com/articles/ai-coding-models-tools-october-2026/",
+        "type": "news",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-claude-series-baike",
+        "name": "Claude 系列词条（含 08-17 大故障）",
+        "url": "https://baike.baidu.com/item/Claude%E7%B3%BB%E5%88%97/67913656",
+        "type": "mirror",
+        "vendor": "anthropic"
+      },
+      {
+        "id": "ant-fable55-kunavo",
+        "name": "Claude Fable 5.5 未发布状态核对",
+        "url": "https://kunavo.com/guides/claude-fable-5-5-api",
+        "type": "news",
+        "vendor": "anthropic"
+      }
+    ]
+  }
 }

@@ -1,5 +1,7 @@
 # 一览 Android 独立版 3.0.0 验收
 
+> 文档标注：本文件是 3.0.0 交付阶段的验证快照，不是每次打开工作空间都会重跑的结果，也不是全机型认证。当前版本/状态先读 [HANDOFF](../../HANDOFF.md)；文档身份见 [架构记忆](../../memory/architecture.md)。
+
 最终交付：releases/android/yilan-standalone-3.0.0.apk，62,219 字节，Android 8.0+。
 
 - 原生 APK 的 UI、来源配置、解析器、AI 目录、缓存及收藏全部内置；没有 WebView 或 chatgpt.site 依赖。
