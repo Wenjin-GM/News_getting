@@ -90,7 +90,7 @@
 
 **执行者实现选择**：独立固定站点 Rust/JNI 直连与官方公开 RSS，默认关闭实验源。未把“参考资料”解释为同意 WebView、固定 CA 私钥入包、修改系统或要求每位使用者登录。
 
-**应用层挑战根因（2026-11-11 实证）**：ECH 解决 SNI 阻断后，Cloudflare 对 **HTTP/1.1 + 非浏览器 TLS 指纹**下发托管挑战（403，cf-mitigated: challenge）；仅改 UA/请求头无效。决定性实验：ALPN 改为 `h2` 优先、hyper http2 握手、Chrome Mobile UA 后，`/latest.rss` 直接 **200**（无 cf-mitigated，application/rss+xml），`/about.json` 200；`/latest.json` 仍 403（生产不依赖）。修复仅在访问层，ECH 断言、证书/主机名校验、5MiB/类型校验全部保留，没有降低 TLS、复用 Cookie 或伪报完整性。具体契约在 C03，实测见 [LINUXDO](../docs/android/LINUXDO.md)。
+**应用层观察与有效组合**：前轮接手记录HTTP/1.1遭403/cf-mitigated:challenge、仅换UA无效；h2优先、hyper http2及Chrome Mobile UA组合取得RSS200，about.json200、latest.json仍403（生产不依赖后两者）。本轮独立复验最终RSS组合取得30条，且用户报告手机已成功；没有重演完整A/B，不能断言Cloudflare内部规则或完整模拟了Chrome TLS指纹。ECH断言、证书/主机名和内容校验保留，无Cookie/登录。契约见C03，实测与审查见[LINUXDO](../docs/android/LINUXDO.md)。
 
 ## D15 · P1 / Active · ECH 多级获取：公共优先 + 第三方 DoH 兜底 + 本地缓存
 
@@ -101,7 +101,7 @@
 2. 公共全失败 → 公共无密钥 JSON DoH（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）；它只做 DNS 解析、不承载用户流量，返回的 ECH/IP 仍经 EchConfig 校验与 public_v4 过滤。
 3. 实时通道全失败 → 读取应用私有目录的 ECH 缓存（cache.rs，最长 7 天，读回时重新校验 ECH）。
 
-**原因与边界**：第三方 DoH 不是作者账号、无需密钥，任何安装者可用，不构成“作者私有访问门槛”；但它是单一域名依赖，可能被封/停服，故置于兜底层而非首选，且缓存进一步降低实时依赖。安全模型不依赖该 DoH 的可信性：即使其返回伪造数据，端到端 TLS/ECH 校验会失败，不会泄露或接受假内容。不引入 rquest（全版本 yanked），也未引入 boring（构建需 git/nasm，本机无），h2 方案已用现有 rustls 达成目标。
+**原因与边界**：第三方接口无需作者账号/密钥，不转发新闻正文；它增加单一域名依赖及DNS查询元数据暴露。保持公共CA/TLS验证时，伪造DNS/ECH不能替代站点身份验证，但不保证可用性；缓存最长7天也不保证ECH密钥有效7天。首次安装没有缓存。当前实现的回退预算、HTTPS/响应边界和诊断待办由[LINUXDO审查](../docs/android/LINUXDO.md#独立审查发现与待办)维护。不引入rquest/boring的前轮排障依据见F22，不当作永久供应链结论。
 
 ## P3 / Superseded · 最小历史链
 

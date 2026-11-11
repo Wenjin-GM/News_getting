@@ -147,17 +147,17 @@
 - 3.8.2新增OpenDNS/AdGuard、官方IP引导且保留域名SNI/证书校验、GET及有限POST回退、有限并发与全部原因诊断。本机实际Rust客户端取得三家有效ECH并完成站点验证，但RSS/JSON仍403。证明本机DNS阶段可用，不证明手机或取帖通过。
 - 后续手机3.8.2复验：OpenDNS/AdGuard/Cloudflare均超时，阿里/DNSPod缺ECH，证明上一轮仍未解决手机问题。指定TCP引导IP仍发送域名SNI；截图无法区分链路阻断与2.3秒预算过短，不把其中一种推测写成已确认根因。
 - 3.8.3新增Cloudflare/Google HTTPS IP URL并正常验证公共证书/IP SAN（不发域名SNI），保留域名回退、将路线预算放宽到5秒。本机实际Rust两家主IP均取得ECH，后续站点仍403；备用IP仅有Python校验证书的探测记录，新版手机仍待验。IP URL支持按实际握手验证，不从运营商公布IP推断其必然支持IP证书，也不保证未来永远可用。
-- 引导表只能是公共DNS服务自己的官方地址；不把过时linux.do目标IP/ECH密钥固化进APK，不用私有DoH后端或TLS放行补成功率。详细来源、实测与测试在 [LINUXDO](../docs/android/LINUXDO.md)，当前验收断点见 HANDOFF。
+- 引导表使用运营商自己的地址，不把过时linux.do目标IP/ECH密钥固化进APK；早期仅标准公共DoH的选择已由D15新增无密钥第三方兜底替代，TLS放行仍禁。详细来源、实测与测试在[LINUXDO](../docs/android/LINUXDO.md)，当前验收断点见HANDOFF。
 
-## F22 · P1 / Active · 标准加密 DNS 与替代 HTTP 客户端的死路（2026-11-11）
+## F22 · P1 / Active · 既有加密DNS与替代客户端失败记录的适用边界
 
-- 条件：当前网络对知名 DoH IP 做 IP 封锁（1.1.1.1/8.8.8.8/9.9.9.9:443 超时），国内 DoH 剥离 ECH。系统排查“TCP 可连”不等于“能完成 TLS”：
-  - **DoT 853**：1.1.1.1:853 TCP 可连，但 TLS 握手被 RST（10054），DPI 按 SNI=cloudflare-dns.com 阻断。
-  - **CF 边缘 IP 绕路**：188.114.96.1/97.1、104.17.1.1 TCP 可连，但用其访问 cloudflare-dns.com 超时（同样 SNI 阻断），不能替代 1.1.1.1。
+- 前轮接手记录：1.1.1.1/8.8.8.8/9.9.9.9:443超时、国内DoH缺ECH；这是当时网络的观测，不能单靠超时确定封锁、单靠缺字段断言主动剥离，或延伸为所有网络永久不可达。“TCP可连”不等于“能完成TLS”：
+  - **DoT 853**：记录1.1.1.1:853 TCP可连、TLS RST（10054）；SNI/DPI阻断是当时解释，非本轮独立确认根因。
+  - **CF边缘IP**：记录188.114.96.1/97.1、104.17.1.1 TCP可连，但访问cloudflare-dns.com超时；当时未成功，不保证以后仍失败。
   - **NextDNS/Yandex**：45.90.28.0、77.88.8.8 TCP 可连，TLS 握手 RST；**360**（101.198.198.198）返回 403。
-- 供应链事实：**rquest 所有版本（0.20/0.31/1.x/2.x）已从 crates.io yanked**，不能作为新依赖；Cloudflare 官方 **boring/boring-sys（5.3/5.4 非 yanked）可用且含完整 ECH API**，但 boring-sys 构建需 git（PQC 补丁）与 nasm，本机无 git/nasm（perl 在 msys64）。最终未引入，h2 已用现有 rustls 达成目标。
+- 前轮报告rquest依赖撤回、boring构建工具受限，均未引入；本轮未独立重查撤回状态或重编译这些库，不当作永久事实。原记录“本机无git”不准确：本轮Git已实际提交/推送，Get-Command可找到git，PATH内未找到nasm。现有rustls/h2已工作，无需为历史推测自动安装替代工具。
 - 有效解：保持 ECH + TLS 校验，传输改 h2 + Chrome Mobile UA（见 D14），ECH 用公共→第三方 JSON DoH→缓存三级获取（见 D15）。
-- 防复发：判断加密 DNS 可用性必须验证到 TLS 握手与实际 ECH，不能只测 TCP；不要重复 rquest/boring 或 DoT/边缘 IP 路线。证据在 .local/reports/{net-reach,dot-reach,cf-doh-reach,doh-ip-reach}.txt 与 [LINUXDO](../docs/android/LINUXDO.md)。
+- 防复发：可用性验证到TLS/ECH和实际RSS；重试历史失败路线需有网络/工具变化依据，不永久禁止。新增回退/缓存的审查待办由[LINUXDO](../docs/android/LINUXDO.md#独立审查发现与待办)维护；历史报告在.local/reports/{net-reach,dot-reach,cf-doh-reach,doh-ip-reach}.txt，本轮成功在linuxdo-review-rss.json。
 
 ## P3 / Obsolete · 已退役层的临时排障
 
