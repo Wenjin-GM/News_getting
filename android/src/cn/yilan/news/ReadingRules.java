@@ -24,11 +24,19 @@ public final class ReadingRules {
     return false;
   }
   public static boolean aiBoard(String id,Snapshot s){
-    if(!("v2ex".equals(id)||"hackernews".equals(id))||s==null||s.fetched<=0||!s.error.isEmpty())return false;
+    if(!NewsEngine.HOT_SOURCES.contains(id)||s==null||!id.equals(s.source)||s.fetched<=0||!s.error.isEmpty())return false;
     for(Article a:s.items)if(NewsEngine.isAIOrTech(a))return true;return false;
   }
-  public static boolean aiArticle(Source source,Article a,Set<String> visibleBoards){return "ai".equals(source.category)||visibleBoards.contains(source.id)&&NewsEngine.isAIOrTech(a);}
-  public static boolean archivable(Source s,Article a){return FeaturedNews.latestSource(s)||"ai".equals(s.category)||("v2ex".equals(s.id)||"hackernews".equals(s.id))&&NewsEngine.isAIOrTech(a);}
+  public static boolean newsArticle(Source source,Article a){return FeaturedNews.latestSource(source)&&!NewsEngine.isAI(a);}
+  public static boolean aiArticle(Source source,Article a,Set<String> visibleBoards){return "ai".equals(source.category)||FeaturedNews.latestSource(source)&&NewsEngine.isAI(a)||("v2ex-latest".equals(source.id)||visibleBoards.contains(source.id))&&NewsEngine.isAIOrTech(a);}
+  public static boolean platformArticle(Source s,Article a){return "ai".equals(s.category)||("v2ex-latest".equals(s.id)?NewsEngine.isAIOrTech(a):FeaturedNews.latestSource(s)&&NewsEngine.isAI(a));}
+  public static boolean platformChoice(JSONObject catalog,Source source,Snapshot snapshot){
+    if(!platformSource(catalog,source))return false;
+    if("ai".equals(source.category)||"v2ex-latest".equals(source.id))return true;
+    if(snapshot!=null)for(Article article:snapshot.items)if(platformArticle(source,article))return true;
+    return false;
+  }
+  public static boolean archivable(Source s,Article a){return FeaturedNews.latestSource(s)||"ai".equals(s.category)||("v2ex-latest".equals(s.id)||NewsEngine.HOT_SOURCES.contains(s.id))&&NewsEngine.isAIOrTech(a);}
   public static String confidence(JSONObject claim){
     String c=claim.optString("confidence","unverified");JSONArray ids=claim.optJSONArray("sourceIds");
     return "verified".equals(c)&&(ids==null||ids.length()==0)?"unverified":c;
@@ -37,7 +45,7 @@ public final class ReadingRules {
     Set<String> out=new HashSet<>();JSONArray tools=catalog.optJSONArray("tools");
     for(int i=0;tools!=null&&i<tools.length();i++){JSONObject t=tools.optJSONObject(i);if(t!=null&&!t.optString("sourceId").isEmpty())out.add(t.optString("sourceId"));}return out;
   }
-  public static boolean platformSource(JSONObject catalog,Source s){return "ai".equals(s.category)&&!toolSources(catalog).contains(s.id);}
+  public static boolean platformSource(JSONObject catalog,Source s){return FeaturedNews.latestSource(s)||"v2ex-latest".equals(s.id)||"ai".equals(s.category)&&!toolSources(catalog).contains(s.id);}
   private static String modelDate(JSONObject m){try{return java.time.LocalDate.parse(m.optString("releasedAt")).toString();}catch(Exception ignored){return "";}}
   public static List<JSONObject> sortedModels(JSONArray models){
     List<JSONObject> out=new ArrayList<>();for(int i=0;models!=null&&i<models.length();i++){JSONObject m=models.optJSONObject(i);if(m!=null)out.add(m);}

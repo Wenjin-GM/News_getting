@@ -20,7 +20,9 @@ MANIFEST = ROOT / 'android/native/linuxdo/Cargo.toml'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['test', 'probe', 'build'])
-    parser.add_argument('--feed', choices=['rss', 'json', 'dns'], default='rss')
+    parser.add_argument('--feed',
+                        choices=['rss', 'json', 'dns', 'views', 'latest',
+                                 'v2ex-hot', 'v2ex-latest'], default='rss')
     parser.add_argument('--dns-mode', choices=['auto', 'fallback', 'cache'], default='auto',
                         help='Developer probe only; APK always uses automatic failover')
     parser.add_argument('--cache-dir', type=pathlib.Path, help='Probe cache, inside this workspace')

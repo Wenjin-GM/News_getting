@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	sourceconfig "newsdesk/config"
 )
 
 type Article struct {
@@ -34,44 +36,41 @@ type Article struct {
 }
 
 type Source struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Category     string   `json:"category"`
-	Provider     string   `json:"provider,omitempty"`
-	Description  string   `json:"description"`
-	Kind         string   `json:"kind"`
-	Home         string   `json:"home"`
-	Color        string   `json:"color"`
-	Icon         string   `json:"icon"`
-	Interval     int      `json:"interval"`
-	Experimental bool     `json:"experimental"`
-	Custom       bool     `json:"custom"`
-	FeedURL      string   `json:"feedUrl,omitempty"`
-	Endpoints    []string `json:"-"`
+	DefaultEnabled bool     `json:"-"`
+	Authority      string   `json:"authority,omitempty"`
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	Category       string   `json:"category"`
+	Provider       string   `json:"provider,omitempty"`
+	Description    string   `json:"description"`
+	Kind           string   `json:"kind"`
+	Home           string   `json:"home"`
+	Color          string   `json:"color"`
+	Icon           string   `json:"icon"`
+	Interval       int      `json:"interval"`
+	Experimental   bool     `json:"experimental"`
+	Custom         bool     `json:"custom"`
+	FeedURL        string   `json:"feedUrl,omitempty"`
+	Endpoints      []string `json:"-"`
 }
 
 func builtins() []Source {
-	return append([]Source{
-		{ID: "chinanews", Name: "中国新闻网", Category: "news", Description: "官方 RSS · 综合即时新闻", Kind: "rss", Home: "https://www.chinanews.com.cn", Color: "#b83b3b", Icon: "中", Interval: 300, Endpoints: []string{"https://www.chinanews.com.cn/rss/scroll-news.xml"}},
-		{ID: "chinanews-world", Name: "中新网 · 国际", Category: "news", Description: "官方 RSS · 国际新闻", Kind: "rss", Home: "https://www.chinanews.com.cn/world", Color: "#3b7d86", Icon: "世", Interval: 600, Endpoints: []string{"https://www.chinanews.com.cn/rss/world.xml"}},
-		{ID: "people", Name: "人民网 · 时政", Category: "news", Description: "官方 RSS · 当前发现长期停更", Kind: "rss", Home: "https://politics.people.com.cn", Color: "#ae4947", Icon: "人", Interval: 600, Experimental: true, Endpoints: []string{"https://www.people.com.cn/rss/politics.xml"}},
-		{ID: "ithome", Name: "IT之家", Category: "tech", Description: "官方 RSS · 科技资讯", Kind: "rss", Home: "https://www.ithome.com", Color: "#c74c43", Icon: "IT", Interval: 600, Endpoints: []string{"https://www.ithome.com/rss/"}},
-		{ID: "ifanr", Name: "爱范儿", Category: "tech", Description: "官方 RSS · 科技与生活", Kind: "rss", Home: "https://www.ifanr.com", Color: "#ba6449", Icon: "范", Interval: 600, Endpoints: []string{"https://www.ifanr.com/feed"}},
-		{ID: "thepaper", Name: "澎湃新闻", Category: "news", Description: "公开热榜 · 非承诺开放 API", Kind: "json", Home: "https://www.thepaper.cn", Color: "#32708b", Icon: "澎", Interval: 600, Endpoints: []string{"https://cache.thepaper.cn/contentapi/wwwIndex/rightSidebar"}},
-		{ID: "wallstreetcn", Name: "华尔街见闻", Category: "finance", Description: "公开快讯 · 非承诺开放 API", Kind: "json", Home: "https://wallstreetcn.com", Color: "#5273ac", Icon: "见", Interval: 300, Endpoints: []string{"https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel&client=pc&limit=30", "https://api.wallstcn.com/apiv1/content/lives?channel=global-channel&client=pc&limit=30"}},
-		{ID: "baidu", Name: "百度热搜", Category: "hot", Description: "公开页面 · 实时热搜榜", Kind: "html", Home: "https://top.baidu.com/board?tab=realtime", Color: "#4471cf", Icon: "百", Interval: 300, Experimental: true, Endpoints: []string{"https://top.baidu.com/board?tab=realtime"}},
-		{ID: "toutiao", Name: "今日头条", Category: "hot", Description: "公开热点榜 · 非承诺开放 API", Kind: "json", Home: "https://www.toutiao.com", Color: "#dd4c50", Icon: "头", Interval: 300, Endpoints: []string{"https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc"}},
-		{ID: "bilibili", Name: "哔哩哔哩", Category: "hot", Description: "公开热搜词 · 非承诺开放 API", Kind: "json", Home: "https://www.bilibili.com", Color: "#dd6c94", Icon: "哔", Interval: 300, Experimental: true, Endpoints: []string{"https://s.search.bilibili.com/main/hotword?limit=30"}},
-		{ID: "bilibili-video", Name: "B站 · 热门视频", Category: "community", Description: "公开热门视频 · 非承诺开放 API", Kind: "json", Home: "https://www.bilibili.com/v/popular/all", Color: "#b66b91", Icon: "B", Interval: 600, Experimental: true, Endpoints: []string{"https://api.bilibili.com/x/web-interface/popular?ps=30&pn=1"}},
-		{ID: "weibo", Name: "微博热搜", Category: "hot", Description: "公开热搜 · 可能受访问限制", Kind: "json", Home: "https://s.weibo.com/top/summary", Color: "#d77a36", Icon: "微", Interval: 300, Experimental: true, Endpoints: []string{"https://weibo.com/ajax/side/hotSearch", "https://weibo.com/ajax/statuses/hot_band"}},
-		{ID: "zhihu", Name: "知乎热榜", Category: "community", Description: "公开热榜 · 可能受访问限制", Kind: "json", Home: "https://www.zhihu.com/hot", Color: "#3979cf", Icon: "知", Interval: 600, Experimental: true, Endpoints: []string{"https://www.zhihu.com/api/v3/feed/topstory/hot-list-web?limit=30&desktop=true"}},
-		{ID: "v2ex", Name: "V2EX", Category: "community", Description: "公开 API · 社区热门主题", Kind: "json", Home: "https://www.v2ex.com", Color: "#6a6d70", Icon: "V", Interval: 600, Endpoints: []string{"https://www.v2ex.com/api/topics/hot.json"}},
-		{ID: "tieba", Name: "百度贴吧", Category: "community", Description: "公开话题榜 · 非承诺开放 API", Kind: "json", Home: "https://tieba.baidu.com", Color: "#5286bb", Icon: "贴", Interval: 600, Endpoints: []string{"https://tieba.baidu.com/hottopic/browse/topicList"}},
-		{ID: "v2ex-latest", Name: "V2EX · 最新", Category: "community", Description: "官方 Atom · 最新主题（非热榜）", Kind: "rss", Home: "https://www.v2ex.com", Color: "#6b8880", Icon: "V", Interval: 600, Endpoints: []string{"https://www.v2ex.com/index.xml"}},
-		{ID: "hackernews", Name: "Hacker News", Category: "tech", Description: "Algolia 搜索 API · 首页热门", Kind: "json", Home: "https://news.ycombinator.com", Color: "#d48242", Icon: "Y", Interval: 600, Endpoints: []string{"https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"}},
-		{ID: "bbc", Name: "BBC · World", Category: "news", Description: "官方 RSS · 英文国际新闻", Kind: "rss", Home: "https://www.bbc.com/news/world", Color: "#4a4a4a", Icon: "B", Interval: 900, Experimental: true, Endpoints: []string{"https://feeds.bbci.co.uk/news/world/rss.xml"}},
-		{ID: "linuxdo", Name: "LINUX DO", Category: "tech", Description: "官方公开 RSS · Android ECH 实验直连，访问验证时停止", Kind: "rss", Home: "https://linux.do", Color: "#d6a84a", Icon: "L", Interval: 900, Experimental: true, Endpoints: []string{"https://linux.do/latest.rss"}},
-	}, aiSources()...)
+	var rows []struct {
+		Source
+		Endpoints []string `json:"endpoints"`
+		Enabled   bool     `json:"enabled"`
+	}
+	if err := json.Unmarshal(sourceconfig.JSON(), &rows); err != nil {
+		panic(err)
+	}
+	result := make([]Source, 0, len(rows))
+	for _, row := range rows {
+		source := row.Source
+		source.Endpoints = row.Endpoints
+		source.DefaultEnabled = row.Enabled
+		result = append(result, source)
+	}
+	return result
 }
 
 var httpClient = &http.Client{Timeout: 9 * time.Second, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, MaxIdleConns: 30, MaxIdleConnsPerHost: 3, IdleConnTimeout: 60 * time.Second, TLSHandshakeTimeout: 6 * time.Second, ResponseHeaderTimeout: 7 * time.Second}, CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -102,6 +101,14 @@ func fetchSource(ctx context.Context, s Source) ([]Article, string, error) {
 		}
 		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; NewsDesk/1.0; personal news reader)")
 		req.Header.Set("Accept", "application/json, application/rss+xml, application/xml, text/html;q=0.8, */*;q=0.5")
+		if s.ID == "weibo" {
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+			req.Header.Set("Accept", "application/json, text/plain, */*")
+			req.Header.Set("Referer", "https://weibo.com/")
+			req.Header.Set("sec-fetch-dest", "empty")
+			req.Header.Set("sec-fetch-mode", "cors")
+			req.Header.Set("sec-fetch-site", "same-origin")
+		}
 		resp, err := httpClient.Do(req)
 		var body []byte
 		if err == nil {
@@ -345,6 +352,10 @@ func parseSource(s Source, body []byte) ([]Article, error) {
 			a.Title = str(m["Title"])
 			a.URL = "https://www.toutiao.com/trending/" + str(m["ClusterIdStr"]) + "/"
 			a.Heat = str(m["HotValue"])
+		case "douyin":
+			a.Title = str(m["word"])
+			a.URL = "https://www.douyin.com/search/" + url.PathEscape(a.Title)
+			a.Heat = str(m["hot_value"])
 		case "bilibili":
 			a.Title = str(m["show_name"])
 			if a.Title == "" {
@@ -425,6 +436,8 @@ func listFor(id string, root any) []any {
 		v = path(root, "list")
 	case "toutiao", "zhihu":
 		v = path(root, "data")
+	case "douyin":
+		v = path(root, "word_list")
 	case "bilibili-video":
 		v = path(root, "data", "list")
 	case "thepaper":

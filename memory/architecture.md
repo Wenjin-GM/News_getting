@@ -1,6 +1,6 @@
 # 架构与模块关系
 
-增量核实：2026-11-11；Android 依据当前未发布源码、配置和测试包；Windows 保留3.8阶段同步默认关闭来源注册的改动，本轮未改或重测。验收范围见 [HANDOFF](../HANDOFF.md)。本文件拥有架构与文件职责；字段约束见 [contracts](contracts.md)，决策原因见 [decisions](decisions.md)。
+增量核实：2026-11-11；依据3.9界面整理源码、JVM与隔离模拟器回归。共享来源已改为同一JSON嵌入，避免两端手工清单漂移。验收与断点见[HANDOFF](../HANDOFF.md)，审查修复经验由F29维护。本文件拥有架构职责，字段/决策分别见contracts/decisions。
 
 ## P1 / Active · 两个独立产品
 
@@ -26,13 +26,15 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | --- | --- |
 | [MainActivity.java](../android/src/cn/yilan/news/MainActivity.java) | 全部原生 UI、导航、搜索/筛选、刷新调度、私有状态与系统分享 |
 | [NewsEngine.java](../android/src/cn/yilan/news/NewsEngine.java) | 纯 Java 来源/文章/快照模型、HTTPS、RSS/Atom/JSON/HTML 适配、安全 URL 与降级 |
-| [LinuxDoTransport.java](../android/src/cn/yilan/news/LinuxDoTransport.java)、[Rust 核心](../android/native/linuxdo/src/lib.rs) | 可选固定站点 ECH/JNI；仅 linuxdo 使用，其余来源保留标准 HTTPS；站点走 HTTP/2，不监听本地端口或引入认证页 |
+| [LinuxDoTransport.java](../android/src/cn/yilan/news/LinuxDoTransport.java)、[Rust核心](../android/native/linuxdo/src/lib.rs) | linuxdo、v2ex、v2ex-latest的固定端点ECH/JNI；Rust仅允许linux.do及www.v2ex.com；其他源仍标准HTTPS，不做通用代理或认证页 |
 | [dns.rs](../android/native/linuxdo/src/dns.rs) | ECH 三级获取：公共 DoH failover → 第三方 JSON DoH 兜底 → 缓存；A/HTTPS 完整性校验、有限并发与阶段诊断 |
 | [fallback.rs](../android/native/linuxdo/src/fallback.rs) | 原第三方JSON DoH的有界HTTPS传输、同域重定向/记录校验；不承载新闻正文 |
-| [cache.rs](../android/native/linuxdo/src/cache.rs) | 私有ECH缓存，最长7天、有界读取和原子替换；仅实时通道失败时使用，站点响应成功才更新，命中不续期 |
+| [cache.rs](../android/native/linuxdo/src/cache.rs) | linuxdo/v2ex按固定文件名隔离缓存，保留原linuxdo旧文件；有界读写、原子替换、最长7天，成功响应后更新，命中不续期 |
 | [NewsState.java](../android/src/cn/yilan/news/NewsState.java) | 不依赖 UI 的旧状态恢复、默认设置与序列化 |
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |
+| [ArticleTextCache.java](../android/src/cn/yilan/news/ArticleTextCache.java) | 全文进程内有界同步LRU，限制条数及字符总量，不写个人状态 |
 | [FeaturedNews.java](../android/src/cn/yilan/news/FeaturedNews.java) | 无模型标题归并、机构去重与上海日期分组 |
+| [SourceFilters.java](../android/src/cn/yilan/news/SourceFilters.java) | 来源区域/主题展示分组、平台动态精确来源筛选及设置排序，不承载端点/采集定义 |
 | [ReadingRules.java](../android/src/cn/yilan/news/ReadingRules.java) | 筛选/勾选同步、来源分流、资料排序和新模型提示规则 |
 | [ReaderTheme.java](../android/src/cn/yilan/news/ReaderTheme.java)、[ReaderIcon.java](../android/src/cn/yilan/news/ReaderIcon.java) | 日夜配色 token、偏好归一化与无外部依赖的原生图标 |
 | [ReaderBackdrop.java](../android/src/cn/yilan/news/ReaderBackdrop.java)、[GlassPanelDrawable.java](../android/src/cn/yilan/news/GlassPanelDrawable.java) | 内置背景的有界解码、渐变遮罩与静态半透明泛光面板；设置页不铺图 |
@@ -43,18 +45,18 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | [data_extraction_rules.xml](../android/res/xml/data_extraction_rules.xml) | 数据提取边界 |
 | [NativeEngineTest.java](../android/tests/NativeEngineTest.java) | JVM 解析/安全/快照 fixture 和可选直连验证 |
 
-Activity 使用原生控件，底栏为新闻、AI 专栏、收藏、设置。新闻有最新、分站热榜、精选；AI 有平台动态、工具、模型、分站热榜、精选。工具合并产品/Harness/SDK 类型筛选；最多三项对比针对模型。列表为标题及小字来源/发布时间，详情保留摘要、收藏、分享、原文。紧凑模式控件已移除，旧字段仍兼容。各流规则见 contracts C08；视觉规范与待验收范围见 [UI_DESIGN](../docs/android/UI_DESIGN.md)。
+Activity底栏为新闻、AI专栏、收藏、设置。新闻有最新/分站热榜/精选；AI有平台动态/linux.do/AI/分站热榜/精选，模型降为AI内与产品/Harness/SDK并列。linux.do以当前子页名称的纯文字下拉选择默认/浏览量/最新，再单独更新，非记忆旧说的横向三标签；它有独立linuxTabs，隔离通用流/归档，预览取首帖纯文本。3.8.7补齐扩源后的路由、候选排序及正文实体语义；具体分流由C08持有。工具/模型/主题维持原规范，见[UI_DESIGN](../docs/android/UI_DESIGN.md)。
 
-网络线程池固定四线程；UI 由主线程刷新，磁盘使用独立单线程与去抖保存。首次启动与回前台按条件检查来源，没有常驻后台推送。状态持久化的字段与兼容边界由 contracts 维护。
+网络线程池固定四线程；UI 由主线程刷新，磁盘使用独立单线程与去抖保存。3.8.5 起取消启动/回前台自动检查，更新均由顶部按钮或 linux.do 子页手动触发，没有常驻后台推送。3.9批量逐源仅更新进度、完成统一重绘；单站复用全局动态等待条。状态持久化的字段与兼容边界由 contracts 维护。
 
 ## P1 / Active · 共享资料的唯一维护源
 
 | 维护源 | 两端使用方式 |
 | --- | --- |
-| [config/sources.json](../config/sources.json) | 安卓来源注册表；Go `builtins()` 与之通过测试保持一致 |
+| [config/sources.json](../config/sources.json)、[config/embed.go](../config/embed.go) | 唯一来源清单：安卓构建复制，Go builtins直接解码嵌入副本；不再手工维护第二套表 |
 | [ai_catalog.json](../internal/catalog/ai_catalog.json) | APK 平台/工具及 modelData 维护源；来源快照与日期语义见 contracts C06 |
 | [embed.go](../internal/catalog/embed.go) | Go 嵌入同一目录资料，由 `desktop/ai.go` 使用 |
-| [registry_test.go](../desktop/registry_test.go) | 比较来源定义、顺序、端点及默认启用与 Experimental 的对应关系 |
+| [registry_test.go](../desktop/registry_test.go) | 比较来源定义、顺序、端点及默认启用；enabled与Experimental为独立属性 |
 
 构建复制两个 JSON 到被忽略的 `android/assets/`，复制 `assets/icon-192.png` 到生成的 mipmap 目录；不得维护生成副本。图标与 `assets/brand.svg` 是共享品牌资源。
 

@@ -26,9 +26,9 @@
 
 ## C03 · P1 / Active · 来源定义与联网
 
-维护文件 [sources.json](../config/sources.json)；Java `Source` 读取 `id/name/category/provider/kind/home/color/icon/enabled/experimental/interval/endpoints`。interval 最低 60 秒；最多 100 个来源。源 ID 持久化，不能为改显示名随意重命名。
+维护文件 [sources.json](../config/sources.json)；Java `Source` 读取 `id/name/category/provider/kind/home/color/icon/enabled/experimental/interval/endpoints/authority`。AI源authority明确为official/media/aggregator；只有official可计入官方检查时间和模型发布候选，缺字段不推断为官方。interval 最低 60 秒；最多 100 个来源。源 ID 持久化，不能为改显示名随意重命名。
 
-Go `builtins()` 与安卓配置的字段、顺序、端点及 enabled/experimental 对应由 [registry_test.go](../desktop/registry_test.go) 比较。改来源须同步维护源、相关适配器并运行一致性测试，不能只编辑生成的 assets。
+Go `builtins()` 从config/embed.go嵌入的同一JSON解码；DefaultEnabled独立于Experimental，新安装取配置enabled，旧状态保留显式开关。字段、顺序、端点及默认值由 [registry_test.go](../desktop/registry_test.go) 比较；新增源仍须实现适配器，不能只编辑生成的 assets。Go没有Android的ECH传输，注册相同不表示两端网络能力相同。
 
 当前适配：RSS/Atom、JSON、GitHub releases、Anthropic 新闻 HTML、DeepSeek 更新章节、ZCode Release 章节、`rss-ai` 关键词筛选。IT之家/爱范儿 AI RSS 是媒体补充，不是厂商公告。不是所有目录平台都有官方自动源，不能宣称全覆盖。
 
@@ -46,6 +46,39 @@ Go `builtins()` 与安卓配置的字段、顺序、端点及 enabled/experiment
 
 3.8.3 的公共 DNS 优先尝试 Cloudflare/Google 的 HTTPS IP URL，正常验证公共证书链/IP SAN；域名引导及系统解析作备用，验证真实域名。只有实测支持IP证书的服务启用IP URL，不扩大Java新闻链接的允许范围或信任根。HTTP200不算完整解析，必须取得受支持 ECH 和公网地址；可用同条有效 HTTPS 记录的 ipv4hint 弥补 A 失败，但仍作站点证书/ECH验证。最多两家并发；首个完整结果取消其他任务，全部失败保留各家原因。不得把“DNS已解析”与后续403/取帖成功混为一谈。完整路线、预算和诊断入口由 LINUXDO 文档持有。
 
+3.8.5 新增 linux.do 全历史 Top 端点与手动更新契约：
+
+- Rust `allowed_path` 精确白名单新增 `https://linux.do/top.json?period=all`（latest.rss/latest.json 不变）；无 query、其他 period 或附加参数的 top.json 一律拒绝。Accept 头加入 application/json；ECH Accepted、h2、证书/主机名与 5MiB 校验不变。
+- Java `LinuxDoTransport` 仅放行 latest.rss 与该 top 端点，其余在加载 native 前抛“非登记”。
+- `NewsEngine.fetchLinuxDo` 不经通用 endpoint 循环与冷却：top 走 `parseLinuxTop`（取 `topic_list.topics`，按 views 降序，heat=“N 浏览”，url=home+“/t/topic/”+id，excerpt 为摘要，created_at 为发布时间），默认走原 RSS `parse`。
+- 链接统一用 `/t/topic/<id>` 短链（与 RSS item link 同形），使同一 topic 在两种模式下 URL 相同、Article id 稳定，已读/收藏可关联。
+- 条数：linuxdo 快照上限 50（`LINUXDO_LIMIT`），`Snapshot.from` 对 linuxdo 恢复上限 50、其余源仍 40；`parseLinuxTop` 取满 50 即止。
+- 手动入口只选 linuxdo 且要求来源已开启；顶部通用更新与 NewsArchive 均排除 linuxdo，linuxdo 不进通用归档/精选。
+
+3.8.6 重构 linux.do 白名单与三模式契约（取代 3.8.5 的 period=all 用法）：
+
+- Rust `allowed_path` 返回 String，精确四类：`latest.rss`、`top.json?period=quarterly`、`latest.json?per_page=50`、动态 `/t/<纯数字id>.json`（id 仅 ASCII 数字，拒绝 slug/query/空/非数字）；已移除 period=all 与裸 latest.json。ECH Accepted、ALPN h2、Chrome Mobile UA、证书/主机名、内容类型、5MiB 校验不变。
+- Java `LinuxDoTransport` 放行三个固定端点加 TOPIC 正则 `^https://linux.do/t/[0-9]+\.json$`，其余在加载 native 前抛“非登记”。
+- 模式三态常量 `LINUXDO_MODE_DEFAULT=0/_VIEWS=1/_LATEST=2`；`fetchLinuxDo(source,previous,mode)` 按模式选端点与解析，失败保留旧快照。
+- `parseLinuxViews`：建 user_id→username 映射，用 posters 中 description“原始发帖人”（英文 Original Poster 兜底）识别 OP，跳过 username=neo（不区分大小写）与 created_at 早于 cutoff（now−90 天）的帖子，按 views 取上限 50。
+- `parseLinuxLatest`：取 topics 按 created_at 显式倒序取 50，不过滤 Neo/时间。
+- `fetchLinuxTopic(topicId)`：取 `post_stream.posts` 中 post_number=1、post_type=1 首帖的 cooked，经 `textFromCooked` 清洗（块级标签转换行、li 加“· ”、解码实体、逐行 trim 保留换行）。
+- 链接仍统一 home+“/t/topic/”+id，跨子页同 topic 的 Article id 稳定；`articleId` 抽公共方法。linuxdo 快照上限仍 50。
+
+3.8.6 来源扩充与清理契约（来源 37 → 66，决策 D18）：
+
+本轮独立核对补充：原生ECH已扩展到固定www.v2ex.com，Java登记v2ex/v2ex-latest，Rust精确允许hot.json与index.xml；DNS/第三方接口按目标host查询，linux.do与V2EX缓存按固定文件名隔离。旧“仅linuxdo走native”属于3.8.4时点，当前不适用，安全上限/ECH/证书校验保留。
+
+- 移除停更/无解源 `people`、`ai-huggingface`（BBC 更早移除）；新增公开源：news 类 NPR；tech 类 CNET、Stack Overflow Blog、GitHub Blog、New Scientist、ScienceDaily、HackerNoon、Tom's Hardware；hot 类 `douyin`；ai 类 `ai-aihot`。
+- `publicURL` 增强：单参数 URI 严格构造失败时，将竖线编码为 `%7C` 后重试，其余 scheme/host/userInfo/端口/内网黑名单/可执行后缀校验全部不变；仅挽救原本返回 null 的合规链接，对现有源零影响。
+- 新增 `douyin` 解析：`rows()` 数据数组取 `word_list`，逐条目取 `word`（标题）、`hot_value`（热度），URL 拼 `https://www.douyin.com/search/<encoded word>`，与现有 json 特判同构。
+- 大 feed（Tom's Hardware 约 1.1MB 全文、无轻量端点）标 experimental，失败保留缓存；当前共 8 个 experimental 源。
+- 65 源 enabled=true，仅 `linuxdo` 手动源关闭。分类分布 news 6 / tech 25 / finance 2 / hot 5 / community 9 / ai 19。
+
+以上数量为3.8.6历史状态。3.8.7按用户要求移除Tom's Hardware，当前数量以HANDOFF为准；删除来源不删除旧收藏/已读。F29路由、排序、正文和共享表缺口已补反例并修复；手机仍待验。
+
+3.8.7修正：季度候选先过滤Neo（含OP id=1）、无效时间/浏览量，再按long views降序、发布时间和id降序打破同分，最后截取50条；只代表接口本次季度候选，不声称全站绝对浏览榜。HTTP/2请求使用绝对https URI，明确正确的:scheme/:authority；linux.do登记JSON端点带匿名同站Referer与X-Requested-With，RSS/V2EX不加该上下文。无登录/挑战执行，403仍立即停止；实测与因果限制由LINUXDO文档持有。 3.9仅改失败分类：以cf-mitigated=challenge明确挑战，普通403不能直接断言Cloudflare挑战；两者仍停止、保留旧快照，错误含固定请求端点，页面点击查看详情。
+
 ## C04 · P1 / Active · Article / Snapshot 与降级
 
 `NewsEngine.Article` 序列化字段：`id/source/sourceName/category/provider/title/url/summary/heat/published/fetched/dateOnly/rank`。时间戳为毫秒；发布时间未知为 0，不能用采集时间伪装发布时间；dateOnly 保留仅日期的精度。
@@ -61,13 +94,17 @@ ID = `SHA-256(sourceId + "|" + URL)` 的前 12 字节十六进制；收藏/已�
 - 非 AI 的普通 RSS 最新已知发布时间早于 7 天判疑似停更；低频 AI 官方发布豁免；最新时间超过未来一天拒绝。
 - GitHub draft 跳过；prerelease 保留并标注，不能宣传为稳定版。
 
-`recheck` 用于精选缺日期再取及 LINUX DO 专用单次更新：跳过 interval/近期缓存与失败冷却，仍执行相同网络/解析安全约束与失败保留策略。专用按钮只选择 linuxdo，要求来源已开启，更新期间禁用；不改变来源开关，不自动循环重试。顶部更新仍按原规则选择已启用来源。它只重新请求现有端点，不提供历史分页。
+`recheck` 用于精选缺日期再取：跳过 interval/近期缓存与失败冷却，仍执行相同网络/解析安全约束与失败保留策略。LINUX DO 的手动单次更新不再走 recheck，而由 `fetchLinuxDo` 承担（见 C03 3.8.5）。
 
-Activity 启动/回前台用 `shouldAutoCheck` 决定请求：已启用官方 AI 来源距最近成功满 24 小时检查，失败 60 秒内不重试；其他源仍用自身 interval。手动更新选择全部已启用源，但 `fetch` 仍可沿用 60 秒内缓存。工具卡片仅凭合法关联来源展示动态与检查时间，不能修改目录正文或声称所有工具今日已更新。
+3.8.5 起 Activity 启动/回前台不再自动发请求（onCreate/onResume 的自动 refresh 已移除）；`shouldAutoCheck` 仅保留给通用刷新逻辑。顶部「更新」按钮手动选择全部已启用源（排除 linuxdo），`fetch` 仍可沿用 60 秒内缓存；linuxdo 仅由其独立子页的「更新选项」手动触发。工具卡片仅凭合法关联来源展示动态与检查时间，不能修改目录正文或声称所有工具今日已更新。
+
+全文预览：先展示可滚动对话框，按Article id查ArticleTextCache，未命中后台fetchLinuxTopic，主线程更新且只更新仍打开的预览；失败保留summary和原因，超长topic id不崩溃。3.8.7缓存为同步LRU，最多24条/2,097,152个UTF-16字符；单篇超预算仍展示但不缓存，Activity销毁清理。清除真实HTML后再解码实体，保留编码的代码尖括号/比较符；不渲染HTML/脚本。收藏/分享/原文入口保留。
 
 ## C05 · P1 / Active · 本机状态 schema 与兼容性
 
 MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsState` 保存/恢复：`schema=3`、`feeds`、`enabled`、`favorites`、`read`、`compact/large/unread/hotMode`、`themeMode`。读取上限 8 MiB；收藏最多 500，已读 ID 最多 2,000，列表分页 30。缺少 hotMode 等新布尔字段按 false 读；themeMode 只接受 day/night，缺字段或未知值默认为 day；compact 保留兼容但无设置控件。资料不写入状态文件。
+
+3.8.6 新增 `linuxTabs` 持久化字段：`NewsState` 维护 `Map<String,Snapshot>`（键 default/views/latest），序列化为独立顶层 `linuxTabs` JSON 对象；restore 时三个快照均用 `Snapshot.from("linuxdo",...)`（上限 50）。旧文件 feeds 里的 linuxdo 单快照迁移为 default 标签，主 snapshots 不再放 linuxdo；新字段若存在则覆盖迁移值。schema 数字仍为 3，不强制按版本号分支。
 
 注意：当前 load 读取已有字段，但没有根据 schema 值执行严格拒绝/迁移分支；不要把 schema 标记误记为已交付通用迁移机制。更改字段/ID 时须显式设计兼容性。
 
@@ -104,12 +141,18 @@ MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsStat
 
 实现依据 `FeaturedNews`、`ReadingRules`、`NewsArchive` 和 MainActivity，回归入口为 `NativeEngineTest`。
 
-- 新闻最新只取已启用 news/tech/finance，排除 v2ex、v2ex-latest、hackernews，按发布时间排序；分类多选取并集。新闻分站热榜只含头条/贴吧，排除命中 AI/科技规则或与 AI 热榜相同 URL 的项。
-- AI 分站热榜只含启用且最近获取成功、无错误、有 AI/科技项的 V2EX/Hacker News；HN 整体视为科技，V2EX 非 AI/科技不展示。头条/贴吧不进入 AI 榜，其 AI/科技项当前也不转入另一张榜。不能把“分类不重复”误解成所有热帖都必有展示。
+- 3.9.1按用户澄清逐篇分流：原新闻最新候选中的AI主题帖进AI平台动态/AI精选，非AI留新闻最新/精选；InfoQ不是整源改类。NewsEngine.isAI用标题/摘要AI-only关键词，rss-ai同口径；与isAIOrTech及V2EX/HN原规则不同。匹配有局限，不声称语义分类。
+- 平台动态候选含原AI专用源、V2EX最新和混合新闻源；混合源只展示AI帖子，来源选项在当前缓存有AI帖子时加入。来源/区域/搜索/未读过滤后再URL去重，不能让未选中源副本屏蔽选中源。
+- 展示分流不改source/article ID、category、URL、开关、收藏/已读及schema。已存归档按现规则重分展示，不倒填或删除；媒体AI内容不改变officialAI身份、模型检查时间或目录正文。
+- 3.9展示筛选由SourceFilters持有：新闻最新按来源区域（全部/国内/国外）与多选主题标签取交集；多标签取并集。平台动态第二级改为具体source ID多选，不再匹配文中厂商；两页区域与第二级互相独立，更换区域清空对应第二级。AI资料仍用厂商筛选，模型与产品/Harness/SDK同为AI子页，全部包含工具及模型。
+- 区域是发布者展示分组而非服务器地址/网络可达性；中文国际新闻仍属其国内来源，国内厂商GitHub版本流按厂商区域。主题为来源级分组，不是模型分析文章。新增来源需核对分组，JVM对所有新闻最新/平台动态来源检查覆盖。
+- 设置由总框包小卡，顺序为linux.do→错误快照→条数降序，同分保留配置顺序；标题开home浏览器，开关独立，移除裸网址。阅读分组移除但开关保留在外观，分享为文字入口。上述均不写新状态字段、改源ID或文章ID。
+- 新闻最新候选取已启用news/tech/finance及community类RSS（少数派、机核、Lobsters、Slashdot），排除linuxdo/v2ex/v2ex-latest/hackernews，最终排除AI主题帖后按发布时间排序；区域与多选标签语义见上文。新闻分站热榜含头条/百度/微博/知乎/抖音/B站热词和热门视频/贴吧，共8来源ID、7平台，排除AI/科技项及AI榜同URL。
+- AI分站热榜从HOT_SOURCES的10个来源中取启用、最近获取成功、无错误且有AI/科技项的榜，只展示匹配条目，避免科技项两边都被丢弃；HN整体视为科技。V2EX最新另进AI平台动态，并逐条按同一AI/科技规则过滤，不混入新闻最新。3.9起平台动态按具体消息来源筛选，资料页厂商过滤不变。
 - 每榜默认展开，可按来源收起；榜内按 rank 排序。rank 是解析列表序号，不称官方名次；heat 是原样展示字符串，空值/旧数据缺字段显示“未提供”，不能转为 0 或跨站相加。
 - 精选只用有发布时间的归档：NFKC/小写/去符号标题双字组 Dice 相似度至少 0.76，至少六个共同组、标题长度至少八、数字集合相同；事件内所有不同标题互相通过，防止链式桥接。时间跨度不超 72 小时。
 - 至少两家独立机构才成事件：provider 优先，否则按 home 主机（去 www）识别机构；同来源同 URL 去重。机构数与报道数不同，同机构不同链接不增加独立来源数。事件详情保留来源报道，不生成综述或跨站评分。
-- 新闻精选范围与新闻最新相同；AI 精选取 AI 来源和本页实际成功展示的 AI 榜。平台动态排除工具流的规则不自动排除 AI 精选中的工具事件。
+- 新闻精选范围与新闻最新相同；AI精选取AI来源、混合新闻源的AI主题帖、过滤后的V2EX最新及本页实际成功展示的AI榜，归档使用相同AI/科技过滤。平台动态排除工具流的规则不自动排除AI精选中的工具事件。
 - 事件按最新报道的上海日期分组，初始近七个日历日，最近日期展开，各日期可折叠；末尾扩展更早本地日期。无更早记录时，对最早实际事件的前一天再请求相关源（空时间线先查当天），每个范围/日期每次 Activity 生命周期最多一次，可等当前刷新结束后再发起。
 - 再取仍无该日条目显示“来源没有返回这一天”；有该日条目但不满足多来源归并则如实提示；全失败保留旧记录。接口没有任意历史分页，不编造缺日，遇到未补齐缺口停止继续向前。
 - `news-archive-v1.json` 独立 AtomicFile，schema=1，records 含 article/firstSeen 与 incomplete 标记；最多 12,000 条、16 MiB。只接受成功且非 cached 的新快照，不从旧状态或收藏倒填历史。

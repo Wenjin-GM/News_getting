@@ -86,9 +86,9 @@ fn client(resolver: Resolver, route: Route) -> Result<reqwest::Client> {
     Ok(builder.build()?)
 }
 
-async fn query(http: &reqwest::Client, resolver: Resolver, route: Route, kind: u16) -> Result<Vec<(u16, Vec<u8>)>> {
+async fn query(http: &reqwest::Client, host: &str, resolver: Resolver, route: Route, kind: u16) -> Result<Vec<(u16, Vec<u8>)>> {
     let url = format!("https://{}/dns-query", route.authority(resolver));
-    let payload = dns_request(kind);
+    let payload = dns_request(host, kind);
     let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&payload);
     let mut request = http.get(&url).query(&[("dns", &encoded)])
         .header("Accept", "application/dns-message");
@@ -110,7 +110,7 @@ async fn query(http: &reqwest::Client, resolver: Resolver, route: Route, kind: u
             ensure!(bytes.len() + chunk.len() <= DNS_LIMIT, "DoH 响应超过上限");
             bytes.extend_from_slice(&chunk);
         }
-        return dns_records(&bytes, kind);
+        return dns_records(host, &bytes, kind);
     }
     bail!("DoH 请求方法不受支持")
 }
@@ -160,7 +160,7 @@ fn select_records(
     bail!("未提供有效 ECH 配置")
 }
 
-async fn attempt(resolver: Resolver) -> Attempt {
+async fn attempt(host: &str, resolver: Resolver) -> Attempt {
     let started = Instant::now();
     let mut reports = Vec::new();
     let mut brief = "连接失败".to_string();
@@ -173,8 +173,8 @@ async fn attempt(resolver: Resolver) -> Attempt {
         // deadline. Keep a completed HTTPS reply if only A times out: its
         // validated address hints can still supply the destination.
         let (addresses, records) = tokio::join!(
-            query_with_deadline(query(&http, resolver, route, 1), QUERY_BUDGET),
-            query_with_deadline(query(&http, resolver, route, 65), QUERY_BUDGET));
+            query_with_deadline(query(&http, host, resolver, route, 1), QUERY_BUDGET),
+            query_with_deadline(query(&http, host, resolver, route, 65), QUERY_BUDGET));
         let selected = select_records(resolver, &addresses, &records);
         reports.push(serde_json::json!({"route":route.label(),"authority":route.authority(resolver),
             "a":addresses.as_ref().map(|r|r.len()).map_err(|e|format!("{e:#}")),
@@ -185,7 +185,7 @@ async fn attempt(resolver: Resolver) -> Attempt {
             Ok(mut resolved) => {
                 resolved.resolver = format!("{} · {}", resolver.name, route.authority(resolver));
                 return Attempt { resolved: Some(resolved), brief: "已取得地址及 ECH".into(),
-                details: serde_json::json!({"resolver":resolver.name,"host":resolver.host,"ms":started.elapsed().as_millis(),"routes":reports,"usable":true}) };
+                details: serde_json::json!({"resolver":resolver.name,"host":host,"ms":started.elapsed().as_millis(),"routes":reports,"usable":true}) };
             }
             Err(error) => brief = error.to_string(),
         }
@@ -194,20 +194,27 @@ async fn attempt(resolver: Resolver) -> Attempt {
         if addresses.is_ok() && records.is_ok() { break; }
     }
     Attempt { resolved: None, brief,
-        details: serde_json::json!({"resolver":resolver.name,"host":resolver.host,"ms":started.elapsed().as_millis(),"routes":reports,"usable":false}) }
+        details: serde_json::json!({"resolver":resolver.name,"host":host,"ms":started.elapsed().as_millis(),"routes":reports,"usable":false}) }
 }
 
-async fn bounded_attempt(resolver: Resolver) -> Attempt {
+async fn bounded_attempt(host: &str, resolver: Resolver) -> Attempt {
     let budget = QUERY_BUDGET * routes(resolver).len() as u32 + Duration::from_secs(1);
-    match tokio::time::timeout(budget, attempt(resolver)).await {
+    match tokio::time::timeout(budget, attempt(host, resolver)).await {
         Ok(attempt) => attempt,
         Err(_) => Attempt { resolved: None, brief: "连接超时".into(),
-            details: serde_json::json!({"resolver":resolver.name,"usable":false,"error":"resolver budget exceeded"}) },
+            details: serde_json::json!({"resolver":resolver.name,"host":host,"usable":false,"error":"resolver budget exceeded"}) },
     }
 }
 
-async fn gather(stop_on_success: bool) -> (Option<Resolved>, Vec<serde_json::Value>, Vec<String>) {
-    gather_with(stop_on_success, bounded_attempt).await
+async fn gather(host: &str, stop_on_success: bool) -> (Option<Resolved>, Vec<serde_json::Value>, Vec<String>) {
+    // Capture an owned host so the worker stays 'static and no higher-ranked
+    // borrowed-&str bound is needed inside gather_with.
+    let target = host.to_owned();
+    let work = move |resolver: Resolver| {
+        let name = target.clone();
+        async move { bounded_attempt(&name, resolver).await }
+    };
+    gather_with(stop_on_success, work).await
 }
 
 async fn gather_with<F, Fut>(stop_on_success: bool, work: F) -> (Option<Resolved>, Vec<serde_json::Value>, Vec<String>)
@@ -247,7 +254,7 @@ struct Trace {
 }
 type PublicResult = (Option<Resolved>, Vec<serde_json::Value>, Vec<String>);
 
-async fn pipeline<P, F>(cache_dir: Option<&str>, mode: DnsMode, public: P, fallback: F,
+async fn pipeline<P, F>(host: &str, cache_dir: Option<&str>, mode: DnsMode, public: P, fallback: F,
     public_budget: Duration, fallback_budget: Duration) -> Trace
 where P: std::future::Future<Output=PublicResult>, F: std::future::Future<Output=Result<Resolved>> {
     let mut trace = Trace { selected:None, reports:Vec::new(), failures:Vec::new() };
@@ -280,27 +287,28 @@ where P: std::future::Future<Output=PublicResult>, F: std::future::Future<Output
         }
     }
     if mode == DnsMode::Fallback { return trace; }
-    trace.selected=cache::read(cache_dir);
+    trace.selected=cache::read(host, cache_dir);
     trace.reports.push(serde_json::json!({"resolver":"cache","usable":trace.selected.is_some(),
         "configured":cache_dir.is_some()}));
     if trace.selected.is_none() { trace.failures.insert(0, "无有效本地 ECH 缓存".into()); }
     trace
 }
 
-async fn trace(cache_dir: Option<&str>, mode: DnsMode) -> Trace {
-    pipeline(cache_dir,mode,gather(true),crate::fallback::resolve(),PUBLIC_BUDGET,FALLBACK_BUDGET).await
+async fn trace(host: &str, cache_dir: Option<&str>, mode: DnsMode) -> Trace {
+    pipeline(host, cache_dir, mode, gather(host, true),
+        crate::fallback::resolve(host), PUBLIC_BUDGET, FALLBACK_BUDGET).await
 }
 
-pub async fn resolve(cache_dir: Option<&str>, mode: DnsMode) -> Result<Resolved> {
-    let trace=trace(cache_dir,mode).await;
+pub async fn resolve(host: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Resolved> {
+    let trace=trace(host, cache_dir, mode).await;
     trace.selected.ok_or_else(|| DnsFailure {
         details:serde_json::json!(trace.reports),summary:trace.failures.join("; ")
     }.into())
 }
 
-pub async fn diagnose(cache_dir: Option<&str>, mode: DnsMode) -> serde_json::Value {
-    let trace=trace(cache_dir,mode).await;
-    serde_json::json!({"host":HOST,"stage":"dns-pipeline","usable":trace.selected.is_some(),
+pub async fn diagnose(host: &str, cache_dir: Option<&str>, mode: DnsMode) -> serde_json::Value {
+    let trace=trace(host, cache_dir,mode).await;
+    serde_json::json!({"host":host,"stage":"dns-pipeline","usable":trace.selected.is_some(),
         "selected":trace.selected.as_ref().map(|r|&r.resolver),"resolvers":trace.reports,
         "failures":trace.failures})
 }
@@ -337,9 +345,9 @@ mod tests {
     fn get_encoding_and_bootstrap_keep_https_hostname() {
         let resolver = *RESOLVERS.iter().find(|r| r.name == "OpenDNS").unwrap();
         assert_eq!(resolver.host, "doh.opendns.com");
-        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dns_request(65));
+        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dns_request(HOST_LINUXDO, 65));
         assert!(!encoded.contains('='));
-        assert_eq!(base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(encoded).unwrap(), dns_request(65));
+        assert_eq!(base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(encoded).unwrap(), dns_request(HOST_LINUXDO, 65));
         assert!(client(resolver, Route::Bootstrap).is_ok());
     }
     #[test]
@@ -426,14 +434,14 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn public_success_never_polls_third_party_or_writes_unverified_cache() {
         let dir=crate::test_support::TempDir::new();let called=std::cell::Cell::new(false);
-        let outcome=pipeline(Some(dir.str()),DnsMode::Auto,
+        let outcome=pipeline(HOST_LINUXDO,Some(dir.str()),DnsMode::Auto,
             async {(Some(sample()),vec![],vec![])},
             async {called.set(true);Err(anyhow!("must not run"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
-        assert!(outcome.selected.is_some());assert!(!called.get());assert!(cache::read(Some(dir.str())).is_none());
+        assert!(outcome.selected.is_some());assert!(!called.get());assert!(cache::read(HOST_LINUXDO,Some(dir.str())).is_none());
     }
     #[tokio::test(flavor = "current_thread")]
     async fn public_timeout_still_allows_the_live_fallback_to_succeed() {
-        let outcome=pipeline(None,DnsMode::Auto,std::future::pending(),async {Ok(sample())},
+        let outcome=pipeline(HOST_LINUXDO,None,DnsMode::Auto,std::future::pending(),async {Ok(sample())},
             Duration::from_millis(2),Duration::from_secs(1)).await;
         assert!(!outcome.selected.unwrap().from_cache);
         assert!(outcome.failures.iter().any(|s|s.contains("超时")));
@@ -441,8 +449,8 @@ mod tests {
     }
     #[tokio::test(flavor = "current_thread")]
     async fn both_slow_phases_leave_time_to_use_cache_and_preserve_errors() {
-        let dir=crate::test_support::TempDir::new();cache::write(Some(dir.str()),&sample());
-        let outcome=tokio::time::timeout(Duration::from_secs(1),pipeline(Some(dir.str()),DnsMode::Auto,
+        let dir=crate::test_support::TempDir::new();cache::write(HOST_LINUXDO,Some(dir.str()),&sample());
+        let outcome=tokio::time::timeout(Duration::from_secs(1),pipeline(HOST_LINUXDO,Some(dir.str()),DnsMode::Auto,
             std::future::pending(),std::future::pending(),Duration::from_millis(2),Duration::from_millis(2))).await.unwrap();
         assert!(outcome.selected.unwrap().from_cache);
         assert_eq!(outcome.failures.len(),2);
@@ -454,7 +462,7 @@ mod tests {
     }
     #[tokio::test(flavor = "current_thread")]
     async fn missing_cache_reports_third_party_failure_instead_of_hiding_it() {
-        let outcome=pipeline(None,DnsMode::Auto,async {public_failure()},
+        let outcome=pipeline(HOST_LINUXDO,None,DnsMode::Auto,async {public_failure()},
             async {Err(anyhow!("fallback fixture error"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
         assert!(outcome.selected.is_none());
         assert!(outcome.failures.iter().any(|s|s.contains("fallback fixture error")));
@@ -462,11 +470,11 @@ mod tests {
     }
     #[tokio::test(flavor = "current_thread")]
     async fn cache_probe_is_network_free_and_fallback_probe_cannot_hide_behind_cache() {
-        let dir=crate::test_support::TempDir::new();cache::write(Some(dir.str()),&sample());
-        let cached=pipeline(Some(dir.str()),DnsMode::Cache,std::future::pending(),std::future::pending(),
+        let dir=crate::test_support::TempDir::new();cache::write(HOST_LINUXDO,Some(dir.str()),&sample());
+        let cached=pipeline(HOST_LINUXDO,Some(dir.str()),DnsMode::Cache,std::future::pending(),std::future::pending(),
             PUBLIC_BUDGET,FALLBACK_BUDGET).await;
         assert!(cached.selected.unwrap().from_cache);
-        let forced=pipeline(Some(dir.str()),DnsMode::Fallback,std::future::pending(),
+        let forced=pipeline(HOST_LINUXDO,Some(dir.str()),DnsMode::Fallback,std::future::pending(),
             async {Err(anyhow!("forced failure"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
         assert!(forced.selected.is_none());
     }

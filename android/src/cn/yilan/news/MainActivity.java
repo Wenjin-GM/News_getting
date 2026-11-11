@@ -21,6 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import cn.yilan.news.NewsEngine.*;
 
 /** Native offline-first reader; every network request goes directly to a registered news source. */
@@ -28,12 +30,12 @@ public final class MainActivity extends Activity {
   private ReaderTheme palette=ReaderTheme.forMode("day");
   private int ACCENT=palette.accent,INK=palette.ink,MUTED=palette.muted,BACKGROUND=palette.background;
   private Context ui=this;
-  private static final String[] CATS={"all","news","tech","finance"};
-  private static final String[] CAT_NAMES={"全部","新闻","科技","财经"};
+  private static final int AI_PLATFORM=0,AI_LINUX=1,AI_CATALOG=2,AI_HOT=3,AI_FEATURED=4;
   private final Handler handler=new Handler(Looper.getMainLooper());
   private final ExecutorService network=Executors.newFixedThreadPool(4),disk=Executors.newSingleThreadExecutor();
   private final NewsState savedState=new NewsState();
   private final Map<String,Snapshot> snapshots=savedState.snapshots;
+  private final Map<String,Snapshot> linuxTabs=savedState.linuxTabs;
   private final Map<String,Boolean> sourceEnabled=savedState.sourceEnabled;
   private final List<Article> favorites=savedState.favorites;
   private final Set<String> read=savedState.read,compare=new LinkedHashSet<>();
@@ -41,11 +43,12 @@ public final class MainActivity extends Activity {
   private LinearLayout body,nav;private ScrollView scroll;private ProgressBar progress;private EditText search;
   private int tab=0,aiMode=0,limit=30,hotLimit=10,done=0,total=0,updated=0,failed=0,cached=0;
   private String query="",category="all",provider="all";private boolean busy=false,destroyed=false,compact=false,large=false,unread=false,hotMode=false;
-  private Button refresh,linuxRefresh;private boolean linuxUpdating;
+  private Button refresh,linuxUpdateBtn;private boolean linuxUpdating;private int linuxTab=0;
+  private final ArticleTextCache linuxFullCache=new ArticleTextCache();
   private ReaderBackdrop backdrop;
-  private final Set<String> categories=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
+  private final Set<String> newsTags=new LinkedHashSet<>(),feedSources=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
   private final Map<String,String> historyResults=new HashMap<>();
-  private String region="all",toolType="all",pendingDay="";private boolean pendingAI,userScrolling;
+  private String newsRegion="all",feedRegion="all",region="all",toolType="all",pendingDay="";private boolean pendingAI,userScrolling;
   private final Map<Boolean,String> timelineSince=new HashMap<>(),missingDays=new HashMap<>();
   private final Set<String> expandedDates=new HashSet<>(),initializedTimelines=new HashSet<>();
 
@@ -55,7 +58,6 @@ public final class MainActivity extends Activity {
   private boolean featuredMode=false,archiveDirty=false;
   private final Runnable archiveSaveTask=()->saveArchive();
   private final Runnable saveTask=()->saveNow();
-  private final Runnable renderTask=()->render(true);
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
   private GradientDrawable shape(int fill,int stroke,int radius){GradientDrawable d=new GradientDrawable();d.setColor(fill);d.setCornerRadius(dp(radius));if(stroke!=0)d.setStroke(dp(1),stroke);return d;}
   private TextView text(String value,int size,int color,boolean bold){
@@ -98,7 +100,7 @@ public final class MainActivity extends Activity {
   }
   private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
   private String asset(String name)throws IOException{try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>2*1024*1024)throw new IOException("内置资料过大");out.write(b,0,n);}return out.toString("UTF-8");}}
-  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();chrome();render(false);handler.post(()->refresh(false));}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
+  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
   private void chrome(){
     FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
     if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});else root.setFitsSystemWindows(true);
@@ -109,10 +111,10 @@ public final class MainActivity extends Activity {
     LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(0,dp(48),1);sp.setMargins(0,0,dp(10),0);bar.addView(search,sp);
     refresh=button("更新",true,()->refresh(true));refresh.setContentDescription("一键更新所有已启用来源");refresh.setCompoundDrawablesRelativeWithIntrinsicBounds(icon("refresh",palette.onAccent,17),null,null,null);refresh.setCompoundDrawablePadding(dp(5));refresh.setEnabled(!busy);bar.addView(refresh,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(bar);
     search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString().trim();limit=30;hotLimit=10;render(false);}public void afterTextChanged(Editable e){}});
-    progress=new ProgressBar(ui,null,android.R.attr.progressBarStyleHorizontal);progress.setProgressTintList(ColorStateList.valueOf(ACCENT));progress.setProgressBackgroundTintList(ColorStateList.valueOf(palette.line));progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setVisibility(busy?View.VISIBLE:View.GONE);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(2)));
+    progress=new ProgressBar(ui,null,android.R.attr.progressBarStyleHorizontal);progress.setProgressTintList(ColorStateList.valueOf(ACCENT));progress.setIndeterminateTintList(ColorStateList.valueOf(ACCENT));progress.setProgressBackgroundTintList(ColorStateList.valueOf(palette.line));progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setIndeterminate(linuxUpdating);progress.setVisibility(busy?View.VISIBLE:View.GONE);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(2)));
     scroll=new ScrollView(ui);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);
     scroll.setOnTouchListener((v,event)->{userScrolling=event.getActionMasked()==MotionEvent.ACTION_MOVE;return false;});
-    scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(userScrolling&&body!=null&&y>oldY&&y+scroll.getHeight()>=body.getHeight()-dp(24)&&(tab==0&&featuredMode||tab==1&&aiMode==4)){userScrolling=false;final boolean ai=tab==1;handler.post(()->showOlder(ai));}});
+    scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(userScrolling&&body!=null&&y>oldY&&y+scroll.getHeight()>=body.getHeight()-dp(24)&&(tab==0&&featuredMode||tab==1&&aiMode==AI_FEATURED)){userScrolling=false;final boolean ai=tab==1;handler.post(()->showOlder(ai));}});
     body=vertical();body.setPadding(dp(20),dp(16),dp(20),dp(28));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     divider(root);nav=new LinearLayout(ui);nav.setPadding(dp(12),dp(8),dp(12),dp(8));nav.setBackgroundColor(palette.surface);nav.setBaselineAligned(false);nav.setGravity(Gravity.CENTER_VERTICAL);root.addView(nav);setContentView(stage);drawNav();
   }
@@ -125,7 +127,7 @@ public final class MainActivity extends Activity {
     }
   }
   private void render(boolean keepScroll){
-    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxRefresh=null;body.removeAllViews();
+    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxUpdateBtn=null;body.removeAllViews();
     backdrop.showPage(tab,palette);nav.setBackgroundColor(tab==3?palette.surface:palette.dark?0xeb101c2c:0xebf5f9fd);search.setBackground(floating(false,16));styleButton(refresh,true);
     if(tab==3)settings();else if(tab==1)ai();else news();scroll.post(()->scroll.scrollTo(0,y));
   }
@@ -142,18 +144,27 @@ public final class MainActivity extends Activity {
   private Button sectionButton(String label,Runnable action){Button b=button(label,false,action);b.setTextColor(INK);b.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);b.setBackground(ripple(floating(false,14)));return b;}
   private void emptyState(String label){LinearLayout c=card();c.setGravity(Gravity.CENTER);c.setPadding(dp(24),dp(32),dp(24),dp(32));ImageView mark=new ImageView(ui);mark.setImageDrawable(icon(tab==2?"bookmark":"news",MUTED,28));c.addView(mark,new LinearLayout.LayoutParams(dp(28),dp(28)));gap(c,16);c.addView(text(label,14,MUTED,false));}
   private boolean match(String value){return query.isEmpty()||value.toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT));}
-  private List<Article> articles(boolean ai){List<Article> all=new ArrayList<>();if(tab==2)all.addAll(favorites);else for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&ai=="ai".equals(s.category)&&(ai?ReadingRules.platformSource(catalog,s):FeaturedNews.latestSource(s))){Snapshot snap=snapshots.get(s.id);if(snap!=null)all.addAll(snap.items);}all.sort((a,b)->{int c=Long.compare(b.published,a.published);return c!=0?c:Integer.compare(a.rank,b.rank);});Set<String> seen=new HashSet<>();List<Article> out=new ArrayList<>();for(Article a:all){if(!seen.add(a.url)||!match(a.title+" "+a.summary+" "+a.sourceName)||unread&&read.contains(a.id))continue;if(tab==0&&!ReadingRules.category(categories,a.category))continue;if(ai&&!matchesProvider(a))continue;out.add(a);}return out;}
-  private boolean providerMention(Article a,String p){Source s=engine.sourceMap.get(a.source);if(s==null||!"rss-ai".equals(s.kind))return false;String value=(a.title+" "+a.summary).toLowerCase(Locale.ROOT);Map<String,String> aliases=new HashMap<>();aliases.put("openai","openai|chatgpt|codex|gpt");aliases.put("anthropic","anthropic|claude");aliases.put("google","google|谷歌|gemini|antigravity");aliases.put("github","github|copilot|微软");aliases.put("alibaba","阿里|qwen|千问|通义|灵码");aliases.put("moonshot","kimi|月之暗面");aliases.put("deepseek","deepseek|深度求索");aliases.put("minimax","minimax|海螺");aliases.put("mistral","mistral|vibe");aliases.put("zai","智谱|zcode|glm");aliases.put("bytedance","字节|trae|豆包");aliases.put("tencent","腾讯|codebuddy|混元|workbuddy");aliases.put("baidu","百度|文心|comate");aliases.put("xai","xai|grok");aliases.put("amazon","amazon|aws|kiro|亚马逊");aliases.put("huggingface","hugging.?face");return java.util.regex.Pattern.compile(aliases.getOrDefault(p,p),java.util.regex.Pattern.CASE_INSENSITIVE).matcher(value).find();}
-  private void news(){boolean saved=tab==2;if(!saved){LinearLayout modes=chips(body);chip(modes,"最新",!hotMode&&!featuredMode,()->setNewsMode(0));chip(modes,"分站热榜",hotMode,()->setNewsMode(1));chip(modes,"精选",featuredMode,()->setNewsMode(2));if(featuredMode){featuredNews(false);return;}if(hotMode){hotNews(false);return;}LinearLayout row=new LinearLayout(ui);row.addView(filterButton(categories.isEmpty()?"全部分类 ▾":"分类 · "+categories.size()+" ▾",()->pickMany("分类",Arrays.asList(CATS),Arrays.asList(CAT_NAMES),categories,()->{limit=30;render(false);})),new LinearLayout.LayoutParams(0,dp(40),1));row.addView(new Space(ui),new LinearLayout.LayoutParams(0,1,1));body.addView(row);gap(body,10);}showArticles(articles(false));}
+  private List<Article> articles(boolean ai){List<Article> all=new ArrayList<>();if(tab==2)all.addAll(favorites);else for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(ai?ReadingRules.platformSource(catalog,s):FeaturedNews.latestSource(s))){Snapshot snap=snapshots.get(s.id);if(snap!=null)for(Article item:snap.items)if(ai?ReadingRules.platformArticle(s,item):ReadingRules.newsArticle(s,item))all.add(item);}all.sort((a,b)->{int c=Long.compare(b.published,a.published);return c!=0?c:Integer.compare(a.rank,b.rank);});Set<String> seen=new HashSet<>();List<Article> out=new ArrayList<>();for(Article a:all){if(!match(a.title+" "+a.summary+" "+a.sourceName)||unread&&read.contains(a.id))continue;Source source=engine.sourceMap.get(a.source);if(tab==0&&!SourceFilters.news(catalog,source,newsRegion,newsTags))continue;if(ai&&!SourceFilters.platform(catalog,source,feedRegion,feedSources))continue;if(!seen.add(a.url))continue;out.add(a);}return out;}
+  private void news(){
+    if(tab!=2){
+      LinearLayout modes=chips(body);chip(modes,"最新",!hotMode&&!featuredMode,()->setNewsMode(0));chip(modes,"分站热榜",hotMode,()->setNewsMode(1));chip(modes,"精选",featuredMode,()->setNewsMode(2));
+      if(featuredMode){featuredNews(false);return;}if(hotMode){hotNews(false);return;}
+      LinearLayout row=new LinearLayout(ui);
+      row.addView(filterButton(regionLabel(newsRegion)+" ▾",()->pickRegion(newsRegion,next->{newsRegion=next;newsTags.clear();limit=30;render(false);})),new LinearLayout.LayoutParams(0,dp(40),1));
+      row.addView(filterButton(newsTags.isEmpty()?"全部标签 ▾":"标签 · "+newsTags.size()+" ▾",()->pickMany("标签",Arrays.asList(SourceFilters.TAGS),Arrays.asList(SourceFilters.TAG_NAMES),newsTags,()->{limit=30;render(false);})),new LinearLayout.LayoutParams(0,dp(40),1));
+      body.addView(row);gap(body,10);
+    }
+    showArticles(articles(false));
+  }
   private void setNewsMode(int mode){hotMode=mode==1;featuredMode=mode==2;limit=30;hotLimit=10;saveSoon();render(false);}
   private void requestFeatured(boolean ai){
     final Set<String> boards=visibleAIBoards();final String key=ai+":"+boards+":"+archive.revision+":"+sourceEnabled.toString();if(key.equals(featuredKey))return;featuredKey=key;
     final List<Article> input=archive.articles();final Map<String,Boolean> enabled=new LinkedHashMap<>(sourceEnabled);
-    disk.execute(()->{List<FeaturedNews.Event> events=FeaturedNews.group(input,engine.sourceMap,enabled,ai,boards);handler.post(()->{if(destroyed||!key.equals(featuredKey))return;featured=events;builtFeaturedKey=key;if(tab==0&&featuredMode||tab==1&&aiMode==4)render(true);});});
+    disk.execute(()->{List<FeaturedNews.Event> events=FeaturedNews.group(input,engine.sourceMap,enabled,ai,boards);handler.post(()->{if(destroyed||!key.equals(featuredKey))return;featured=events;builtFeaturedKey=key;if(tab==0&&featuredMode||tab==1&&aiMode==AI_FEATURED)render(true);});});
   }
   private String timelineFloor(boolean ai){return timelineSince.getOrDefault(ai,FeaturedNews.initialDay(System.currentTimeMillis()));}
   private void showOlder(boolean ai){
-    if(destroyed||!(ai?tab==1&&aiMode==4:tab==0&&featuredMode)||!featuredKey.equals(builtFeaturedKey))return;
+    if(destroyed||!(ai?tab==1&&aiMode==AI_FEATURED:tab==0&&featuredMode)||!featuredKey.equals(builtFeaturedKey))return;
     String scope=ai?"ai:":"news:",missing=missingDays.get(ai);
     if(missing!=null&&!ReadingRules.hasDay(featured,missing))return;
     String floor=timelineFloor(ai),older=null;
@@ -224,31 +235,101 @@ public final class MainActivity extends Activity {
   private boolean isFavorite(String id){for(Article a:favorites)if(a.id.equals(id))return true;return false;}
   private void open(Article a){
     read.add(a.id);while(read.size()>2000)read.remove(read.iterator().next());saveSoon();render(true);
+    final boolean linux="linuxdo".equals(a.source);
     LinearLayout content=vertical();content.setPadding(dp(22),dp(22),dp(22),dp(14));content.addView(text(a.title,23,INK,true));gap(content,16);
     content.addView(text(a.sourceName+" · "+(a.published>0?stamp(a.published,a.dateOnly):"未提供发布时间"),12,MUTED,false));
     if(NewsEngine.HOT_SOURCES.contains(a.source)){gap(content,10);content.addView(text("热度："+NewsEngine.heatLabel(a),13,palette.warm,true));}
-    Snapshot snapshot=snapshots.get(a.source);if(snapshot!=null&&!snapshot.error.isEmpty()){gap(content,8);content.addView(text("历史快照",12,MUTED,false));}
-    if(!a.summary.isEmpty()){gap(content,20);content.addView(text(a.summary,16,INK,false));}
+    Snapshot snapshot=snapshotOf(a);if(snapshot!=null&&!snapshot.error.isEmpty()){gap(content,8);content.addView(text("历史快照",12,MUTED,false));}
+    gap(content,20);
+    final TextView bodyView=text(linux?"正在获取全文…":a.summary,16,INK,false);content.addView(bodyView);
     gap(content,24);divider(content);gap(content,16);LinearLayout actions=new LinearLayout(ui);
     Button star=button(isFavorite(a.id)?"已收藏":"收藏",isFavorite(a.id),()->{});
     star.setOnClickListener(v->{if(isFavorite(a.id))favorites.removeIf(x->x.id.equals(a.id));else{favorites.add(0,a);if(favorites.size()>500)favorites.remove(500);}star.setText(isFavorite(a.id)?"已收藏":"收藏");styleButton(star,isFavorite(a.id));saveSoon();drawNav();render(true);});
     for(Button action:new Button[]{star,button("分享",false,()->share(a.title+"\n"+a.url,"分享新闻")),button("原文",true,()->external(a.url))}){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(3),0,dp(3),0);actions.addView(action,lp);}content.addView(actions);
-    ScrollView reader=new ScrollView(ui);reader.addView(content);dialog().setView(reader).setPositiveButton("关闭",null).show();
+    ScrollView reader=new ScrollView(ui);reader.addView(content);
+    final AlertDialog preview=dialog().setView(reader).setPositiveButton("关闭",null).create();
+    preview.show();
+    if(linux){
+      final Source src=engine.sourceMap.get("linuxdo");final long topicId=topicIdFromUrl(a.url);final String fallback=a.summary;
+      String cachedText=linuxFullCache.get(a.id);
+      if(cachedText!=null)bodyView.setText(cachedText);
+      else if(src==null||topicId<=0)bodyView.setText(fallback+"\n\n无法识别帖子编号");
+      else network.execute(()->{
+        try{
+          final String full=engine.fetchLinuxTopic(src,topicId);
+          handler.post(()->{if(destroyed)return;linuxFullCache.put(a.id,full);if(preview.isShowing())bodyView.setText(full);});
+        }catch(Exception e){final String reason=NewsEngine.error(e);
+          handler.post(()->{if(!destroyed&&preview.isShowing())bodyView.setText((fallback.isEmpty()?"":fallback+"\n\n")+"全文获取失败："+reason);});}
+      });
+    }
   }
+  /** Resolve the snapshot holding an article: ordinary map, or any linux.do sub-page. */
+  private Snapshot snapshotOf(Article a){
+    if(!"linuxdo".equals(a.source))return snapshots.get(a.source);
+    for(Snapshot s:linuxTabs.values())for(Article x:s.items)if(x.id.equals(a.id))return s;
+    return null;
+  }
+  /** Extract the numeric topic id from a /t/topic/<id> or /t/<id> URL. */
+  private long topicIdFromUrl(String url){
+    Matcher m=Pattern.compile("/t/(?:topic/)?([0-9]+)").matcher(url);
+    try{return m.find()?Long.parseLong(m.group(1)):-1;}catch(NumberFormatException invalid){return -1;}
+  }
+
   private boolean external(String url){String safe=NewsEngine.publicURL(url);if(safe==null){toast("已阻止非网页、本地网络或可执行文件链接");return false;}try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(safe)).addCategory(Intent.CATEGORY_BROWSABLE));return true;}catch(ActivityNotFoundException e){toast("请安装可用的浏览器以阅读原文");return false;}}
   private void share(String value,String title){Intent i=new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,value);try{startActivity(Intent.createChooser(i,title));}catch(ActivityNotFoundException e){toast("未找到可分享的应用");}}
   private void ai(){
-    JSONArray tools=catalog.optJSONArray("tools");LinearLayout modes=chips(body);String[] names={"平台动态","工具","模型","分站热榜","精选"};
+    LinearLayout modes=chips(body);String[] names={"平台动态","linux.do","AI","分站热榜","精选"};
     for(int i=0;i<names.length;i++){final int mode=i;chip(modes,names[i],aiMode==i,()->{aiMode=mode;limit=30;hotLimit=10;render(false);});}
-    if(aiMode==3){hotNews(true);return;}if(aiMode==4){featuredNews(true);return;}
-    platformFilters();if(aiMode==0){showArticles(articles(true));return;}if(aiMode==2){modelPage();return;}
-    LinearLayout kinds=chips(body);String[] ids={"all","product","harness","sdk"},labels={"全部类型","产品","Harness","SDK"};
+    if(aiMode==AI_HOT){hotNews(true);return;}if(aiMode==AI_FEATURED){featuredNews(true);return;}
+    if(aiMode==AI_LINUX){linuxdoPage();return;}
+    if(aiMode==AI_PLATFORM){sourceFilters();showArticles(articles(true));return;}
+    LinearLayout kinds=chips(body);String[] ids={"all","product","harness","sdk","model"},labels={"全部","产品","Harness","SDK","模型"};
     for(int i=0;i<ids.length;i++){final String id=ids[i];chip(kinds,labels[i],toolType.equals(id),()->{toolType=id;render(false);});}
+    platformFilters();if(toolType.equals("model")){modelPage();return;}
+    JSONArray tools=catalog.optJSONArray("tools");
     for(int i=0;tools!=null&&i<tools.length();i++){JSONObject t=tools.optJSONObject(i);if(t==null||!ReadingRules.provider(catalog,t.optString("provider"),region,vendors)||!match(t.optString("name")+" "+t.optString("description")+" "+t.optString("role")))continue;
       JSONArray k=t.optJSONArray("kinds");boolean product=hasKind(k,"cli")||hasKind(k,"ide")||hasKind(k,"desktop")||hasKind(k,"web");
       if(toolType.equals("product")&&!product||toolType.equals("harness")&&!hasKind(k,"harness")||toolType.equals("sdk")&&!hasKind(k,"sdk")&&!hasKind(k,"framework"))continue;toolCard(t);
     }
+    if(toolType.equals("all")){gap(body,6);body.addView(text("模型",16,INK,true));gap(body,12);modelPage();}
   }
+  private interface RegionChanged{void accept(String region);}
+  private String regionLabel(String selected){return "china".equals(selected)?"国内平台":"global".equals(selected)?"国外平台":"全部平台";}
+  private void pickRegion(String selected,RegionChanged change){dialog().setTitle("平台范围").setSingleChoiceItems(new String[]{"全部平台","国内平台","国外平台"},"china".equals(selected)?1:"global".equals(selected)?2:0,(d,w)->{d.dismiss();change.accept(new String[]{"all","china","global"}[w]);}).show();}
+  private void sourceFilters(){
+    LinearLayout row=new LinearLayout(ui);
+    row.addView(filterButton(regionLabel(feedRegion)+" ▾",()->pickRegion(feedRegion,next->{feedRegion=next;feedSources.clear();limit=30;render(false);})),new LinearLayout.LayoutParams(0,dp(40),1));
+    row.addView(filterButton(feedSources.isEmpty()?"全部来源 ▾":"来源 · "+feedSources.size()+" ▾",()->{
+      List<String> ids=new ArrayList<>(),names=new ArrayList<>();ids.add("all");names.add("全部来源");
+      for(Source source:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(source.id))&&ReadingRules.platformChoice(catalog,source,snapshots.get(source.id))&&SourceFilters.inRegion(catalog,source,feedRegion)){ids.add(source.id);names.add(source.name);}
+      pickMany("消息来源",ids,names,feedSources,()->{limit=30;render(false);});
+    }),new LinearLayout.LayoutParams(0,dp(40),1));body.addView(row);gap(body,10);
+  }
+  private void linuxdoPage(){
+    Source source=engine.sourceMap.get("linuxdo");
+    if(source==null||!Boolean.TRUE.equals(sourceEnabled.get("linuxdo"))){emptyState("LINUX DO 来源未开启，请在「设置-信息来源」中开启");return;}
+    final String[] names={"默认更新","浏览量","最新"};
+    // Left: option dropdown; right: refresh button for the chosen sub-page.
+    LinearLayout bar=new LinearLayout(ui);bar.setGravity(Gravity.CENTER_VERTICAL);
+    Button option=filterButton(names[linuxTab]+" ▾",()->dialog().setTitle("选项").setItems(names,(d,w)->{linuxTab=w;render(false);}).show());
+    option.setContentDescription("选择 LINUX DO 子页");option.setEnabled(!busy);
+    bar.addView(option,new LinearLayout.LayoutParams(0,dp(46),1));
+    linuxUpdateBtn=button("更新",false,this::refreshLinuxTab);
+    linuxUpdateBtn.setContentDescription("更新当前 LINUX DO 子页");linuxUpdateBtn.setEnabled(!busy);
+    bar.addView(linuxUpdateBtn,new LinearLayout.LayoutParams(-2,dp(46)));
+    body.addView(bar);
+    gap(body,10);
+    Snapshot snap=linuxTabs.get(linuxTabKey(linuxTab));
+    if(snap!=null&&!snap.error.isEmpty()){
+      String summary=snap.error.contains("HTTP 403")?"本站暂时拒绝访问（403）":snap.error.contains("访问验证")?"本站要求访问验证":"本次更新失败";
+      TextView error=text(summary+" · 已保留 "+snap.items.size()+" 条，点击查看错误详情",12,palette.danger,false);
+      error.setOnClickListener(v->dialog().setTitle("LINUX DO · "+names[linuxTab]).setMessage(snap.error).setPositiveButton("关闭",null).show());body.addView(error);gap(body,10);
+    }
+    List<Article> items=new ArrayList<>();
+    if(snap!=null)for(Article a:snap.items)if(match(a.title+" "+a.summary+" "+a.sourceName)&&(!unread||!read.contains(a.id)))items.add(a);
+    showArticles(items);
+  }
+  private String linuxTabKey(int m){return m==1?"views":m==2?"latest":"default";}
   private Button smallButton(String label,Runnable click){Button b=button(label,false,click);b.setTextSize(large?14:12);b.setMinHeight(dp(36));b.setMinimumHeight(dp(36));b.setPadding(dp(10),dp(4),dp(10),dp(4));b.setTextColor(ACCENT);b.setBackground(ripple(floating(false,12)));return b;}
   private void pickMany(String title,List<String> ids,List<String> names,Set<String> selected,Runnable done){
     final boolean[] syncing={false};Set<String> next=new LinkedHashSet<>(selected);boolean[] checked=new boolean[ids.size()];
@@ -269,16 +350,13 @@ public final class MainActivity extends Activity {
       pickMany("厂商",new ArrayList<>(choices.keySet()),new ArrayList<>(choices.values()),vendors,()->render(false));
     }),new LinearLayout.LayoutParams(0,dp(40),1));((LinearLayout.LayoutParams)row.getChildAt(0).getLayoutParams()).setMarginEnd(dp(8));body.addView(row);gap(body,10);
   }
-  private boolean matchesProvider(Article a){
-    if(region.equals("all")&&vendors.isEmpty())return true;
-    if(ReadingRules.provider(catalog,a.provider,region,vendors))return true;
-    JSONArray ps=catalog.optJSONArray("providers");for(int i=0;ps!=null&&i<ps.length();i++){JSONObject p=ps.optJSONObject(i);if(p!=null&&ReadingRules.provider(catalog,p.optString("id"),region,vendors)&&providerMention(a,p.optString("id")))return true;}return false;
-  }
+
   private Set<String> visibleAIBoards(){Set<String> out=new HashSet<>();for(String id:NewsEngine.HOT_SOURCES)if(Boolean.TRUE.equals(sourceEnabled.get(id))&&ReadingRules.aiBoard(id,snapshots.get(id)))out.add(id);return out;}
+  private boolean matchesProvider(Article a){return ReadingRules.provider(catalog,a.provider,region,vendors);}
   private void requestHistory(boolean ai,String day){
     if(day.isEmpty()||destroyed)return;String key=(ai?"ai:":"news:")+day;if(historyAttempts.contains(key))return;
     if(busy){pendingDay=day;pendingAI=ai;return;}historyAttempts.add(key);
-    List<Source> selected=new ArrayList<>();for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(ai?("ai".equals(s.category)||"v2ex".equals(s.id)||"hackernews".equals(s.id)):FeaturedNews.latestSource(s)))selected.add(s);
+    List<Source> selected=new ArrayList<>();for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(ai?(ReadingRules.platformSource(catalog,s)||NewsEngine.HOT_SOURCES.contains(s.id)):FeaturedNews.latestSource(s)))selected.add(s);
     startRefresh(selected,true,true,key,ai);
   }
   private JSONObject modelData(){JSONObject d=catalog.optJSONObject("modelData");return d==null?new JSONObject():d;}
@@ -328,15 +406,24 @@ public final class MainActivity extends Activity {
   }
   private void toolDetails(JSONObject t){LinearLayout content=vertical();content.setPadding(dp(22),dp(14),dp(22),dp(10));content.addView(text(t.optString("description"),15,INK,false));gap(content,12);content.addView(text("出品方："+providerName(t.optString("provider"))+"\n类型："+types(t.optJSONArray("kinds"))+"\n定位："+t.optString("role")+"\n许可："+t.optString("license")+"\n适用平台："+t.optJSONArray("platforms")+"\n工具资料核对于 "+catalog.optString("checkedAt"),13,MUTED,false));if(!t.optString("note").isEmpty()){gap(content,12);content.addView(text(t.optString("note"),13,ACCENT,false));}gap(content,12);JSONArray refs=t.optJSONArray("references");for(int i=0;refs!=null&&i<refs.length();i++){final String url=refs.optString(i);content.addView(button("官方依据 "+(i+1)+" ↗",false,()->external(url)));gap(content,6);}content.addView(button("前往官方产品 / 文档 ↗",true,()->external(t.optString("url"))));ScrollView s=new ScrollView(ui);s.addView(content);dialog().setTitle(t.optString("name")).setView(s).setPositiveButton("关闭",null).show();}
   private void settings(){
-    LinearLayout appearance=card();appearance.addView(text("外观",16,INK,true));gap(appearance,16);LinearLayout options=new LinearLayout(ui);
-    themeOption(options,"day","日间","sun");themeOption(options,"night","夜间","moon");appearance.addView(options);
-    LinearLayout preferences=card();preferences.addView(text("阅读",16,INK,true));gap(preferences,8);toggle(preferences,"大字阅读",large,value->{large=value;saveSoon();render(true);});divider(preferences);toggle(preferences,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
-    LinearLayout share=card();share.addView(button("分享安装包",true,()->shareApk()));
-    gap(body,8);body.addView(text("信息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,16);
-    for(Source source:engine.sources){LinearLayout c=card();Switch sw=new Switch(ui);sw.setText(source.name+(source.experimental?" · 实验渠道":""));styleSwitch(sw);sw.setChecked(Boolean.TRUE.equals(sourceEnabled.get(source.id)));sw.setOnCheckedChangeListener((v,checked)->{sourceEnabled.put(source.id,checked);saveSoon();if("linuxdo".equals(source.id))updateRefreshControls();});c.addView(sw);gap(c,10);
-      Snapshot snap=snapshots.get(source.id);String value=snap==null?"尚未获取":(!snap.error.isEmpty()?(snap.items.isEmpty()?"获取失败":"历史快照"):"已获取 "+snap.items.size()+" 条")+" · "+(snap.fetched>0?stamp(snap.fetched,false):"尚无成功快照");c.addView(text(value,12,MUTED,false));
-      if(snap!=null&&!snap.error.isEmpty()){gap(c,6);c.addView(text(snap.error,12,palette.danger,false));}gap(c,6);c.addView(text(source.home,12,MUTED,false));
-      if("linuxdo".equals(source.id)){gap(c,12);linuxRefresh=button("单独更新 LINUX DO",false,this::refreshLinuxDo);linuxRefresh.setContentDescription("单独更新一次 LINUX DO 帖子");c.addView(linuxRefresh);gap(c,6);c.addView(text("开启来源后，可单独更新本站",12,MUTED,false));updateRefreshControls();}
+    body.addView(text("外观",16,INK,true));gap(body,10);LinearLayout appearance=card();LinearLayout options=new LinearLayout(ui);
+    themeOption(options,"day","日间","sun");themeOption(options,"night","夜间","moon");appearance.addView(options);gap(appearance,12);divider(appearance);
+    toggle(appearance,"大字显示",large,value->{large=value;saveSoon();render(true);});divider(appearance);toggle(appearance,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
+    body.addView(filterButton("分享安装包 ↗",this::shareApk));gap(body,12);
+    body.addView(text("消息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,10);
+    LinearLayout group=card();group.setPadding(dp(10),dp(10),dp(10),dp(2));
+    List<Source> sources=SourceFilters.settingsOrder(engine.sources,snapshots,savedState.latestLinuxSnapshot());
+    for(Source source:sources){
+      LinearLayout c=vertical();c.setPadding(dp(12),dp(6),dp(12),dp(10));c.setBackground(shape(palette.raised,palette.line,12));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.bottomMargin=dp(8);group.addView(c,cp);
+      LinearLayout row=new LinearLayout(ui);row.setGravity(Gravity.CENTER_VERTICAL);
+      TextView name=text(source.name+(source.experimental?" · 实验":"")+" ↗",14,INK,true);name.setGravity(Gravity.CENTER_VERTICAL);name.setMinHeight(dp(40));name.setContentDescription("打开"+source.name+"网站");name.setBackground(ripple(new ColorDrawable(Color.TRANSPARENT)));name.setOnClickListener(v->external(source.home));row.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+      Switch sw=new Switch(ui);styleSwitch(sw);sw.setPadding(dp(8),0,0,0);sw.setMinHeight(dp(40));sw.setContentDescription("启用"+source.name);sw.setChecked(Boolean.TRUE.equals(sourceEnabled.get(source.id)));sw.setOnCheckedChangeListener((v,checked)->{sourceEnabled.put(source.id,checked);saveSoon();if("linuxdo".equals(source.id))updateRefreshControls();});row.addView(sw,new LinearLayout.LayoutParams(-2,dp(40)));c.addView(row);
+      Snapshot snap="linuxdo".equals(source.id)?savedState.latestLinuxSnapshot():snapshots.get(source.id);
+      String value=snap==null?"尚未获取":(!snap.error.isEmpty()?"获取失败 · 保留 "+snap.items.size()+" 条":"已获取 "+snap.items.size()+" 条")+" · "+(snap.fetched>0?stamp(snap.fetched,false):"尚无成功快照");
+      c.addView(text(("linuxdo".equals(source.id)?"最近子页 · ":"")+value,12,MUTED,false));
+      if(snap!=null&&!snap.error.isEmpty()){
+        TextView error=text(snap.error,12,palette.danger,false);error.setMaxLines(3);error.setEllipsize(TextUtils.TruncateAt.END);error.setContentDescription("查看"+source.name+"完整错误");error.setOnClickListener(v->dialog().setTitle(source.name).setMessage(snap.error).setPositiveButton("关闭",null).show());gap(c,3);c.addView(error);
+      }
     }
   }
   private void themeOption(LinearLayout row,String mode,String label,String glyph){
@@ -360,31 +447,43 @@ public final class MainActivity extends Activity {
   private void refresh(boolean force){
     if(busy||destroyed||engine==null||body==null)return;
     List<Source> selected=new ArrayList<>();long now=System.currentTimeMillis();
-    for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(force||NewsEngine.shouldAutoCheck(s,snapshots.get(s.id),now)))selected.add(s);
+    for(Source s:engine.sources)if(!"linuxdo".equals(s.id)&&Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(force||NewsEngine.shouldAutoCheck(s,snapshots.get(s.id),now)))selected.add(s);
     startRefresh(selected,force,false,"",false);
   }
-  private void updateRefreshControls(){
-    if(refresh!=null)refresh.setEnabled(!busy);
-    if(linuxRefresh!=null){linuxRefresh.setEnabled(!busy&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));linuxRefresh.setText(linuxUpdating?"正在更新 LINUX DO…":busy?"更新进行中，请稍候":"单独更新 LINUX DO");}
+  private void syncProgress(){
+    if(progress==null)return;progress.setIndeterminate(linuxUpdating);progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setVisibility(busy?View.VISIBLE:View.GONE);
   }
-  private void refreshLinuxDo(){
+  private void updateRefreshControls(){
+    syncProgress();
+    if(refresh!=null)refresh.setEnabled(!busy);
+    if(linuxUpdateBtn!=null){linuxUpdateBtn.setText(linuxUpdating?"更新中…":"更新");linuxUpdateBtn.setEnabled(!busy&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));}
+  }
+  private void refreshLinuxTab(){
     if(busy||destroyed||engine==null||body==null)return;
-    Source source=engine.sourceMap.get("linuxdo");if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(source.id)))return;
-    // Explicit one-shot retry: bypass the ordinary recent-error/cache cooldown.
-    startRefresh(Collections.singletonList(source),true,true,"",false,true);
+    final Source source=engine.sourceMap.get("linuxdo");
+    if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(source.id)))return;
+    final int mode=linuxTab;final String key=linuxTabKey(mode);final Snapshot old=linuxTabs.get(key);
+    // Explicit one-shot refresh: bypass the ordinary cooldown; result is kept in the sub-page map, never the archive.
+    busy=true;linuxUpdating=true;done=0;total=1;updateRefreshControls();
+    network.execute(()->{
+      final Snapshot value=engine.fetchLinuxDo(source,old,mode);
+      handler.post(()->{
+        if(destroyed)return;linuxTabs.put(key,value);
+        done=1;busy=false;linuxUpdating=false;updateRefreshControls();
+        toast(value.error.isEmpty()?"LINUX DO「"+key+"」已获取 "+value.items.size()+" 条":"LINUX DO 更新失败，请查看来源提示");
+        render(true);saveSoon();
+      });
+    });
   }
   private void startRefresh(List<Source> selected,boolean force,boolean recheck,String historyKey,boolean ai){
-    startRefresh(selected,force,recheck,historyKey,ai,false);
-  }
-  private void startRefresh(List<Source> selected,boolean force,boolean recheck,String historyKey,boolean ai,boolean linuxOnly){
     if(busy||destroyed)return;
     if(selected.isEmpty()){if(!historyKey.isEmpty()){historyResults.put(historyKey,"没有已启用的相关来源");render(true);}return;}
-    busy=true;linuxUpdating=linuxOnly;done=updated=failed=cached=0;total=selected.size();updateRefreshControls();progress.setMax(total);progress.setProgress(0);progress.setVisibility(View.VISIBLE);
+    busy=true;done=updated=failed=cached=0;total=selected.size();updateRefreshControls();progress.setMax(total);progress.setProgress(0);progress.setVisibility(View.VISIBLE);
     for(Source s:selected){final Snapshot old=snapshots.get(s.id);network.execute(()->{
       Snapshot value=recheck?engine.recheck(s,old):engine.fetch(s,old,force);handler.post(()->{
-        if(destroyed)return;snapshots.put(s.id,value);if(!value.cached&&value.error.isEmpty()){long before=archive.revision;archive.accept(value,engine,System.currentTimeMillis());if(archive.revision!=before){archiveDirty=true;handler.removeCallbacks(archiveSaveTask);handler.postDelayed(archiveSaveTask,500);}}done++;if(!value.error.isEmpty())failed++;else if(value.cached)cached++;else updated++;
-        progress.setProgress(done);handler.removeCallbacks(renderTask);handler.postDelayed(renderTask,120);saveSoon();
-        if(done==total){busy=false;linuxUpdating=false;updateRefreshControls();progress.setVisibility(View.GONE);toast(linuxOnly?(value.error.isEmpty()?"LINUX DO 已获取 "+value.items.size()+" 条":"LINUX DO 更新失败，请查看来源提示"):"更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
+        if(destroyed)return;snapshots.put(s.id,value);if(!value.cached&&value.error.isEmpty()&&!"linuxdo".equals(s.id)){long before=archive.revision;archive.accept(value,engine,System.currentTimeMillis());if(archive.revision!=before){archiveDirty=true;handler.removeCallbacks(archiveSaveTask);handler.postDelayed(archiveSaveTask,500);}}done++;if(!value.error.isEmpty())failed++;else if(value.cached)cached++;else updated++;
+        progress.setProgress(done);saveSoon();
+        if(done==total){busy=false;updateRefreshControls();progress.setVisibility(View.GONE);toast("更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
           if(!historyKey.isEmpty()){String day=historyKey.substring(historyKey.indexOf(':')+1);boolean returned=false;for(Source src:selected){Snapshot snap=snapshots.get(src.id);if(snap!=null&&snap.error.isEmpty())for(Article a:snap.items)if(a.published>0&&FeaturedNews.day(a.published).equals(day))returned=true;}historyResults.put(historyKey,returned?"来源已返回该日条目，未形成该日独立精选":failed==total?"本次检查失败，旧记录已保留":"来源没有返回这一天（"+day+"）");}
           render(true);if(!pendingDay.isEmpty()){String day=pendingDay;boolean scope=pendingAI;pendingDay="";handler.post(()->requestHistory(scope,day));}}
       });
@@ -403,6 +502,6 @@ public final class MainActivity extends Activity {
   private void saveSoon(){handler.removeCallbacks(saveTask);handler.postDelayed(saveTask,350);}
   private void saveNow(){if(storage==null||disk.isShutdown())return;try{savedState.compact=compact;savedState.large=large;savedState.unread=unread;savedState.hotMode=hotMode;byte[] bytes=savedState.json().toString().getBytes(StandardCharsets.UTF_8);disk.execute(()->{FileOutputStream out=null;try{out=storage.startWrite();out.write(bytes);storage.finishWrite(out);}catch(Exception e){if(out!=null)storage.failWrite(out);if(!destroyed)handler.post(()->toast("缓存保存失败，请检查设备剩余空间"));}});}catch(Exception ignored){}}
   @Override protected void onPause(){saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
-  @Override protected void onResume(){super.onResume();if(body!=null)refresh(false);}
-  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);handler.removeCallbacks(renderTask);saveNow();network.shutdownNow();disk.shutdown();super.onDestroy();}
+  @Override protected void onResume(){super.onResume();}
+  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
 }

@@ -1,6 +1,6 @@
 # 开发规范、环境与操作约定
 
-增量核实：2026-11-10，依据当前脚本/目录与实际工具准备；验收结果由 HANDOFF 维护。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
+增量核实：2026-11-11，依据当前脚本/目录与实际工具准备；验收结果由 HANDOFF 维护。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
 
 ## P2 / Active · 日常协作与开发环境
 
@@ -32,13 +32,15 @@ Rust/NDK/CMake、Cargo 缓存和目标在 `.cache/native*`；`prepare-native.py`
 
 默认 `test.py` 只准备固定 SHA-256 的 `org.json:json:20250517` JVM JAR，运行 fixture；JAR 不进 APK，手机用系统 org.json。
 
-测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules/ReaderTheme/LinuxDoTransport，不编译或运行 MainActivity；JVM 不执行 JNI。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
+测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules/ReaderTheme/LinuxDoTransport/ArticleTextCache/SourceFilters，不编译或运行 MainActivity；JVM 不执行 JNI。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
 
 ```powershell
 python scripts/android/test.py --live
 ```
 
 这是可选实际联网直连，写 `.local/reports/native-direct-check.json`。上游可变，历史通过不等于新测试；文档迁移无需运行。
+
+3.9新增独立UiSmoke原生回归：`python scripts/android/build-smoke.py --ui`编译到.cache/android-ui-smoke/（默认仍为DeviceSmoke/.cache/android-smoke/），只构建不安装。只在新隔离AVD运行；先用旧包seed、新包verify确认升级保留，再跑UiSmoke的合成采集/布局/浏览器Intent/顶栏稳定与进度测试。截图用测试UiAutomation在模拟器/data/local/tmp写shell可导出文件，不为截图扩大产品存储权限；导出后实际打开检查，需等待完整绘制。DeviceSmoke的`mode=linuxviews`单独执行真实生产JNI季度请求；必须同时检查fetch=QUARTERLY_FETCHED，result=PASS只说明探测程序完成，不能掩盖FETCH_FAILED。具体本轮设备/结果见UI_DESIGN与HANDOFF，不直接重跑硬编码旧版smoke.py。
 
 ### P2 / Active · 仅 GUI 验证时准备模拟器
 

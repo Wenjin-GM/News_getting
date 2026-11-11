@@ -34,23 +34,6 @@
     "name": "中新网 · 国际"
   },
   {
-    "category": "news",
-    "color": "#ae4947",
-    "custom": false,
-    "description": "官方 RSS · 当前发现长期停更",
-    "enabled": false,
-    "endpoints": [
-      "https://www.people.com.cn/rss/politics.xml"
-    ],
-    "experimental": true,
-    "home": "https://politics.people.com.cn",
-    "icon": "人",
-    "id": "people",
-    "interval": 600,
-    "kind": "rss",
-    "name": "人民网 · 时政"
-  },
-  {
     "category": "tech",
     "color": "#c74c43",
     "custom": false,
@@ -108,8 +91,8 @@
     "description": "公开快讯 · 非承诺开放 API",
     "enabled": true,
     "endpoints": [
-      "https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel\u0026client=pc\u0026limit=30",
-      "https://api.wallstcn.com/apiv1/content/lives?channel=global-channel\u0026client=pc\u0026limit=30"
+      "https://api-one.wallstcn.com/apiv1/content/lives?channel=global-channel&client=pc&limit=30",
+      "https://api.wallstcn.com/apiv1/content/lives?channel=global-channel&client=pc&limit=30"
     ],
     "experimental": false,
     "home": "https://wallstreetcn.com",
@@ -124,7 +107,7 @@
     "color": "#4471cf",
     "custom": false,
     "description": "公开页面 · 实时热搜榜",
-    "enabled": false,
+    "enabled": true,
     "endpoints": [
       "https://top.baidu.com/board?tab=realtime"
     ],
@@ -155,10 +138,27 @@
   },
   {
     "category": "hot",
+    "color": "#161823",
+    "custom": false,
+    "description": "公开热榜 · 非承诺开放 API",
+    "enabled": true,
+    "endpoints": [
+      "https://www.iesdouyin.com/web/api/v2/hotsearch/billboard/word/"
+    ],
+    "experimental": false,
+    "home": "https://www.douyin.com/hot",
+    "icon": "抖",
+    "id": "douyin",
+    "interval": 300,
+    "kind": "json",
+    "name": "抖音热搜"
+  },
+  {
+    "category": "hot",
     "color": "#dd6c94",
     "custom": false,
     "description": "公开热搜词 · 非承诺开放 API",
-    "enabled": false,
+    "enabled": true,
     "endpoints": [
       "https://s.search.bilibili.com/main/hotword?limit=30"
     ],
@@ -175,9 +175,9 @@
     "color": "#b66b91",
     "custom": false,
     "description": "公开热门视频 · 非承诺开放 API",
-    "enabled": false,
+    "enabled": true,
     "endpoints": [
-      "https://api.bilibili.com/x/web-interface/popular?ps=30\u0026pn=1"
+      "https://api.bilibili.com/x/web-interface/popular?ps=30&pn=1"
     ],
     "experimental": true,
     "home": "https://www.bilibili.com/v/popular/all",
@@ -191,8 +191,8 @@
     "category": "hot",
     "color": "#d77a36",
     "custom": false,
-    "description": "公开热搜 · 可能受访问限制",
-    "enabled": false,
+    "description": "公开热搜 · 桌面浏览器直连",
+    "enabled": true,
     "endpoints": [
       "https://weibo.com/ajax/side/hotSearch",
       "https://weibo.com/ajax/statuses/hot_band"
@@ -210,9 +210,9 @@
     "color": "#3979cf",
     "custom": false,
     "description": "公开热榜 · 可能受访问限制",
-    "enabled": false,
+    "enabled": true,
     "endpoints": [
-      "https://www.zhihu.com/api/v3/feed/topstory/hot-list-web?limit=30\u0026desktop=true"
+      "https://www.zhihu.com/api/v3/feed/topstory/hot-list-web?limit=30&desktop=true"
     ],
     "experimental": true,
     "home": "https://www.zhihu.com/hot",
@@ -280,7 +280,7 @@
     "description": "Algolia 搜索 API · 首页热门",
     "enabled": true,
     "endpoints": [
-      "https://hn.algolia.com/api/v1/search?tags=front_page\u0026hitsPerPage=30"
+      "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"
     ],
     "experimental": false,
     "home": "https://news.ycombinator.com",
@@ -291,29 +291,14 @@
     "name": "Hacker News"
   },
   {
-    "category": "news",
-    "color": "#4a4a4a",
-    "custom": false,
-    "description": "官方 RSS · 英文国际新闻",
-    "enabled": false,
-    "endpoints": [
-      "https://feeds.bbci.co.uk/news/world/rss.xml"
-    ],
-    "experimental": true,
-    "home": "https://www.bbc.com/news/world",
-    "icon": "B",
-    "id": "bbc",
-    "interval": 900,
-    "kind": "rss",
-    "name": "BBC · World"
-  },
-  {
     "category": "tech",
     "color": "#d6a84a",
     "custom": false,
-    "description": "官方公开 RSS · Android ECH 实验直连，访问验证时停止",
+    "description": "官方公开 RSS · ECH 实验直连，需手动开启",
     "enabled": false,
-    "endpoints": ["https://linux.do/latest.rss"],
+    "endpoints": [
+      "https://linux.do/latest.rss"
+    ],
     "experimental": true,
     "home": "https://linux.do",
     "icon": "L",
@@ -337,7 +322,8 @@
     "id": "ai-media-ithome",
     "interval": 900,
     "kind": "rss-ai",
-    "name": "AI 资讯 · IT之家"
+    "name": "AI 资讯 · IT之家",
+    "authority": "media"
   },
   {
     "category": "ai",
@@ -354,7 +340,8 @@
     "id": "ai-media-ifanr",
     "interval": 900,
     "kind": "rss-ai",
-    "name": "AI 资讯 · 爱范儿"
+    "name": "AI 资讯 · 爱范儿",
+    "authority": "media"
   },
   {
     "category": "ai",
@@ -372,7 +359,8 @@
     "interval": 900,
     "kind": "rss",
     "name": "OpenAI · 官方动态",
-    "provider": "openai"
+    "provider": "openai",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -391,7 +379,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Codex · 版本发布",
-    "provider": "openai"
+    "provider": "openai",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -409,7 +398,8 @@
     "interval": 1800,
     "kind": "anthropic",
     "name": "Anthropic · 官方动态",
-    "provider": "anthropic"
+    "provider": "anthropic",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -428,7 +418,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Claude Code · 版本发布",
-    "provider": "anthropic"
+    "provider": "anthropic",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -446,7 +437,8 @@
     "interval": 900,
     "kind": "rss",
     "name": "Google AI · 官方动态",
-    "provider": "google"
+    "provider": "google",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -465,7 +457,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Gemini CLI · 版本发布",
-    "provider": "google"
+    "provider": "google",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -484,7 +477,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Qwen Code · 版本发布",
-    "provider": "alibaba"
+    "provider": "alibaba",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -503,7 +497,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Kimi Code · 版本发布",
-    "provider": "moonshot"
+    "provider": "moonshot",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -522,7 +517,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Mistral Vibe · 版本发布",
-    "provider": "mistral"
+    "provider": "mistral",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -541,7 +537,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "MiniMax Code · 版本发布",
-    "provider": "minimax"
+    "provider": "minimax",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -559,7 +556,8 @@
     "interval": 900,
     "kind": "rss",
     "name": "GitHub Copilot · 官方动态",
-    "provider": "github"
+    "provider": "github",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -578,25 +576,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "Copilot CLI · 版本发布",
-    "provider": "github"
-  },
-  {
-    "category": "ai",
-    "color": "#bfaa52",
-    "custom": false,
-    "description": "官方新闻 · RSS",
-    "enabled": true,
-    "endpoints": [
-      "https://huggingface.co/blog/feed.xml"
-    ],
-    "experimental": false,
-    "home": "https://huggingface.co/blog",
-    "icon": "HF",
-    "id": "ai-huggingface",
-    "interval": 900,
-    "kind": "rss",
-    "name": "Hugging Face · 官方动态",
-    "provider": "huggingface"
+    "provider": "github",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -614,7 +595,8 @@
     "interval": 1800,
     "kind": "deepseek",
     "name": "DeepSeek · 更新日志",
-    "provider": "deepseek"
+    "provider": "deepseek",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -633,7 +615,8 @@
     "interval": 1800,
     "kind": "releases",
     "name": "DeepSeek Harness · 版本发布",
-    "provider": "deepseek"
+    "provider": "deepseek",
+    "authority": "official"
   },
   {
     "category": "ai",
@@ -651,6 +634,519 @@
     "interval": 1800,
     "kind": "zcode",
     "name": "ZCode · 更新日志",
-    "provider": "zai"
+    "provider": "zai",
+    "authority": "official"
+  },
+  {
+    "category": "ai",
+    "color": "#e8542f",
+    "custom": false,
+    "description": "公开 RSS · AI 行业聚合",
+    "enabled": true,
+    "endpoints": [
+      "https://aihot.news/feed"
+    ],
+    "experimental": false,
+    "home": "https://aihot.news",
+    "icon": "AH",
+    "id": "ai-aihot",
+    "interval": 600,
+    "kind": "rss",
+    "name": "AIHOT · AI 聚合",
+    "authority": "aggregator"
+  },
+  {
+    "category": "news",
+    "color": "#b03a2e",
+    "custom": false,
+    "description": "官方 RSS · 时政综合",
+    "enabled": true,
+    "endpoints": [
+      "https://www.xinhuanet.com/politics/news_politics.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.xinhuanet.com",
+    "icon": "新",
+    "id": "xinhuanet",
+    "interval": 600,
+    "kind": "rss",
+    "name": "新华网"
+  },
+  {
+    "category": "community",
+    "color": "#d35400",
+    "custom": false,
+    "description": "官方 RSS · 效率与数字生活",
+    "enabled": true,
+    "endpoints": [
+      "https://sspai.com/feed"
+    ],
+    "experimental": false,
+    "home": "https://sspai.com",
+    "icon": "少",
+    "id": "sspai",
+    "interval": 600,
+    "kind": "rss",
+    "name": "少数派"
+  },
+  {
+    "category": "tech",
+    "color": "#16a085",
+    "custom": false,
+    "description": "官方 RSS · 技术架构与实践",
+    "enabled": true,
+    "endpoints": [
+      "https://www.infoq.cn/feed"
+    ],
+    "experimental": false,
+    "home": "https://www.infoq.cn",
+    "icon": "IQ",
+    "id": "infoq-cn",
+    "interval": 900,
+    "kind": "rss",
+    "name": "InfoQ 中国"
+  },
+  {
+    "category": "tech",
+    "color": "#5d6d7e",
+    "custom": false,
+    "description": "官方 RSS · 开发者博客社区",
+    "enabled": true,
+    "endpoints": [
+      "https://feed.cnblogs.com/blog/sitehome/rss"
+    ],
+    "experimental": false,
+    "home": "https://www.cnblogs.com",
+    "icon": "园",
+    "id": "cnblogs",
+    "interval": 600,
+    "kind": "rss",
+    "name": "博客园"
+  },
+  {
+    "category": "finance",
+    "color": "#c0392b",
+    "custom": false,
+    "description": "官方 RSS · 商业与科技财经",
+    "enabled": true,
+    "endpoints": [
+      "https://www.tmtpost.com/feed"
+    ],
+    "experimental": false,
+    "home": "https://www.tmtpost.com",
+    "icon": "钛",
+    "id": "tmtpost",
+    "interval": 600,
+    "kind": "rss",
+    "name": "钛媒体"
+  },
+  {
+    "category": "ai",
+    "color": "#2980b9",
+    "custom": false,
+    "description": "官方 RSS · 人工智能垂直媒体",
+    "enabled": true,
+    "endpoints": [
+      "https://www.qbitai.com/feed"
+    ],
+    "experimental": false,
+    "home": "https://www.qbitai.com",
+    "icon": "量",
+    "id": "qbitai",
+    "interval": 600,
+    "kind": "rss",
+    "name": "量子位",
+    "authority": "media"
+  },
+  {
+    "category": "community",
+    "color": "#e67e22",
+    "custom": false,
+    "description": "官方 RSS · 游戏文化社区",
+    "enabled": true,
+    "endpoints": [
+      "https://www.gcores.com/rss"
+    ],
+    "experimental": false,
+    "home": "https://www.gcores.com",
+    "icon": "核",
+    "id": "gcores",
+    "interval": 900,
+    "kind": "rss",
+    "name": "机核网"
+  },
+  {
+    "category": "tech",
+    "color": "#7f8c8d",
+    "custom": false,
+    "description": "个人博客 Atom · 技术周刊",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ruanyifeng.com/blog/atom.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.ruanyifeng.com/blog",
+    "icon": "阮",
+    "id": "ruanyifeng",
+    "interval": 1800,
+    "kind": "rss",
+    "name": "阮一峰周刊"
+  },
+  {
+    "category": "news",
+    "color": "#0066b3",
+    "custom": false,
+    "description": "官方 RSS · 国际突发新闻",
+    "enabled": true,
+    "endpoints": [
+      "https://www.france24.com/en/rss"
+    ],
+    "experimental": false,
+    "home": "https://www.france24.com/en/",
+    "icon": "F24",
+    "id": "france24",
+    "interval": 600,
+    "kind": "rss",
+    "name": "France 24"
+  },
+  {
+    "category": "tech",
+    "color": "#7a3b8e",
+    "custom": false,
+    "description": "官方 RSS · 科技与文化",
+    "enabled": true,
+    "endpoints": [
+      "https://www.theverge.com/rss/index.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.theverge.com",
+    "icon": "VG",
+    "id": "the-verge",
+    "interval": 600,
+    "kind": "rss",
+    "name": "The Verge"
+  },
+  {
+    "category": "tech",
+    "color": "#1aa260",
+    "custom": false,
+    "description": "官方 RSS · 创业与科技",
+    "enabled": true,
+    "endpoints": [
+      "https://techcrunch.com/feed/"
+    ],
+    "experimental": false,
+    "home": "https://techcrunch.com",
+    "icon": "TC",
+    "id": "techcrunch",
+    "interval": 600,
+    "kind": "rss",
+    "name": "TechCrunch"
+  },
+  {
+    "category": "tech",
+    "color": "#c44a2e",
+    "custom": false,
+    "description": "官方 RSS · 深度技术报道",
+    "enabled": true,
+    "endpoints": [
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "experimental": false,
+    "home": "https://arstechnica.com",
+    "icon": "AT",
+    "id": "ars-technica",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Ars Technica"
+  },
+  {
+    "category": "tech",
+    "color": "#222222",
+    "custom": false,
+    "description": "官方 RSS · 科技与未来",
+    "enabled": true,
+    "endpoints": [
+      "https://www.wired.com/feed/rss"
+    ],
+    "experimental": false,
+    "home": "https://www.wired.com",
+    "icon": "W",
+    "id": "wired",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Wired"
+  },
+  {
+    "category": "tech",
+    "color": "#3a9e3a",
+    "custom": false,
+    "description": "官方 RSS · Google 生态",
+    "enabled": true,
+    "endpoints": [
+      "https://9to5google.com/feed/"
+    ],
+    "experimental": false,
+    "home": "https://9to5google.com",
+    "icon": "9G",
+    "id": "9to5google",
+    "interval": 600,
+    "kind": "rss",
+    "name": "9to5Google"
+  },
+  {
+    "category": "tech",
+    "color": "#1a73e8",
+    "custom": false,
+    "description": "官方 RSS · Android 与移动",
+    "enabled": true,
+    "endpoints": [
+      "https://www.androidauthority.com/feed/"
+    ],
+    "experimental": false,
+    "home": "https://www.androidauthority.com",
+    "icon": "AA",
+    "id": "android-authority",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Android Authority"
+  },
+  {
+    "category": "tech",
+    "color": "#333333",
+    "custom": false,
+    "description": "聚合 RSS · 科技新闻聚合",
+    "enabled": true,
+    "endpoints": [
+      "https://www.techmeme.com/feed.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.techmeme.com",
+    "icon": "Tm",
+    "id": "techmeme",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Techmeme"
+  },
+  {
+    "category": "tech",
+    "color": "#a31f34",
+    "custom": false,
+    "description": "官方 RSS · 科技评论",
+    "enabled": true,
+    "endpoints": [
+      "https://www.technologyreview.com/feed/"
+    ],
+    "experimental": false,
+    "home": "https://www.technologyreview.com",
+    "icon": "MT",
+    "id": "mit-tech-review",
+    "interval": 900,
+    "kind": "rss",
+    "name": "MIT Tech Review"
+  },
+  {
+    "category": "community",
+    "color": "#ac130d",
+    "custom": false,
+    "description": "官方 RSS · 技术链接社区",
+    "enabled": true,
+    "endpoints": [
+      "https://lobste.rs/rss"
+    ],
+    "experimental": false,
+    "home": "https://lobste.rs",
+    "icon": "Lb",
+    "id": "lobsters",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Lobsters"
+  },
+  {
+    "category": "community",
+    "color": "#006666",
+    "custom": false,
+    "description": "官方 RSS · 极客新闻社区",
+    "enabled": true,
+    "endpoints": [
+      "https://rss.slashdot.org/Slashdot/slashdotMain"
+    ],
+    "experimental": false,
+    "home": "https://slashdot.org",
+    "icon": "SD",
+    "id": "slashdot",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Slashdot"
+  },
+  {
+    "category": "tech",
+    "color": "#006633",
+    "custom": false,
+    "description": "官方 RSS · 顶级科学期刊",
+    "enabled": true,
+    "endpoints": [
+      "https://www.nature.com/nature.rss"
+    ],
+    "experimental": false,
+    "home": "https://www.nature.com",
+    "icon": "N",
+    "id": "nature",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Nature"
+  },
+  {
+    "category": "tech",
+    "color": "#b03a2e",
+    "custom": false,
+    "description": "官方 RSS · 科学期刊目录",
+    "enabled": true,
+    "endpoints": [
+      "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science"
+    ],
+    "experimental": false,
+    "home": "https://www.science.org",
+    "icon": "Sc",
+    "id": "science-mag",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Science"
+  },
+  {
+    "category": "tech",
+    "color": "#1a6e9e",
+    "custom": false,
+    "description": "官方 RSS · 科学与技术进展",
+    "enabled": true,
+    "endpoints": [
+      "https://phys.org/rss-feed/"
+    ],
+    "experimental": false,
+    "home": "https://phys.org",
+    "icon": "Ph",
+    "id": "phys-org",
+    "interval": 600,
+    "kind": "rss",
+    "name": "Phys.org"
+  },
+  {
+    "category": "news",
+    "color": "#3d85c6",
+    "custom": false,
+    "description": "官方 RSS · 美国公共广播综合新闻",
+    "enabled": true,
+    "endpoints": [
+      "https://feeds.npr.org/1001/rss.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.npr.org",
+    "icon": "N",
+    "id": "npr",
+    "interval": 600,
+    "kind": "rss",
+    "name": "NPR"
+  },
+  {
+    "category": "tech",
+    "color": "#d9411e",
+    "custom": false,
+    "description": "官方 RSS · 科技资讯与评测",
+    "enabled": true,
+    "endpoints": [
+      "https://www.cnet.com/rss/news/"
+    ],
+    "experimental": false,
+    "home": "https://www.cnet.com",
+    "icon": "C",
+    "id": "cnet",
+    "interval": 600,
+    "kind": "rss",
+    "name": "CNET"
+  },
+  {
+    "category": "tech",
+    "color": "#f48024",
+    "custom": false,
+    "description": "官方 RSS · 编程社区博客",
+    "enabled": true,
+    "endpoints": [
+      "https://stackoverflow.blog/feed/"
+    ],
+    "experimental": false,
+    "home": "https://stackoverflow.blog",
+    "icon": "S",
+    "id": "stackoverflow-blog",
+    "interval": 900,
+    "kind": "rss",
+    "name": "Stack Overflow 博客"
+  },
+  {
+    "category": "tech",
+    "color": "#181717",
+    "custom": false,
+    "description": "官方 RSS · 开发者平台动态",
+    "enabled": true,
+    "endpoints": [
+      "https://github.blog/feed/"
+    ],
+    "experimental": false,
+    "home": "https://github.blog",
+    "icon": "G",
+    "id": "github-blog",
+    "interval": 900,
+    "kind": "rss",
+    "name": "GitHub 博客"
+  },
+  {
+    "category": "tech",
+    "color": "#005eb8",
+    "custom": false,
+    "description": "官方 RSS · 科学发现",
+    "enabled": true,
+    "endpoints": [
+      "https://www.newscientist.com/feed/home/"
+    ],
+    "experimental": false,
+    "home": "https://www.newscientist.com",
+    "icon": "NS",
+    "id": "new-scientist",
+    "interval": 600,
+    "kind": "rss",
+    "name": "New Scientist"
+  },
+  {
+    "category": "tech",
+    "color": "#1a6e9e",
+    "custom": false,
+    "description": "官方 RSS · 科学新闻聚合",
+    "enabled": true,
+    "endpoints": [
+      "https://www.sciencedaily.com/rss/all.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.sciencedaily.com",
+    "icon": "SD",
+    "id": "science-daily",
+    "interval": 600,
+    "kind": "rss",
+    "name": "ScienceDaily"
+  },
+  {
+    "category": "tech",
+    "color": "#111111",
+    "custom": false,
+    "description": "独立科技媒体 RSS，偶发连接波动",
+    "enabled": true,
+    "endpoints": [
+      "https://hackernoon.com/feed"
+    ],
+    "experimental": true,
+    "home": "https://hackernoon.com",
+    "icon": "HN",
+    "id": "hacker-noon",
+    "interval": 900,
+    "kind": "rss",
+    "name": "HackerNoon"
   }
 ]

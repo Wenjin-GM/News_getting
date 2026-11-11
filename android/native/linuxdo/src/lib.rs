@@ -17,7 +17,11 @@ mod fallback;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum DnsMode { Auto, Fallback, Cache }
 
-const HOST: &str = "linux.do";
+// Registered ECH hosts and their fixed, non-dynamic endpoints. Each host is
+// served over encrypted SNI; the JNI signature stays unchanged because the
+// endpoint string already carries the host.
+pub const HOST_LINUXDO: &str = "linux.do";
+pub const HOST_V2EX: &str = "www.v2ex.com";
 const LIMIT: usize = 5 * 1024 * 1024;
 const DNS_LIMIT: usize = 65535;
 const DNS_ID: u16 = 0;
@@ -31,20 +35,51 @@ pub struct Fetched {
 }
 
 #[derive(Debug)]
-pub struct AccessVerification { pub status: u16 }
+pub struct AccessVerification { pub status: u16, pub challenged: bool, pub endpoint: String }
 impl std::fmt::Display for AccessVerification {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "linux.do 需要访问验证（HTTP {}）；匿名获取已停止", self.status)
+        let reason = if self.challenged { "站点要求访问验证；Cloudflare challenge 标记存在" }
+            else { "服务器拒绝匿名请求；未发现 Cloudflare challenge 标记" };
+        write!(f, "{}（HTTP {}）；匿名获取已停止；请求：{}", reason, self.status, self.endpoint)
     }
 }
 impl std::error::Error for AccessVerification {}
 
-fn allowed_path(endpoint: &str) -> Result<&'static str> {
-    match endpoint {
-        "https://linux.do/latest.rss" => Ok("/latest.rss"),
-        "https://linux.do/latest.json" => Ok("/latest.json"),
-        _ => bail!("linux.do endpoint is not allowed"),
-    }
+fn access_failure(host: &str, path: &str, status: u16, headers: &hyper::HeaderMap) -> Option<AccessVerification> {
+    let challenged = headers.get("cf-mitigated").and_then(|v| v.to_str().ok()) == Some("challenge");
+    (challenged || status == 403).then(|| AccessVerification {
+        status, challenged, endpoint: format!("https://{host}{path}"),
+    })
+}
+
+/// Validate the fixed host and path, then return them separately. Only https,
+/// no user info/port, and an exact registered path are accepted.
+fn parse_endpoint(endpoint: &str) -> Result<(String, String)> {
+    let rest = endpoint
+        .strip_prefix("https://")
+        .context("only https endpoints are allowed")?;
+    let (host, path) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, "/"),
+    };
+    ensure!(!host.contains('@') && !host.contains(':'), "host must be a plain name");
+    let fixed: &[&str] = match host {
+        HOST_LINUXDO => &[
+            "/latest.rss",
+            "/top.json?period=quarterly",
+            "/latest.json?per_page=50",
+        ],
+        HOST_V2EX => &["/api/topics/hot.json", "/index.xml"],
+        _ => bail!("endpoint host is not registered"),
+    };
+    // linux.do single-topic full text: numeric id only, no slug/query/extra.
+    let topic_ok = host == HOST_LINUXDO && {
+        path.strip_prefix("/t/")
+            .and_then(|v| v.strip_suffix(".json"))
+            .is_some_and(|id| !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()))
+    };
+    ensure!(fixed.contains(&path) || topic_ok, "endpoint path is not allowed");
+    Ok((host.to_string(), path.to_string()))
 }
 
 /// One bounded request. ECH must be accepted before any HTTP request is sent.
@@ -53,11 +88,11 @@ pub fn fetch(endpoint: &str, cache_dir: Option<&str>) -> Result<Fetched> {
 }
 
 pub fn fetch_mode(endpoint: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Fetched> {
-    let path = allowed_path(endpoint)?;
+    let (host, path) = parse_endpoint(endpoint)?;
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
     let result = runtime.block_on(async {
-            tokio::time::timeout(Duration::from_secs(90), fetch_inner(path, cache_dir, mode))
-                .await.context("linux.do 加密连接超时")?
+            tokio::time::timeout(Duration::from_secs(90), fetch_inner(&host, &path, cache_dir, mode))
+                .await.context("加密连接超时")?
         });
     // OS getaddrinfo is not cancellable. Do not wait indefinitely for a
     // cancelled system-DNS fallback after the bounded async request ends.
@@ -66,13 +101,13 @@ pub fn fetch_mode(endpoint: &str, cache_dir: Option<&str>, mode: DnsMode) -> Res
 }
 
 pub fn diagnose_dns() -> Result<serde_json::Value> {
-    diagnose_dns_mode(None, DnsMode::Auto)
+    diagnose_dns_mode(HOST_LINUXDO, None, DnsMode::Auto)
 }
 
-pub fn diagnose_dns_mode(cache_dir: Option<&str>, mode: DnsMode) -> Result<serde_json::Value> {
+pub fn diagnose_dns_mode(host: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<serde_json::Value> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
-    let result = runtime.block_on(dns::diagnose(cache_dir, mode));
+    let result = runtime.block_on(dns::diagnose(host, cache_dir, mode));
     runtime.shutdown_timeout(Duration::from_millis(100));
     Ok(result)
 }
@@ -81,14 +116,14 @@ pub fn dns_error_details(error: &anyhow::Error) -> Option<&serde_json::Value> {
     error.downcast_ref::<dns::DnsFailure>().map(|failure| &failure.details)
 }
 
-async fn fetch_inner(path: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Fetched> {
+async fn fetch_inner(host: &str, path: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Fetched> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-    let resolved = dns::resolve(cache_dir, mode).await?;
+    let resolved = dns::resolve(host, cache_dir, mode).await?;
     let mut last = anyhow!("没有可用的站点地址");
     for ip in resolved.ips.iter().copied() {
-        match tokio::time::timeout(Duration::from_secs(10), send(ip, &resolved.ech, path)).await {
+        match tokio::time::timeout(Duration::from_secs(10), send(host, ip, &resolved.ech, path)).await {
             Ok(Ok(mut response)) => {
-                cache::write(cache_dir, &resolved);
+                cache::write(host, cache_dir, &resolved);
                 response.dns_source = resolved.resolver;
                 response.from_cache = resolved.from_cache;
                 return Ok(response);
@@ -111,7 +146,7 @@ fn public_v4(ip: &Ipv4Addr) -> bool {
       || (a == 203 && b == 0 && c == 113))
 }
 
-async fn send(ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
+async fn send(host: &str, ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
     let ech = EchConfig::new(EchConfigListBytes::from(ech_bytes.to_vec()),
         rustls::crypto::aws_lc_rs::hpke::ALL_SUPPORTED_SUITES)?;
     let mut roots = rustls::RootCertStore::empty();
@@ -122,52 +157,72 @@ async fn send(ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
     config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     let tcp = tokio::net::TcpStream::connect(SocketAddr::new(IpAddr::V4(ip), 443)).await?;
     let tls = tokio_rustls::TlsConnector::from(Arc::new(config))
-        .connect(ServerName::try_from(HOST.to_owned())?, tcp).await
-        .context("linux.do ECH/certificate verification failed")?;
+        .connect(ServerName::try_from(host.to_owned())?, tcp).await
+        .context("ECH/certificate verification failed")?;
     ensure!(tls.get_ref().1.ech_status() == EchStatus::Accepted, "Server did not accept ECH");
-    ensure!(tls.get_ref().1.alpn_protocol() == Some(b"h2"), "linux.do 未协商 HTTP/2；已停止");
+    ensure!(tls.get_ref().1.alpn_protocol() == Some(b"h2"), "未协商 HTTP/2；已停止");
     let (mut sender, connection) = hyper::client::conn::http2::handshake(TokioExecutor::new(), TokioIo::new(tls)).await?;
     let task = tokio::spawn(async move { let _ = connection.await; });
     // Abort even on errors; no background listener or leaked connection task.
     struct Abort(tokio::task::JoinHandle<()>);
     impl Drop for Abort { fn drop(&mut self) { self.0.abort(); } }
     let _connection = Abort(task);
-    let request = hyper::Request::builder().uri(path).header("Host", HOST)
-        .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
-        .header("Accept", "application/rss+xml,application/xml;q=0.9,*/*;q=0.8")
-        .header("Accept-Language", "zh-CN,zh;q=0.9")
-        .header("Accept-Encoding", "identity")
-        .body(Empty::<Bytes>::new())?;
+    let request = feed_request(host, path)?;
     let response = sender.send_request(request).await?;
-    if response.headers().get("cf-mitigated").and_then(|v| v.to_str().ok()) == Some("challenge")
-        || response.status().as_u16() == 403 {
-        return Err(AccessVerification { status: response.status().as_u16() }.into());
+    if let Some(error) = access_failure(host, path, response.status().as_u16(), response.headers()) {
+        return Err(error.into());
     }
-    ensure!(response.status().is_success(), "linux.do HTTP {}", response.status().as_u16());
+    ensure!(response.status().is_success(), "HTTP {}", response.status().as_u16());
     // No redirect, login, cookies, script execution or silent non-ECH fallback.
     ensure!(response.headers().get("content-encoding").map(|v| v == "identity").unwrap_or(true),
         "Unexpected content encoding");
     let content_type = response.headers().get("content-type").and_then(|v| v.to_str().ok())
         .unwrap_or("").to_owned();
-    ensure!(content_type.starts_with("application/rss+xml") || content_type.starts_with("application/json")
+    ensure!(content_type.starts_with("application/rss+xml") || content_type.starts_with("application/atom+xml")
+        || content_type.starts_with("application/json")
         || content_type.starts_with("application/xml") || content_type.starts_with("text/xml"),
-        "linux.do returned a non-feed response; access verification may be required");
+        "returned a non-feed response; access verification may be required");
     let status = response.status().as_u16();
     let mut incoming = response.into_body();
     let mut body = Vec::new();
     while let Some(frame) = incoming.frame().await {
         if let Ok(chunk) = frame?.into_data() {
-            ensure!(body.len() + chunk.len() <= LIMIT, "linux.do response exceeds 5 MiB");
+            ensure!(body.len() + chunk.len() <= LIMIT, "response exceeds 5 MiB");
             body.extend_from_slice(&chunk);
         }
     }
-    ensure!(!body.is_empty(), "linux.do returned an empty response");
+    ensure!(!body.is_empty(), "returned an empty response");
     Ok(Fetched { body, content_type, dns_source: String::new(), from_cache: false, status })
 }
 
-fn dns_request(kind: u16) -> Vec<u8> {
+fn feed_request(host: &str, path: &str) -> Result<hyper::Request<Empty<Bytes>>> {
+    // HTTP/2 requires the TLS origin in :scheme/:authority. With a path-only
+    // URI, h2 defaults :scheme to http even though the socket uses TLS.
+    let list_page = if host == HOST_LINUXDO {
+        match path {
+            "/top.json?period=quarterly" => Some("https://linux.do/top?period=quarterly".to_owned()),
+            "/latest.json?per_page=50" => Some("https://linux.do/latest".to_owned()),
+            _ if path.starts_with("/t/") && path.ends_with(".json") =>
+                Some(format!("https://linux.do{}", path.trim_end_matches(".json"))),
+            _ => None,
+        }
+    } else { None };
+    let mut builder = hyper::Request::builder().uri(format!("https://{host}{path}")).header("Host", host)
+        .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
+        .header("Accept", if list_page.is_some() { "application/json" } else { "application/json,application/rss+xml,application/xml;q=0.9,*/*;q=0.8" })
+        .header("Accept-Language", "zh-CN,zh;q=0.9")
+        .header("Accept-Encoding", "identity");
+    if let Some(page) = list_page {
+        // Anonymous Discourse list request; no credentials or challenge handling.
+        builder = builder.header("Referer", page)
+            .header("X-Requested-With", "XMLHttpRequest");
+    }
+    Ok(builder.body(Empty::<Bytes>::new())?)
+}
+
+fn dns_request(host: &str, kind: u16) -> Vec<u8> {
     let mut data = vec![0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0];
-    for label in HOST.split('.') { data.push(label.len() as u8); data.extend_from_slice(label.as_bytes()); }
+    for label in host.split('.') { data.push(label.len() as u8); data.extend_from_slice(label.as_bytes()); }
     data.push(0); data.extend_from_slice(&kind.to_be_bytes()); data.extend_from_slice(&[0, 1]);
     data
 }
@@ -193,14 +248,14 @@ fn skip_name(data: &[u8], cursor: &mut usize) -> Result<()> {
     bail!("DNS name too long")
 }
 
-fn dns_records(data: &[u8], kind: u16) -> Result<Vec<(u16, Vec<u8>)>> {
+fn dns_records(host: &str, data: &[u8], kind: u16) -> Result<Vec<(u16, Vec<u8>)>> {
     ensure!(data.len() >= 12 && u16_at(data, 0)? == DNS_ID, "Invalid DoH response ID/header");
     ensure!(u16_at(data, 2)? & 0x820f == 0x8000, "DNS error or truncated response");
     ensure!(u16_at(data, 4)? == 1, "Unexpected DNS question count");
     let mut cursor = 12;
     let question = cursor;
     skip_name(data, &mut cursor)?;
-    let query = dns_request(kind);
+    let query = dns_request(host, kind);
     ensure!(data.get(question..cursor + 4) == Some(&query[12..]), "Wrong DNS question");
     cursor += 4;
     let mut records = Vec::new();
@@ -278,11 +333,64 @@ pub extern "system" fn Java_cn_yilan_news_LinuxDoTransport_nativeGet(
 mod tests {
     use super::*;
     #[test]
+    fn challenge_marker_is_distinct_from_an_unclassified_403() {
+        let mut headers = hyper::HeaderMap::new();
+        assert!(access_failure(HOST_LINUXDO, "/latest.rss", 200, &headers).is_none());
+        let denied = access_failure(HOST_V2EX, "/index.xml", 403, &headers).unwrap();
+        assert!(!denied.challenged);
+        assert!(denied.to_string().contains("https://www.v2ex.com/index.xml"));
+        assert!(!denied.to_string().contains("https://linux.do"));
+        headers.insert("cf-mitigated", "challenge".parse().unwrap());
+        for status in [200, 403] {
+            let challenge = access_failure(HOST_LINUXDO, "/top.json?period=quarterly", status, &headers).unwrap();
+            assert!(challenge.challenged);
+            assert!(challenge.to_string().contains("challenge 标记存在"));
+        }
+    }
+    #[test]
+    fn h2_pseudo_headers_use_the_verified_https_origin() {
+        for host in [HOST_LINUXDO,HOST_V2EX] {
+            let request=feed_request(host,"/test.json?q=1").unwrap();
+            assert_eq!(request.uri().scheme_str(),Some("https"));
+            assert_eq!(request.uri().authority().unwrap().as_str(),host);
+            assert_eq!(request.uri().path_and_query().unwrap().as_str(),"/test.json?q=1");
+            assert_eq!(request.headers()["Host"],host);
+            assert!(!request.headers().contains_key("X-Requested-With"));
+            assert!(!request.headers().contains_key("Referer"));
+        }
+        let quarterly = feed_request(HOST_LINUXDO,"/top.json?period=quarterly").unwrap();
+        assert_eq!(quarterly.headers().get_all("Accept").iter().count(),1);
+        assert_eq!(quarterly.headers()["Accept"],"application/json");
+        assert_eq!(quarterly.headers()["Referer"],"https://linux.do/top?period=quarterly");
+        assert_eq!(quarterly.headers()["X-Requested-With"],"XMLHttpRequest");
+        let latest = feed_request(HOST_LINUXDO,"/latest.json?per_page=50").unwrap();
+        assert_eq!(latest.headers()["Referer"],"https://linux.do/latest");
+        assert_eq!(latest.headers()["X-Requested-With"],"XMLHttpRequest");
+        let topic = feed_request(HOST_LINUXDO,"/t/2910500.json").unwrap();
+        assert_eq!(topic.headers()["Referer"],"https://linux.do/t/2910500");
+        assert_eq!(topic.headers()["X-Requested-With"],"XMLHttpRequest");
+    }
+    #[test]
     fn reject_arbitrary_endpoints() {
         for value in ["http://linux.do/latest.rss", "https://linux.do/login", "https://github.com/latest.rss",
-            "https://linux.do/latest.rss?x=1", "https://linux.do@127.0.0.1/latest.rss"] {
-            assert!(allowed_path(value).is_err());
+            "https://linux.do/latest.rss?x=1", "https://linux.do@127.0.0.1/latest.rss",
+            "https://linux.do/top.json", "https://linux.do/top.json?period=daily",
+            "https://linux.do/top.json?period=all", "https://linux.do/top.json?period=quarterly&x=1",
+            "https://linux.do/latest.json", "https://linux.do/latest.json?per_page=50&x=1",
+            "https://linux.do/t/abc.json", "https://linux.do/t/123.json?x=1",
+            "https://linux.do/t/slug/123.json", "https://linux.do/t/.json",
+            "https://www.v2ex.com/login", "https://www.v2ex.com/api/topics/show.json",
+            "https://v2ex.com/api/topics/hot.json", "https://www.v2ex.com/index.xml?x=1"] {
+            assert!(parse_endpoint(value).is_err(), "must reject {value}");
         }
+        for value in ["https://linux.do/latest.rss", "https://linux.do/top.json?period=quarterly",
+            "https://linux.do/latest.json?per_page=50", "https://linux.do/t/2910500.json",
+            "https://www.v2ex.com/api/topics/hot.json", "https://www.v2ex.com/index.xml"] {
+            assert!(parse_endpoint(value).is_ok(), "must allow {value}");
+        }
+        // parse_endpoint returns the host and the exact path.
+        assert_eq!(parse_endpoint("https://www.v2ex.com/index.xml").unwrap(),
+            ("www.v2ex.com".to_string(), "/index.xml".to_string()));
     }
     #[test]
     fn reject_local_and_reserved_addresses() {
@@ -293,13 +401,13 @@ mod tests {
     }
     #[test]
     fn dns_wire_and_bounds() {
-        let mut response = dns_request(1);
+        let mut response = dns_request(HOST_LINUXDO, 1);
         response[2] = 0x81; response[3] = 0x80; response[7] = 1;
         response.extend_from_slice(&[0xc0, 12, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 104, 18, 26, 233]);
-        assert_eq!(dns_records(&response, 1).unwrap(), vec![(1, vec![104, 18, 26, 233])]);
-        assert!(dns_records(&response, 65).is_err());
-        for cut in 0..response.len() { assert!(dns_records(&response[..cut], 1).is_err()); }
-        response[3] = 0x83; assert!(dns_records(&response, 1).is_err());
+        assert_eq!(dns_records(HOST_LINUXDO, &response, 1).unwrap(), vec![(1, vec![104, 18, 26, 233])]);
+        assert!(dns_records(HOST_LINUXDO, &response, 65).is_err());
+        for cut in 0..response.len() { assert!(dns_records(HOST_LINUXDO, &response[..cut], 1).is_err()); }
+        response[3] = 0x83; assert!(dns_records(HOST_LINUXDO, &response, 1).is_err());
     }
     #[test]
     fn ech_svcparam_bounds() {

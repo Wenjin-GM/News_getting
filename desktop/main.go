@@ -94,7 +94,7 @@ func newApp(store *Store, dir string, logger *log.Logger) (*App, error) {
 				old.Status = "cached"
 			}
 		} else {
-			a.states[src.ID] = &SourceState{Source: src, Enabled: !src.Experimental, Status: "idle", Items: []Article{}}
+			a.states[src.ID] = &SourceState{Source: src, Enabled: src.DefaultEnabled, Status: "idle", Items: []Article{}}
 		}
 	}
 	var custom []Source

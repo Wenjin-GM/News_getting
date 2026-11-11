@@ -55,45 +55,6 @@ func aiCatalog() AICatalog {
 	return c
 }
 
-func aiSources() []Source {
-	providers := map[string]AIProvider{}
-	for _, p := range aiCatalog().Providers {
-		providers[p.ID] = p
-	}
-	rss := func(id, name, provider, endpoint string) Source {
-		p := providers[provider]
-		return Source{ID: id, Name: name, Category: "ai", Provider: provider, Description: "官方新闻 · RSS", Kind: "rss", Home: p.NewsURL, Color: p.Color, Icon: p.Icon, Interval: 900, Endpoints: []string{endpoint}}
-	}
-	release := func(id, name, provider, repo string) Source {
-		p := providers[provider]
-		return Source{ID: id, Name: name, Category: "ai", Provider: provider, Description: "官方仓库 · 版本发布（含预发布）", Kind: "releases", Home: "https://github.com/" + repo + "/releases", Color: p.Color, Icon: p.Icon, Interval: 1800, Endpoints: []string{"https://github.com/" + repo + "/releases.atom", "https://api.github.com/repos/" + repo + "/releases?per_page=15"}}
-	}
-	page := func(id, name, provider, kind, endpoint, description string) Source {
-		p := providers[provider]
-		return Source{ID: id, Name: name, Category: "ai", Provider: provider, Description: description, Kind: kind, Home: endpoint, Color: p.Color, Icon: p.Icon, Interval: 1800, Endpoints: []string{endpoint}}
-	}
-	return []Source{
-		{ID: "ai-media-ithome", Name: "AI 资讯 · IT之家", Category: "ai", Kind: "rss-ai", Description: "媒体补充 · 按 AI 关键词筛选，非厂商公告", Home: "https://www.ithome.com", Color: "#b77964", Icon: "IT", Interval: 900, Endpoints: []string{"https://www.ithome.com/rss/"}},
-		{ID: "ai-media-ifanr", Name: "AI 资讯 · 爱范儿", Category: "ai", Kind: "rss-ai", Description: "媒体补充 · 按 AI 关键词筛选，非厂商公告", Home: "https://www.ifanr.com", Color: "#a28d68", Icon: "范", Interval: 900, Endpoints: []string{"https://www.ifanr.com/feed"}},
-		rss("ai-openai", "OpenAI · 官方动态", "openai", "https://openai.com/news/rss.xml"),
-		release("ai-codex", "Codex · 版本发布", "openai", "openai/codex"),
-		page("ai-anthropic", "Anthropic · 官方动态", "anthropic", "anthropic", "https://www.anthropic.com/news", "官方新闻页 · 结构化解析"),
-		release("ai-claude-code", "Claude Code · 版本发布", "anthropic", "anthropics/claude-code"),
-		rss("ai-google", "Google AI · 官方动态", "google", "https://blog.google/technology/ai/rss/"),
-		release("ai-gemini-cli", "Gemini CLI · 版本发布", "google", "google-gemini/gemini-cli"),
-		release("ai-qwen-code", "Qwen Code · 版本发布", "alibaba", "QwenLM/qwen-code"),
-		release("ai-kimi-code", "Kimi Code · 版本发布", "moonshot", "MoonshotAI/kimi-code"),
-		release("ai-mistral-vibe", "Mistral Vibe · 版本发布", "mistral", "mistralai/mistral-vibe"),
-		release("ai-minimax-code", "MiniMax Code · 版本发布", "minimax", "MiniMax-AI/minimax-code"),
-		rss("ai-copilot-news", "GitHub Copilot · 官方动态", "github", "https://github.blog/changelog/feed/?label=copilot"),
-		release("ai-copilot-cli", "Copilot CLI · 版本发布", "github", "github/copilot-cli"),
-		rss("ai-huggingface", "Hugging Face · 官方动态", "huggingface", "https://huggingface.co/blog/feed.xml"),
-		page("ai-deepseek", "DeepSeek · 更新日志", "deepseek", "deepseek", "https://api-docs.deepseek.com/updates/", "官方 API 更新日志 · 非每日新闻"),
-		release("ai-deepseek-harness", "DeepSeek Harness · 版本发布", "deepseek", "deepseek-ai/deepseek-harness"),
-		page("ai-zcode", "ZCode · 更新日志", "zai", "zcode", "https://zcode.z.ai/en/changelog", "官方产品更新日志"),
-	}
-}
-
 var aiKeywordRE = regexp.MustCompile(`(?i)(\bAI\b|人工智能|大模型|智能体|OpenAI|GPT|ChatGPT|Codex|Claude|Anthropic|Gemini|Antigravity|DeepSeek|通义|千问|Qwen|灵码|Kimi|月之暗面|MiniMax|智谱|GLM|ZCode|Grok|Mistral|Copilot|CodeBuddy|文心|TRAE|豆包|Kiro|Hugging Face)`)
 var anchorRE = regexp.MustCompile(`(?is)<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>(.*?)</a>`)
 var headingRE = regexp.MustCompile(`(?is)<h[1-6]\b[^>]*>(.*?)</h[1-6]>`)

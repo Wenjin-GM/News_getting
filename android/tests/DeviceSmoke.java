@@ -24,6 +24,14 @@ public final class DeviceSmoke extends Instrumentation {
     Bundle report=new Bundle();
     try{
       NewsEngine engine=new NewsEngine(asset("sources.json"));NewsState state=new NewsState();
+      if("linuxviews".equals(mode)){
+        NewsEngine nativeEngine=new NewsEngine(asset("sources.json"),new cn.yilan.news.LinuxDoTransport(getTargetContext().getFilesDir().getAbsolutePath()));
+        NewsEngine.Snapshot value=nativeEngine.fetchLinuxDo(nativeEngine.sourceMap.get("linuxdo"),null,NewsEngine.LINUXDO_MODE_VIEWS);
+        check(!value.error.contains("无法加载"),"JNI library did not load");
+        report.putString("result","PASS");report.putString("native","ANDROID_JNI_CALLED");
+        report.putString("fetch",value.error.isEmpty()?"QUARTERLY_FETCHED":"FETCH_FAILED");report.putString("sourceError",value.error);report.putInt("items",value.items.size());
+        finish(-1,report);return;
+      }
       AtomicFile file=new AtomicFile(new File(getTargetContext().getFilesDir(),"native-news-v3.json"));
       if("seed".equals(mode)){
         state.restore(engine,new JSONObject());

@@ -1,6 +1,6 @@
 # 高价值失败经验
 
-增量核实：2026-11-11。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F21 为后续开发/工具调用新增核对。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
+增量核实：2026-11-11。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F21 为后续开发/工具调用新增核对；F26–F28 为来源扩充阶段的路由漏判、无 ECH 死路与 RSS 特殊字符静默失败。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
 
 ## F01 · P1 / Active · 方案看似可安装，实际仍依赖云
 
@@ -164,6 +164,83 @@
 - 3.8.3标准DNS最坏约43秒加第三方3×8秒，已经超过65秒总限，缓存读取和站点连接可能根本没机会执行；只增加“最后读缓存”分支不保证回退可达。3.8.4保留原请求/重试预算，公共45/第三方25/总90秒，预留约20秒连接；慢阶段fixture确认能到缓存。
 - 旧缓存基于解析成功即写，可能覆盖旧可用记录；若每次命中又写回会无限续期。3.8.4只在站点响应通过验证后写、命中不更新saved_at，旧格式可读、坏更新不覆盖；纯缓存真实取帖前后文件哈希一致。7天仅本地淘汰上限，不能保证服务器ECH有效期。
 - 证据/完整实现由[LINUXDO](../docs/android/LINUXDO.md#384加固实现与本轮验证)、cache/dns测试维护；新版手机仍待验，不将本机三个成功模式称全网保证。
+
+## F24 · P1 / Active · top.json 偶发 403 与测试 fixture 触发停更检查
+
+- **top 端点首次偶发 403**：实测 `top.json?period=all` 第一次返回 Cloudflare 403（托管挑战），间隔数秒重试即 200；同轮 daily/monthly 及无 query 均 200。判定为边缘缓存未命中/抖动而非稳定封锁。端上失败保留旧快照、不自动重试，用户可再点；不要把一次 403 当成端点被封。
+- **RSS 测试 fixture 触发停更检查**：为跨模式 id 对比构造的 RSS fixture 用了 2025-01 的 pubDate，`parse` 对非 AI 的普通 RSS 有“最新发布早于 7 天判疑似停更”，使 fetchLinuxDo 返回空快照、`get(0)` 越界。改用 `ZonedDateTime.now` 生成 RFC1123 时间后通过。构造 RSS fixture 必须用近期日期，停更规则不能为测试关闭（参见 F04/F06）。
+- **取数组用 arr() 而非 obj()**：`topic_list.topics` 是 JSONArray，误用 obj() 直接编译失败，属一次性类型错误。
+- 证据：.cache/tmp 下 probe 脚本与 rss/top body、`NativeEngineTest.linuxdoTopMode`；端点字段与 views 范围见 C03。
+
+## F25 · P1 / Active · 3.8.6 端点死路与排序陷阱
+
+- **period=all 不可用**：`top.json?period=all` 50 候选按「Neo + 90 天」过滤后仅剩 4 条（27 Neo、44 超期）；all 是全历史高浏览经典老帖，无法满足 50，已弃用。有效替代是 `period=quarterly`（过滤后约 37 条）。
+- **top 分页遭拦截**：`top.json?period=quarterly&page=1` 返回 Cloudflare 403，无法翻页补足；浏览量子页合格多少显示多少，禁止伪造或用其他端点凑数。
+- **裸 latest.json 条数不足**：不带参数仅 30 条，须 `latest.json?per_page=50` 才返回 50。
+- **latest 列表非严格时间序**：`latest.json` 会混入置顶帖与被顶起的旧帖（实测最旧为 2025-03 的 Neo 置顶帖），不能直接按列表顺序当“最新”，必须在解析时按 created_at 显式倒序。
+- 证据：`.cache/tmp/p386/{quarterly,latest50,topic}.json`、probe386/probe386b 脚本；`NativeEngineTest.linuxdoModes` 覆盖过滤/排序/全文。本机成功不等于手机可达，移动网络验收仍待办。
+
+## F26 · P1 / Active · ECH 路由白名单漏判，V2EX最新回退直连被 RST
+
+- 条件/现象：用户报告「V2EX最新」证书或加密连接验证失败，而「V2EX」正常；两源经 Rust ECH 客户端实测均可达（hot.json 67KB、index.xml 96KB，内容交集为 0，一个热门 10 条、一个时间序 50 条，均保留）。
+- 根因：`LinuxDoTransport.nativeSource(id)` 只放行 `linuxdo/v2ex`，**漏了 `v2ex-latest`**；该源因此回退 `NewsEngine.download` 普通 HTTPS，真实 IP+真实 SNI 被 RST。`allowedEndpoint` 本就含 index.xml，无需改。
+- 解法：`nativeSource` 增加 `v2ex-latest` 分支，使其走 native ECH。
+- 防复发：新增走 ECH 的源 id，必须同时在 `nativeSource`（路由）与 `allowedEndpoint`（端点白名单）两处登记；白名单类故障先核对“源 id 是否在路由判断”，不能只看端点白名单。
+- 证据：`LinuxDoTransport.java`、native probe `v2ex-latest` ECH accepted/HTTP200。
+
+## F27 · P1 / Active · Hugging Face 无 ECH 死路，与 BBC 同构
+
+- 条件：HF 来源响应超时。实测：
+  - 系统 DNS 被投毒到 Twitter 段假 IP `199.59.149.231`；
+  - 可信 DoH 给出真实 IP 在 AWS CloudFront（alidns `128.242.240.125`；dnspod `18.65.14.85/125/100/87`）；
+  - 真实 IP+真实 SNI 握手全部 RST(10054)/超时，存在 SNI 阻断；
+  - 无 HTTPS/ECH 记录；
+  - 域名前置：SNI 用 `aws.amazon.com/www.amazon.com` 返回 **421 Misdirected Request**（AWS 已封 domain fronting），`d1.awsstatic.com` 直接 RST。
+- 结论：硬约束下无合规端上解，已按用户要求移除源；第三方镜像 hf-mirror 属中转不可用。
+- 防复发：CloudFront 系站点先查 ECH；无 ECH 且真实 SNI 被 RST 即判死路，勿重复域名前置。
+- 证据：`.cache/tmp` 下 net5、hf_front、probe6。
+
+## F28 · P1 / Active · RSS link 未编码特殊字符静默 0 条，大 feed 国际出口波动
+
+- 条件/根因：New Scientist feed 可达（44KB、识别 10 item），但 `NewsEngine` 解析返回 0 条“未返回有效条目”。其 item link 含未编码竖线（`utm_campaign=RSS|NSNS`），Java 单参数 `new URI` 抛 URISyntaxException，`publicURL` 返回 null，条目全被丢弃——属静默失败，非网络问题。
+- 解法：`publicURL` 在严格构造失败时，把竖线编码为 `%7C` 后重试，其余安全校验（scheme/host/userInfo/端口/内网黑名单/可执行后缀）全部不变；只影响原本就会被丢弃的条目，对现有源零影响。
+- 大 feed 波动：Tom's Hardware 全文 feed 约 1.1MB，无轻量端点（`/feeds/news` 等同样约 1MB，`count` 参数无效），gzip 下载耗时 4–19s 波动、常超 18s deadline，标 experimental、失败靠缓存兜底。
+- 候选源死路汇总（勿重复）：
+  - 国内 36氪/第一财经/财新 `/feed` 返回 HTML 非 RSS；虎嗅超时；果壳 404；观察者/21 经济 404；
+  - 国外卫报/路透/半岛/德国之声超时（被墙无 ECH）；美联社 403；CNN RST；科学美国人 404；Engadget 202 空反爬。
+- 证据：`.cache/tmp` 下 source_probe、source_probe2、toms_test、newscientist.xml。
+
+## F29 · P1 / Active · 采集成功不等于展示与语义正确（3.8.7已修复）
+
+- **历史反例**：3.8.6 Rust26项/JVM11组通过，但6个启用源无列表入口；浏览量输入10/9000仍按10/9000显示；`&lt;stdio.h&gt;`被正文清洗吞掉；Go共享表Android66对Go37失败。原排序fixture本就有序，不能证明排序实现正确。
+- **有效修复**：路由按C08分工而非放开所有community；先过滤/排序所有季度候选再截取50；先剥真实HTML再解码实体；Go嵌入同一维护JSON，enabled独立于experimental。删除Tom's Hardware不清除旧收藏/已读。
+- **同批修复**：分享名取实际包版本；设置从最近检查的linuxTabs读状态；AI authority明确区分厂商/媒体/聚合，避免污染官方检查时间和发布候选；全文缓存改有界同步LRU。无界HashMap的OOM/竞态只是审查风险，未曾实测发生。
+- **防复发**：每个启用源必须有内容路由；候选乱序、超过50条且尾部最高、Neo缺users映射、超long整型阈值、编码标签/比较符、删除源后状态恢复都要有反例。不能通过删除一致性测试或沿用假设“enabled=!experimental”解决共享漂移。
+- **证据**：NativeEngineTest.repairs387、ArticleTextCache、desktop/registry_test.go；旧反例及网络抽检在.local/reports/review-386-*.json，修复前20份相关文件在.local/repair387-baseline/。最终命令/包/手机未验证范围见HANDOFF。
+
+## F30 · P1 / Active · TLS之上的HTTP/2仍要正确声明HTTPS来源
+
+- **问题/根因**：原Rust请求只给path，h2 0.4.20在请求没有URI scheme且默认HTTP/1版本时，会把伪头:scheme填http；TLS套接字本身不会替它补https。本地依赖src/client.rs与请求构造测试确认该实现行为。
+- **修复**：lib.rs用绝对https URI，让scheme/authority和已验证TLS主机一致；linux.do登记JSON再补匿名Accept/同站Referer/X-Requested-With。RSS/V2EX不加JSON上下文；证书、ECH Accepted、h2、固定URL白名单及403停止行为不变。
+- **验证边界**：仅改scheme后季度榜仍403；补列表上下文后季度榜两次200，最新JSON403后200；公开主题2910500的JSON同样先403、补上下文后200。不同时间请求并非严格同边缘A/B，不能断言某个头就是Cloudflare内部规则，更不保证今后无403。
+- **死路/波动**：两个季度地址变体（附per_page=50及top/quarterly.json）当时均403，未保留额外白名单；V2EX Atom曾连接超时，后续Atom/hot两者200。遇403不执行挑战/登录，失败仍保留旧快照。
+- **证据**：Rust h2_pseudo_headers_use_the_verified_https_origin测试；真实探测路径、命令与报告由docs/android/LINUXDO.md持有。传输能取内容与手机验收仍须分开。
+
+## F31 · P1 / Active · 重建整页造成顶栏闪动，单请求不能伪造百分比
+
+- 批量每源完成就120ms去抖render，会removeAllViews重建横向筛选栏；chip的post又滚到当前项，造成重复抖动。3.9逐源仅更新计数/全局进度，完成后一次重绘。UiSmoke用可控制的两源合成传输，等待第一源完成，断言同一顶栏View仍保留，再放行第二源，避免只测试最终恢复正常。
+- linux.do旧页内进度max=1/start=0，阻塞期间无进展且与全局busy混用，重新render还可能显示满格。3.9复用全局条，单站请求用indeterminate表示等待，不伪造阶段百分比；批量仍是done/total。运行测试覆盖处理中换主题/重建chrome及结束隐藏。
+- 模型下沉后AI顶栏用命名常量对应五页，精选后台归并/更早日期/滚到底的判定一并对齐；旧代码有把热榜序号用于精选的判断，不能只改显示标签而漏改这些分支。
+- 403是完成DNS/TLS后的HTTP阶段，不凭“DNS已解析”继续放宽DNS/TLS。用户补充浏览量在Wi-Fi/移动网络均403；3.9三模式宿主均200，最终Android JNI季度也取得37条，手机故障未复现。新增失败诊断区分cf-mitigated=challenge与未标记403，附请求端点，不改成功请求或停止/保留旧快照策略。不能把UI优化或本机成功说成手机403已修复，历史证据见F30。
+- 证据：NativeEngineTest.ui390、UiSmoke、docs/android/UI_DESIGN.md和私有ui390报告。本轮API30模拟器升级/界面通过，但不是全机型或手机网络认证。
+
+## F32 · P1 / Active · 先来源筛选再去重，混合源与AI媒体子流同口径
+
+- 混合新闻源加入AI后，与已有ai-media子流会有同URL、不同source/Article ID。旧Activity先seen.add(url)再筛选，未选中且先遍历的副本吃掉选中源条目；不能靠改ID、合并收藏或删除子流修复。3.9.1先做可见性筛选再URL去重，UiSmoke用IT之家/AI资讯同URL反例实测。
+- 只按来源category分流会把整个InfoQ移走或让AI两边重复。普通流和FeaturedNews.group使用逐篇AI-only规则；通用归档保留原记录并按现规则展示，不只改最新而漏掉历史精选。
+- 首次Android回归用“AI图像模型发布”构造媒体子流失败：旧rss-ai只匹配标题的ASCII词边界AI，中文紧邻AI未命中，而混合源规则可命中。统一为相同标题/有界摘要口径，JVM和最终UI通过；不简单改成带空格fixture掩盖差异。
+- AI-only与AI-or-tech不可混用：普通Java Agent/Rust SDK/英文Daily mail/Airbnb保持非AI；V2EX/HN既有科技范围维持原规则。关键词可能误分/漏分，不称语义判断。
+- 证据：NativeEngineTest.aiRouting391、UiSmoke.routeAI、routing391-runtime（首次失败）、routing391-final-runtime及package报告；3.9.0→最终3.9.1隔离升级保留通过，用户真机尚未验。
 
 ## P3 / Obsolete · 已退役层的临时排障
 

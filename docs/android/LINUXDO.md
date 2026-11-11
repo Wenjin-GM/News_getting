@@ -1,6 +1,37 @@
 # LINUX DO 实验来源与本地验证
 
-## 当前状态：3.8.4加固版，三条路径本机取帖通过
+## 当前传输基线：3.8.7修复版，3.9界面复用
+
+3.9整理界面并仅为Rust失败分支补诊断：cf-mitigated=challenge与未标记的403分别描述，报告固定请求端点，均停止匿名获取；CLI额外输出cfChallenge。成功请求、TLS/ECH/h2、白名单与预算不变。用户确认浏览量在Wi-Fi/移动网络均403；最终Android JNI季度真实取37条、宿主auto季度200/50，手机故障未复现、未声称根治。当前界面及隔离模拟器结果见[UI_DESIGN](UI_DESIGN.md)。
+
+当前包身份见[HANDOFF](../../HANDOFF.md)和`dist/android/release.json`；正式3.0.0未替换。保留linux.do默认RSS/季度候选浏览量/最新三个独立快照，以及数字主题JSON全文入口。仅手动更新、匿名访问，遇403停止并保留旧快照，不执行挑战或登录。
+
+本轮传输修正：HTTP/2使用绝对https URI，避免h2默认生成:scheme=http；linux.do登记JSON使用同站匿名Referer和X-Requested-With，RSS/V2EX请求头保持其原用途。没有改DNS预算、ECH/证书/h2验证、URL白名单、权限或引入依赖。详细根因和不能推断的因果由memory/pitfalls.md的F30维护。
+
+实际执行（载入scripts/dev-env.ps1，本机用已有E:/Conda/main/python.exe）：
+
+```powershell
+python scripts/android/test.py
+python scripts/android/native.py test --offline
+go test ./...
+python scripts/android/native.py probe --feed views --dns-mode fallback --offline
+python scripts/android/native.py probe --feed latest --dns-mode fallback --offline
+python scripts/android/native.py probe --feed rss --dns-mode fallback --offline
+python scripts/android/native.py probe --feed rss --dns-mode auto --offline
+python scripts/android/native.py probe --feed v2ex-latest --dns-mode fallback --offline
+python scripts/android/native.py probe --feed v2ex-hot --dns-mode fallback --offline
+python scripts/android/build.py
+```
+
+- JVM12组、Rust27项与Go测试通过。新增反例覆盖路由、乱序/超50候选、正文编码文本、旧状态身份及并发有界缓存；本机三ABI构建和原签名/INTERNET-only检查通过，不代表手机运行通过。
+- 实际网络：linux.do季度榜HTTP200/50候选（多次）、最新JSON200/50、RSS200/30；RSS auto由Cloudflare公共DoH成功，fallback由原第三方DoH成功。V2EX Atom首次超时，重试Atom/hot均200。全部成功响应保持ECH accepted、HTTP/2和证书验证。
+- 主题全文抽样：从当次公开季度榜选出的2910500，原请求403，补同站JSON上下文后200/application-json/84,453字节。只证明该公开主题当次可取，不声称所有帖子或登录内容可取；JVM另验cooked正文保留代码文本。
+- 私有报告：`.local/reports/linuxdo-ech-{views,latest,rss,v2ex-latest,v2ex-hot}-{fallback,auto}.json`（仅实际组合）；`linuxdo-ech-json-fallback.json`是使用PROBE_URL指定上述主题的报告。探测CLI允许PROBE_SAVE留公开响应到工作区，APK不使用这些环境变量。报告同名会被后续探测覆盖，不能把最新成功抹写成此前从未失败。
+- 未验证：3.8.7真机/家庭WiFi、覆盖安装保留、真实断网/大正文UI及稳定性；没有启动模拟器/ADB或修改系统DNS/hosts/证书/代理。宿主成功不能排除透明转发影响，外部DoH和站点策略仍可能变化。
+
+以下保留3.8.4及更早排障的历史证据，不将旧包数量/端点限制当当前实现。
+
+## 3.8.4加固历史：三条路径本机取帖通过
 
 - **有效组合**：前轮记录HTTP/1.1请求遭403，而HTTP/2（ALPN `h2,http/1.1`、hyper http2握手）与Chrome Mobile UA组合取得RSS200；前轮还记载仅换UA无效、about.json200而latest.json仍403。本轮仅独立复验最终RSS组合，没有重演完整A/B；不能断言Cloudflare内部判定规则。底层仍为rustls，不等于完整模拟Chrome TLS指纹。
 - **ECH 三级获取**（dns.rs `resolve(cache_dir)`）：六家标准公共 DoH → 公共无密钥 JSON DoH（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）兜底 → 应用私有目录缓存（cache.rs，`linuxdo-ech-cache.json`，最长 7 天，读回重新校验）。
@@ -45,9 +76,9 @@ python scripts/android/build.py
 - **缓存语义**：保存的是成功解析的ECH/地址，未要求该组数据已成功取帖；7天只是本地淘汰上限，不保证服务器密钥7天有效。读回重验格式/公网IP、最终仍要站点TLS/ECH通过。写文件非原子、损坏/到期/时钟回拨缺测试；当前14项仅增加两个基本缓存测试。
 - **协议健壮性**：ALPN同时声明h2/http1.1，但代码无条件HTTP/2握手，未按实际协商结果分流；当前站点支持h2，不影响已确认成功，不能据此宣称具备HTTP/1.1回退。两个不同实现沿用同一3.8.3-dev/30803；以后出新包应递增，本轮不改现有包。
 
-## 当前交付边界
+## 3.8.4交付边界（历史）
 
-当前开发版 `3.8.4-dev / 30804`，加固已可用的h2/DNS回退。3.8首次增加默认关闭的linuxdo，3.8.1增加单站按钮；开启来源后每次只发起一轮本站刷新，绕过普通缓存/失败冷却，期间禁用并显示结果。顶部更新/开关规则不变，不自动循环重试。
+以下为当时开发版 `3.8.4-dev / 30804` 的范围，加固已可用的h2/DNS回退。3.8首次增加默认关闭的linuxdo，3.8.1增加单站按钮；开启来源后每次只发起一轮本站刷新，绕过普通缓存/失败冷却，期间禁用并显示结果。顶部更新/开关规则不变，不自动循环重试。
 
 仅使用官方公开 `https://linux.do/latest.rss`，展示标题、原文链接、发布时间和 RSS 提供的文本摘要；沿用每源最多 40 条、摘要 300 字符的归一化规则。不抓私密帖子、完整回复串或任意历史分页，不承诺当天无遗漏。
 

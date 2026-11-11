@@ -24,11 +24,11 @@ fn client() -> Result<reqwest::Client> {
         .timeout(Duration::from_secs(8)).build()?)
 }
 
-pub async fn resolve() -> Result<Resolved> {
+pub async fn resolve(host: &str) -> Result<Resolved> {
     let http = client()?;
     let mut last = anyhow!("第三方 DoH 无响应");
     for _ in 0..3 {
-        match attempt(&http).await { Ok(value) => return Ok(value), Err(error) => last = error }
+        match attempt(&http, host).await { Ok(value) => return Ok(value), Err(error) => last = error }
     }
     Err(last)
 }
@@ -44,26 +44,29 @@ async fn bounded_body(mut response: reqwest::Response) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-async fn attempt(http: &reqwest::Client) -> Result<Resolved> {
-    let response = http.get(ENDPOINT).query(&[("name", HOST), ("type", "HTTPS")])
+async fn attempt(http: &reqwest::Client, host: &str) -> Result<Resolved> {
+    let response = http.get(ENDPOINT).query(&[("name", host), ("type", "HTTPS")])
         .header("accept", "application/dns-json").send().await?.error_for_status()?;
-    parse(&bounded_body(response).await?)
+    parse(host, &bounded_body(response).await?)
 }
 
-fn matches_host(name: &str) -> bool { name.trim_end_matches('.').eq_ignore_ascii_case(HOST) }
+fn matches_host(host: &str, name: &str) -> bool {
+    name.trim_end_matches('.').eq_ignore_ascii_case(host)
+}
 
-fn parse(bytes: &[u8]) -> Result<Resolved> {
+fn parse(host: &str, bytes: &[u8]) -> Result<Resolved> {
     ensure!(bytes.len() <= DNS_LIMIT, "第三方 DoH 响应超过上限");
     let value: serde_json::Value = serde_json::from_slice(bytes).context("第三方 DoH 响应无效")?;
     ensure!(value["Status"] == 0, "第三方 DoH 返回错误状态");
     if let Some(questions) = value["Question"].as_array() {
         ensure!(questions.len() == 1 && questions[0]["type"] == 65
-            && questions[0]["name"].as_str().is_some_and(matches_host), "第三方 DoH 问题不匹配");
+            && questions[0]["name"].as_str().is_some_and(|n| matches_host(host, n)),
+            "第三方 DoH 问题不匹配");
     }
     let answers = value["Answer"].as_array().context("第三方 DoH 未返回 HTTPS 记录")?;
     let mut last = anyhow!("第三方 DoH 未返回本站有效 HTTPS 记录");
     for row in answers.iter().filter(|r| r["type"] == 65
-        && r["name"].as_str().is_some_and(matches_host)) {
+        && r["name"].as_str().is_some_and(|n| matches_host(host, n))) {
         if let Some(data) = row["data"].as_str() {
             match binding(data) { Ok(resolved) => return Ok(resolved), Err(error) => last = error }
         }
@@ -120,11 +123,11 @@ mod tests {
     #[test]
     fn real_service_shape_and_quoted_fields_remain_compatible() {
         let text = binding_text();
-        let resolved = parse(&response(&text)).unwrap();
+        let resolved = parse(HOST_LINUXDO, &response(&text)).unwrap();
         assert_eq!(resolved.ips, vec![Ipv4Addr::new(104,20,16,234)]);
         assert_eq!(resolved.ech, crate::test_support::ech());
         let quoted = text.replace("ech=", "ech=\"") + "\"";
-        assert!(parse(&response(&quoted)).is_ok());
+        assert!(parse(HOST_LINUXDO, &response(&quoted)).is_ok());
     }
     #[test]
     fn wrong_questions_owners_parameters_and_fake_ech_keys_are_rejected() {
@@ -133,14 +136,14 @@ mod tests {
             format!("{text} mandatory=unknown"), format!("{text} ech=AAAA"),
             text.replacen("1 .", "0 .", 1), text.replacen("1 .", "1 other.example", 1),
             text.replace("104.20.16.234", "127.0.0.1")] {
-            assert!(parse(&response(&bad)).is_err(), "{bad}");
+            assert!(parse(HOST_LINUXDO, &response(&bad)).is_err(), "{bad}");
         }
         let mut value: serde_json::Value = serde_json::from_slice(&response(&text)).unwrap();
         value["Answer"][0]["name"] = "other.example".into();
-        assert!(parse(&serde_json::to_vec(&value).unwrap()).is_err());
+        assert!(parse(HOST_LINUXDO, &serde_json::to_vec(&value).unwrap()).is_err());
         value["Answer"][0]["name"] = "linux.do".into();
         value["Question"][0]["name"] = "other.example".into();
-        assert!(parse(&serde_json::to_vec(&value).unwrap()).is_err());
+        assert!(parse(HOST_LINUXDO, &serde_json::to_vec(&value).unwrap()).is_err());
     }
     #[test]
     fn redirect_policy_preserves_only_bounded_same_origin_https() {

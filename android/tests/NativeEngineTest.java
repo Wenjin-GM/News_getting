@@ -253,7 +253,7 @@ public final class NativeEngineTest {
     NewsEngine.Article label=new NewsEngine.Article();
     check(NewsEngine.heatLabel(label).equals("未提供"),"Empty heat is unavailable");
     for(String heat:new String[]{"0","37 points","9999"," 12 回复 "}){label.heat=heat;check(NewsEngine.heatLabel(label).equals(heat),"Provided heat is displayed verbatim");}
-    check(NewsEngine.HOT_SOURCES.equals(Arrays.asList("toutiao","v2ex","hackernews","tieba")),"Exactly four hot sources");
+    check(NewsEngine.HOT_SOURCES.equals(Arrays.asList("toutiao","baidu","weibo","zhihu","douyin","bilibili","bilibili-video","tieba","v2ex","hackernews")),"Hot sources list");
     check(NewsEngine.hotItems("v2ex-latest",snapshot).isEmpty()&&NewsEngine.hotItems("ai-codex",snapshot).isEmpty(),"Latest-only and AI feeds excluded from hot view");
     check(NewsEngine.hotItems("v2ex",null).isEmpty(),"Missing hot snapshot is safe");
 
@@ -319,6 +319,10 @@ public final class NativeEngineTest {
     themePreferences(engine);
     glassThemes();
     linuxDoTransport(args[0]);
+    linuxdoModes(args[0]);
+    repairs387(engine,args[0]);
+    ui390(engine,args[0]);
+    aiRouting391(engine,args[0]);
     System.out.println("PASS: native RSS/Atom/JSON, HTML cleanup, draft/stale rejection, URL safety, stable IDs and offline snapshot persistence");
     if(args.length>1&&args[1].equals("--live")){
       List<NewsEngine.Source> selected=new ArrayList<>();for(NewsEngine.Source s:engine.sources)if(s.defaultEnabled)selected.add(s);
@@ -342,9 +346,9 @@ public final class NativeEngineTest {
       NewsEngine fail=new NewsEngine(config,(s,url)->{throw new java.io.IOException(error);});
       NewsEngine.Snapshot failed=fail.fetch(source,good,true);
       check(failed.error.equals(error)&&failed.fetched==1&&failed.checked>1&&failed.items.get(0).id.equals(item.id),"Transport error retains successful snapshot/IDs: "+error);
-      check(good.json().toString().equals(before),"Failure does not mutate original snapshot");state.snapshots.put(source.id,failed);
+      check(good.json().toString().equals(before),"Failure does not mutate original snapshot");state.linuxTabs.put("default",failed);
       NewsState restored=new NewsState();restored.restore(ok,state.json());
-      check(restored.favorites.get(0).id.equals(item.id)&&restored.read.contains(item.id)&&restored.snapshots.get(source.id).items.get(0).id.equals(item.id),"Failed source reload retains favorites/read/cache");
+      check(restored.favorites.get(0).id.equals(item.id)&&restored.read.contains(item.id)&&restored.linuxTabs.get("default").items.get(0).id.equals(item.id),"Failed source reload retains favorites/read/cache");
     }
     NewsEngine malformed=new NewsEngine(config,(s,url)->"<html>challenge-platform</html>");
     check(malformed.fetch(source,good,true).items.get(0).id.equals(item.id),"Challenge/invalid feed never erases old items");
@@ -363,4 +367,210 @@ public final class NativeEngineTest {
     catch(java.io.IOException expected){check(expected.getMessage().contains("非登记"),"Other sources keep original HTTPS validation, no native library dependency");}
     System.out.println("PASS: optional linux.do source, bounded RSS normalization, transport/parse failure retention, old-state identity and fixed native endpoints");
   }
+  private static String topicJson(long id,long op,long views,long created,String title){
+    return "{\"id\":"+id+",\"slug\":\"topic\",\"fancy_title\":\""+title+"\",\"views\":"+views
+      +",\"created_at\":\""+java.time.Instant.ofEpochMilli(created)+"\",\"excerpt\":\"摘要"+id+"\""
+      +",\"posters\":[{\"description\":\"原始发帖人\",\"user_id\":"+op+"}]}";
+  }
+  private static void linuxdoModes(String sourceFile)throws Exception{
+    String config=new String(Files.readAllBytes(Paths.get(sourceFile)),StandardCharsets.UTF_8);
+    long now=System.currentTimeMillis();
+    long recent=now-10L*86400000, old=now-120L*86400000;
+    String users="[{\"id\":1,\"username\":\"neo\"},{\"id\":2,\"username\":\"alice\"},{\"id\":3,\"username\":\"bob\"}]";
+    // Views candidates: t1 by Neo (dropped), t2 recent alice, t3 old bob (dropped), t4 recent alice.
+    String viewsBody="{\"users\":"+users+",\"topic_list\":{\"topics\":["
+      +topicJson(1,1,99999,recent,"Neo帖")+","
+      +topicJson(2,2,9000,recent,"Alice高")+","
+      +topicJson(3,3,8000,old,"Bob旧")+","
+      +topicJson(4,2,5000,recent,"Alice低")+"]}}";
+    // Latest candidates delivered out of order; client must sort by created time desc.
+    String latestBody="{\"users\":"+users+",\"topic_list\":{\"topics\":["
+      +topicJson(5,2,100,recent-5000,"较早")+","
+      +topicJson(6,3,200,recent+5000,"较新")+"]}}";
+    String nowRss=java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Shanghai"))
+      .format(java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME);
+    String rssBody="<rss><channel><item><title>默认RSS帖</title>"
+      +"<link>https://linux.do/t/topic/7</link><pubDate>"+nowRss+"</pubDate></item></channel></rss>";
+    String topicDetail="{\"id\":2,\"post_stream\":{\"posts\":[{\"post_number\":1,\"post_type\":1,"
+      +"\"cooked\":\"<p>第一段内容</p><p>第二段<br>换行</p><ul><li>项目一</li><li>项目二</li></ul>\"}]}}";
+    NewsEngine eng=new NewsEngine(config,(s,url)->{
+      if(url.equals(NewsEngine.LINUXDO_VIEWS_ENDPOINT))return viewsBody;
+      if(url.equals(NewsEngine.LINUXDO_LATEST_ENDPOINT))return latestBody;
+      if(url.startsWith("https://linux.do/t/"))return topicDetail;
+      return rssBody;
+    });
+    NewsEngine.Source source=eng.sourceMap.get("linuxdo");
+
+    // Views: Neo and >90d dropped, remaining ordered by views desc.
+    NewsEngine.Snapshot views=eng.fetchLinuxDo(source,null,NewsEngine.LINUXDO_MODE_VIEWS);
+    check(views.error.isEmpty()&&views.items.size()==2,"Views mode keeps two eligible topics");
+    check(views.items.get(0).title.equals("Alice高")&&views.items.get(1).title.equals("Alice低"),"Eligible topics sorted by views");
+    check(views.items.get(0).heat.equals("9000 浏览")&&views.items.get(0).url.equals("https://linux.do/t/topic/2"),"Views heat and canonical url");
+    check(views.channel.contains("过滤"),"Views channel notes filtering");
+
+    // Latest: re-sorted by creation time, newest first.
+    NewsEngine.Snapshot latest=eng.fetchLinuxDo(source,null,NewsEngine.LINUXDO_MODE_LATEST);
+    check(latest.items.size()==2&&latest.items.get(0).title.equals("较新"),"Latest mode re-sorts by created time desc");
+
+    // Default: ordinary RSS normalization.
+    NewsEngine.Snapshot def=eng.fetchLinuxDo(source,null,NewsEngine.LINUXDO_MODE_DEFAULT);
+    check(def.items.size()==1&&def.items.get(0).title.equals("默认RSS帖"),"Default mode uses RSS parse");
+
+    // Full topic text: first post cooked HTML cleaned to plain text with line breaks.
+    String full=eng.fetchLinuxTopic(source,2);
+    check(full.contains("第一段内容")&&full.contains("项目一")&&full.contains("换行")&&!full.contains("<p>"),"Full text cleaned to plain text with line breaks and list markers");
+
+    // 50-item cap still applies to the views mode.
+    StringBuilder many=new StringBuilder("{\"users\":"+users+",\"topic_list\":{\"topics\":[");
+    for(int i=1;i<=60;i++){if(i>1)many.append(',');many.append(topicJson(100+i,2,1000-i,recent,"帖"+i));}
+    many.append("]}}");
+    NewsEngine big=new NewsEngine(config,(s,url)->many.toString());
+    check(big.fetchLinuxDo(source,null,NewsEngine.LINUXDO_MODE_VIEWS).items.size()==50,"Views mode caps at 50");
+
+    // Three sub-page snapshots persist in linuxTabs and round-trip; legacy feed migrates to default.
+    NewsState state=new NewsState();
+    state.linuxTabs.put("default",def);state.linuxTabs.put("views",views);state.linuxTabs.put("latest",latest);
+    JSONObject saved=state.json();
+    NewsState reloaded=new NewsState();reloaded.restore(eng,new JSONObject(saved.toString()));
+    check(reloaded.linuxTabs.size()==3&&reloaded.linuxTabs.get("views").items.size()==2,"linuxTabs round-trip");
+    JSONObject legacy=new JSONObject().put("feeds",new JSONObject().put("linuxdo",def.json()));
+    NewsState migrated=new NewsState();migrated.restore(eng,legacy);
+    check(migrated.linuxTabs.get("default")!=null&&migrated.snapshots.get("linuxdo")==null,"Legacy linuxdo snapshot migrates to default tab");
+
+    // Endpoint guard still rejects unregistered paths before native load.
+    try{new LinuxDoTransport("").get(source,"https://linux.do/login");throw new AssertionError("Unexpected endpoint accepted");}
+    catch(java.io.IOException expected){
+      check(expected.getMessage().contains("非登记"),"Unregistered endpoint rejected");
+    }
+    System.out.println("PASS: linux.do three sub-pages, Neo/90-day filtering, views/time sorting, full text, 50 cap and linuxTabs persistence");
+  }
+
+  private static void repairs387(NewsEngine engine,String sourceFile)throws Exception{
+    JSONObject catalog=new JSONObject(new String(Files.readAllBytes(Paths.get(sourceFile).getParent().getParent().resolve("internal/catalog/ai_catalog.json")),StandardCharsets.UTF_8));
+    check(!engine.sourceMap.containsKey("toms-hardware"),"Removed feed cannot be fetched or offered in settings");
+    Set<String> tools=ReadingRules.toolSources(catalog);
+    for(NewsEngine.Source s:engine.sources){
+      if(s.defaultEnabled)check(FeaturedNews.latestSource(s)||FeaturedNews.stationSource(s.id)
+        ||NewsEngine.HOT_SOURCES.contains(s.id)||ReadingRules.platformSource(catalog,s)||tools.contains(s.id),"Enabled source has a list route: "+s.id);
+      if(s.category.equals("ai"))check(Arrays.asList("official","media","aggregator").contains(s.authority),"AI authority is explicit: "+s.id);
+    }
+    for(String id:new String[]{"sspai","gcores","lobsters","slashdot"})check(FeaturedNews.latestSource(engine.sourceMap.get(id)),"Community RSS reaches latest: "+id);
+    for(String id:new String[]{"linuxdo","v2ex","v2ex-latest","hackernews"})check(!FeaturedNews.latestSource(engine.sourceMap.get(id)),"Existing source separation preserved: "+id);
+    NewsEngine.Source v=engine.sourceMap.get("v2ex-latest");
+    NewsEngine.Article tech=report(v.id,"Rust SDK 开源发布",1,"v-tech"),chat=report(v.id,"周末去哪儿吃饭",1,"v-chat");
+    check(ReadingRules.platformSource(catalog,v)&&ReadingRules.platformArticle(v,tech)&&!ReadingRules.platformArticle(v,chat),"V2EX latest reaches AI with topic filtering");
+    check(ReadingRules.archivable(v,tech)&&!ReadingRules.archivable(v,chat),"V2EX latest archive keeps the same filter");
+    check(FeaturedNews.stationSource("bilibili-video"),"Popular videos have a station list");
+    NewsEngine.Source videos=engine.sourceMap.get("bilibili-video");
+    String videoBody="{\"data\":{\"list\":[{\"title\":\"AI one\",\"bvid\":\"BV1test\",\"stat\":{\"view\":1234}},{\"title\":\"AI two\",\"bvid\":\"BV2test\"}]}}";
+    List<NewsEngine.Article> videoItems=engine.parse(videos,videoBody,System.currentTimeMillis());
+    check(videoItems.get(0).heat.equals("1234 播放")&&videoItems.get(1).heat.isEmpty(),"Video metrics preserve supplied values without inventing missing counts");
+    List<NewsEngine.Article> douyinItems=engine.parse(engine.sourceMap.get("douyin"),"{\"word_list\":[{\"word\":\"AI agents\",\"hot_value\":12345}]}",System.currentTimeMillis());
+    check(douyinItems.get(0).url.equals("https://www.douyin.com/search/AI%20agents"),"Search path encodes spaces as path segments");
+    NewsEngine.Snapshot video=new NewsEngine.Snapshot("bilibili-video");video.fetched=1;video.items.add(report(video.source,"AI 芯片开发",1,"ai-video"));
+    check(ReadingRules.aiBoard(video.source,video),"Technology videos are visible in the AI partition too");
+    Map<String,NewsEngine.Snapshot> snapshots=new HashMap<>();
+    for(String id:new String[]{"ai-media-ithome","ai-media-ifanr","ai-aihot","qbitai"}){
+      check(!NewsEngine.officialAI(engine.sourceMap.get(id)),"Media/aggregators do not impersonate vendors: "+id);
+      NewsEngine.Snapshot media=new NewsEngine.Snapshot(id);media.fetched=99999;media.items.add(report(id,"发布 GPT-99.0",System.currentTimeMillis(),"media-release"));snapshots.put(id,media);
+    }
+    NewsEngine.Snapshot official=new NewsEngine.Snapshot("ai-openai");official.fetched=100;snapshots.put(official.source,official);
+    check(ReadingRules.latestModelCheck(catalog,engine,snapshots)==100&&ReadingRules.newModelNotices(catalog,engine,snapshots).isEmpty(),"Only official evidence affects model checks and release notices");
+
+    long now=System.currentTimeMillis(),recent=now-86400000L;
+    JSONArray data=new JSONArray();
+    for(int i=1;i<=60;i++)data.put(new JSONObject(topicJson(1000+i,2,i,recent,"候选"+i)));
+    data.put(new JSONObject(topicJson(9999,2,9000000000L,recent,"高浏览量尾项")));
+    data.put(new JSONObject(topicJson(8888,1,Long.MAX_VALUE,recent,"Neo omitted from users")));
+    data.put(new JSONObject(topicJson(7777,2,Long.MAX_VALUE,now-120L*86400000,"Old")));
+    String body=new JSONObject().put("users",new JSONArray().put(new JSONObject().put("id",2).put("username","alice")))
+      .put("topic_list",new JSONObject().put("topics",data)).toString();
+    String cooked="<script>bad()</script><p>&lt;stdio.h&gt; &amp; &lt;em&gt;literal&lt;/em&gt;</p><pre><code>if (a &lt; b &amp;&amp; b &gt; 0)\nnext</code></pre><p><a title=\"x > y\">link</a></p><ul><li>item</li></ul>";
+    String detail=new JSONObject().put("post_stream",new JSONObject().put("posts",new JSONArray().put(new JSONObject().put("post_number",1).put("post_type",1).put("cooked",cooked)))).toString();
+    String config=new String(Files.readAllBytes(Paths.get(sourceFile)),StandardCharsets.UTF_8);
+    NewsEngine fixture=new NewsEngine(config,(s,url)->url.startsWith("https://linux.do/t/")?detail:body);
+    NewsEngine.Source linux=fixture.sourceMap.get("linuxdo");NewsEngine.Snapshot ranked=fixture.fetchLinuxDo(linux,null,NewsEngine.LINUXDO_MODE_VIEWS);
+    check(ranked.error.isEmpty()&&ranked.items.size()==50&&ranked.items.get(0).url.endsWith("/9999"),"Sort all eligible candidates before taking 50, using long metrics");
+    check(ranked.items.get(49).heat.equals("12 浏览")&&ranked.items.get(0).rank==1,"Highest candidates and ranks survive cap");
+    for(NewsEngine.Article a:ranked.items)check(!a.url.endsWith("/8888")&&!a.url.endsWith("/7777"),"Neo ID and old records excluded before ranking");
+    // Latest's cap can omit ties; compare a single shared topic deterministically.
+    NewsEngine single=new NewsEngine(config,(s,url)->new JSONObject().put("topic_list",new JSONObject().put("topics",new JSONArray().put(data.getJSONObject(60)))).toString());
+    check(single.fetchLinuxDo(linux,null,NewsEngine.LINUXDO_MODE_LATEST).items.get(0).id.equals(ranked.items.get(0).id),"Ranking never changes topic identity");
+    String text=fixture.fetchLinuxTopic(linux,9999);
+    check(text.contains("<stdio.h>")&&text.contains("<em>literal</em>")&&text.contains("a < b && b > 0")&&text.contains("\nnext"),"Encoded code and paragraph text survive HTML cleanup");
+    check(!text.contains("bad()")&&!text.contains("title=")&&text.contains("link"),"Real markup/script and quoted attributes are removed");
+    NewsState state=new NewsState();state.linuxTabs.put("default",ranked);NewsEngine.Snapshot failed=new NewsEngine.Snapshot("linuxdo");failed.checked=Long.MAX_VALUE;failed.error="offline";state.linuxTabs.put("views",failed);
+    check(state.latestLinuxSnapshot()==failed,"Settings uses the most recently checked linux sub-page");
+    NewsEngine.Article favorite=report("toms-hardware","旧收藏",1,"old-removed-source");state.favorites.add(favorite);state.read.add(favorite.id);state.sourceEnabled.put(v.id,false);
+    NewsState restored=new NewsState();restored.restore(engine,state.json());
+    check(restored.favorites.get(0).id.equals(favorite.id)&&restored.read.contains(favorite.id)&&!restored.sourceEnabled.get(v.id),"Feed removal preserves old favorites/read and explicit switches");
+    ArticleTextCache cache=new ArticleTextCache(2,10);cache.put("a","aaa");cache.put("b","bbb");cache.get("a");cache.put("c","ccc");
+    check(cache.get("b")==null&&cache.get("a").equals("aaa"),"Text cache evicts least recently used entry");cache.put("big","01234567890");check(cache.get("big")==null,"Oversized text is displayed without being retained");
+    ExecutorService workers=Executors.newFixedThreadPool(4);List<Future<?>> jobs=new ArrayList<>();
+    try{for(int n=0;n<4;n++){final int thread=n;jobs.add(workers.submit(()->{for(int i=0;i<100;i++){cache.put(thread+"-"+i,"value");cache.get("a");}}));}for(Future<?> job:jobs)job.get();}finally{workers.shutdownNow();}
+    check(cache.size()<=2&&cache.chars()<=10,"Concurrent cache access respects both bounds");
+    System.out.println("PASS: source routes, explicit publisher authority, adversarial ranking/text, removed-source state and bounded concurrent text cache");
+  }
+  private static void ui390(NewsEngine engine,String sourceFile)throws Exception{
+    JSONObject catalog=new JSONObject(new String(Files.readAllBytes(Paths.get(sourceFile).getParent().getParent().resolve("internal/catalog/ai_catalog.json")),StandardCharsets.UTF_8));
+    for(NewsEngine.Source source:engine.sources)if(FeaturedNews.latestSource(source)||ReadingRules.platformSource(catalog,source))
+      check(Arrays.asList("china","global").contains(SourceFilters.region(catalog,source)),"Every visible source has an explicit region group: "+source.id);
+    check(SourceFilters.region(catalog,engine.sourceMap.get("chinanews-world")).equals("china"),"International reporting does not change publisher region");
+    check(SourceFilters.region(catalog,engine.sourceMap.get("ai-qwen-code")).equals("china"),"Chinese publisher is not classified by GitHub hosting");
+    check(SourceFilters.region(catalog,engine.sourceMap.get("ai-openai")).equals("global"),"Official global provider group");
+    check(SourceFilters.tags(engine.sourceMap.get("nature")).contains("science"),"Science sources have their own tag");
+    check(SourceFilters.tags(engine.sourceMap.get("cnblogs")).contains("development"),"Development sources have their own tag");
+    Set<String> tags=new HashSet<>(Arrays.asList("science","business"));
+    check(SourceFilters.news(catalog,engine.sourceMap.get("nature"),"global",tags),"News tag multiselect takes union within region");
+    check(!SourceFilters.news(catalog,engine.sourceMap.get("nature"),"china",tags),"Region and tags intersect");
+    check(SourceFilters.news(catalog,engine.sourceMap.get("tmtpost"),"china",tags),"Domestic finance group");
+    check(!SourceFilters.news(catalog,engine.sourceMap.get("ithome"),"china",tags),"Unselected tags do not leak");
+    Set<String> sources=new HashSet<>(Arrays.asList("ai-media-ithome","ai-aihot"));
+    check(SourceFilters.platform(catalog,engine.sourceMap.get("ai-aihot"),"china",sources)&&!SourceFilters.platform(catalog,engine.sourceMap.get("ai-openai"),"all",sources),"Platform filters exact feed IDs, not mentioned manufacturers");
+    check(!SourceFilters.platform(catalog,engine.sourceMap.get("ai-aihot"),"global",sources),"Source multiselect respects the first-level region");
+    Map<String,NewsEngine.Snapshot> snapshots=new HashMap<>();
+    NewsEngine.Snapshot low=new NewsEngine.Snapshot("ithome"),high=new NewsEngine.Snapshot("ifanr"),failed=new NewsEngine.Snapshot("nature");
+    low.items.add(report(low.source,"One",1,"one"));high.items.add(report(high.source,"Two",1,"two"));high.items.add(report(high.source,"Three",1,"three"));failed.error="offline";
+    snapshots.put(low.source,low);snapshots.put(high.source,high);snapshots.put(failed.source,failed);
+    List<NewsEngine.Source> input=Arrays.asList(engine.sourceMap.get("ithome"),engine.sourceMap.get("npr"),engine.sourceMap.get("nature"),engine.sourceMap.get("linuxdo"),engine.sourceMap.get("ifanr"),engine.sourceMap.get("cnet"));
+    List<NewsEngine.Source> ordered=SourceFilters.settingsOrder(input,snapshots,null);
+    String[] expected={"linuxdo","nature","ifanr","ithome","npr","cnet"};
+    for(int i=0;i<expected.length;i++)check(ordered.get(i).id.equals(expected[i]),"Settings priority/count/stable-tie order at "+i);
+    check(input.get(0).id.equals("ithome"),"Settings sorting does not mutate the source registry");
+    System.out.println("PASS: source-region groups, two-level news tags, exact feed selection and stable settings priorities");
+  }
+
+  private static void aiRouting391(NewsEngine engine,String sourceFile)throws Exception{
+    JSONObject catalog=new JSONObject(new String(Files.readAllBytes(Paths.get(sourceFile).getParent().getParent().resolve("internal/catalog/ai_catalog.json")),StandardCharsets.UTF_8));
+    long now=System.currentTimeMillis();
+    NewsEngine.Source infoq=engine.sourceMap.get("infoq-cn"),blogs=engine.sourceMap.get("cnblogs"),techcrunch=engine.sourceMap.get("techcrunch");
+    for(String title:new String[]{"AI研发平台正式发布","生成式AI推理引擎","AIGC 应用进展","LLM inference released","GPT5 推理优化","机器学习模型训练","Claude 新版本发布"})check(NewsEngine.isAI(report(infoq.id,title,now,"ai-topic")),"AI-only topic recognized: "+title);
+    for(String title:new String[]{"Java Agent 字节码监控","Rust SDK 数据库开发实践","Daily mail delivery service","Airbnb 旅游商业分析"})check(!NewsEngine.isAI(report(infoq.id,title,now,"plain-topic")),"General technology/text is not automatically AI: "+title);
+    String mediaFeed="<rss><channel><item><title>AI图像模型发布</title><link>https://www.ithome.com/ai391.htm</link></item><item><title>Java数据库架构实践</title><link>https://www.ithome.com/java391.htm</link></item></channel></rss>";
+    List<NewsEngine.Article> mediaItems=NewsEngine.parse(engine.sourceMap.get("ai-media-ithome"),mediaFeed,now);
+    check(mediaItems.size()==1&&mediaItems.get(0).title.equals("AI图像模型发布"),"Dedicated media RSS uses the same AI-only topic rules as mixed-source routing");
+    NewsEngine.Article ai=report(infoq.id,"开源AI推理引擎正式发布支持全新功能",now,"routing-ai-one"),ai2=report(techcrunch.id,ai.title,now-1000,"routing-ai-two");
+    NewsEngine.Article general=report(infoq.id,"Java数据库连接池架构优化实践详解",now,"routing-news-one"),general2=report(blogs.id,general.title,now-1000,"routing-news-two");
+    String originalId=ai.id,originalCategory=ai.category;
+    check(ReadingRules.platformSource(catalog,infoq)&&ReadingRules.platformArticle(infoq,ai)&&!ReadingRules.platformArticle(infoq,general),"InfoQ platform stream takes only AI posts");
+    check(!ReadingRules.newsArticle(infoq,ai)&&ReadingRules.newsArticle(infoq,general),"News and AI partition mixed-source posts");
+    check(!NewsEngine.officialAI(infoq),"Mixed-source AI stories do not become official vendor evidence");
+    NewsEngine.Snapshot snapshot=new NewsEngine.Snapshot(infoq.id);snapshot.items.add(ai);snapshot.items.add(general);snapshot.fetched=snapshot.checked=now;
+    check(ReadingRules.platformChoice(catalog,infoq,snapshot),"Source picker includes a cached mixed-source AI story");
+    NewsEngine.Snapshot ordinary=new NewsEngine.Snapshot(infoq.id);ordinary.items.add(general);check(!ReadingRules.platformChoice(catalog,infoq,ordinary),"Source picker omits mixed feeds with no cached AI stories");
+    Map<String,Boolean> enabled=new HashMap<>();for(NewsEngine.Source source:engine.sources)enabled.put(source.id,true);
+    List<NewsEngine.Article> reports=Arrays.asList(ai,ai2,general,general2);
+    List<FeaturedNews.Event> news=FeaturedNews.group(reports,engine.sourceMap,enabled,false,Collections.emptySet()),intel=FeaturedNews.group(reports,engine.sourceMap,enabled,true,Collections.emptySet());
+    check(news.size()==1&&news.get(0).reports.contains(general)&&!news.get(0).reports.contains(ai),"News featured excludes relocated AI reports");
+    check(intel.size()==1&&intel.get(0).reports.contains(ai)&&!intel.get(0).reports.contains(general),"AI featured includes relocated reports without general engineering");
+    NewsState state=new NewsState();state.snapshots.put(infoq.id,snapshot);state.favorites.add(ai);state.read.add(ai.id);state.sourceEnabled.put(infoq.id,false);
+    NewsState restored=new NewsState();restored.restore(engine,state.json());NewsEngine.Article saved=restored.snapshots.get(infoq.id).items.get(0);
+    check(saved.id.equals(originalId)&&saved.source.equals(infoq.id)&&saved.category.equals(originalCategory)&&restored.read.contains(originalId)&&restored.favorites.get(0).id.equals(originalId)&&!restored.sourceEnabled.get(infoq.id),"Routing leaves IDs/categories/favorites/read/source switches untouched");
+    NewsArchive archive=new NewsArchive();archive.accept(snapshot,engine,now);NewsEngine.Snapshot second=new NewsEngine.Snapshot(techcrunch.id);second.fetched=second.checked=now;second.items.add(ai2);archive.accept(second,engine,now);
+    NewsArchive recovered=new NewsArchive();recovered.restore(archive.json(),engine);
+    check(FeaturedNews.group(recovered.articles(),engine.sourceMap,enabled,true,Collections.emptySet()).size()==1,"Existing local archive re-routes without backfill or data rewrite");
+    check(ReadingRules.latestModelCheck(catalog,engine,Collections.singletonMap(infoq.id,snapshot))==0,"AI media routing does not advance official model-check timestamp");
+    System.out.println("PASS: per-article AI routing, news/AI featured partition, cached source choices and unchanged legacy reading/archive identity");
+  }
+
 }

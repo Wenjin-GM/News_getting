@@ -1,72 +1,83 @@
-# 一览 · 项目交接入口
+# HANDOFF — 跨会话交接
 
-更新时间：2026-11-11（Asia/Shanghai）。先读 [AGENTS.md](AGENTS.md)，再读本文件与相关专题；记忆维护规范仅由 [MEMORY_PROTOCOL.md](MEMORY_PROTOCOL.md) 定义。
+增量核实：2026-11-11。硬规则在[AGENTS](AGENTS.md)，记忆维护按[MEMORY_PROTOCOL](MEMORY_PROTOCOL.md)。当前事实以源码、维护资料及实际验证为准。
 
-## 项目概览
+## 当前状态
 
-主产品为原生 Android 独立 APK，手机自行采集、解析、展示新闻；Windows / Go 版独立保留，不是手机后端。架构与职责见 architecture。
+- 主产品：Android原生独立APK，包名`cn.yilan.news`，versionName 3.9.1-dev / versionCode 30901，minSdk 26 / targetSdk 36，唯一权限INTERNET。
+- 测试包：`dist/android/yilan-standalone-3.9.1-dev.apk`，10,679,609字节，SHA-256 `a9d46bf962924c926cbfd65dacef8804c144441b11aa5d5ea3b5af58ee396e45`；原证书SHA-256 `9ec80e3b71cd34a0c642da7d9e3399b59ae8d6c955d36209b43b7a89a5c442f9`。元数据和签名报告在dist/android/。
+- 正式包仍3.0.0 / 30000，62,219字节。本轮正式APK、旧3.9.0测试包、来源配置、AI目录哈希均未变；本轮全部assets及三ABI库与3.9.0相同；本次只改Java分流。
+- 来源：共65源，默认64（45综合+19AI，仅linuxdo默认关闭），7 experimental；news 6 / tech 24 / finance 2 / hot 5 / community 9 / ai 19。未重新扩源。
+- AI目录：16平台 / 31工具，checkedAt=2026-10-28；正文与modelData日期均未改，HF静态参考保留。
+- Git：main / HEAD `878c27ff815c304b4a5685777d516e7e7776cf86`，本轮用户已授权提交/推送当前3.9.1基线；完成后再开发4.0，未换分支。本轮起点含多轮未提交源码及用户资料，基线在.local/reports/routing391-baseline.json；不能将全部Diff当本轮新增。
 
-## 当前产品与 Git 状态 · P1 / Active
+## 本轮完成：3.9.1逐篇AI分流（D21）
 
-| 项目 | 当前本地核实 |
+- 用户明确选择只移AI主题帖子、非AI保留新闻；不整源更改InfoQ分类。普通流和精选按同一标题/摘要AI-only规则分区，旧缓存/归档随展示生效。
+- rss-ai媒体子流使用同一规则，支持中文紧邻AI、AIGC、LLM等；普通Java/Rust/SDK不因此全搬到AI。关键词有误分/漏分局限，不称模型语义分析。
+- 平台动态来源选项加入当前缓存有AI帖子的混合源；先执行来源/区域/搜索/未读筛选再URL去重，避免未选中副本屏蔽选中来源。
+- 保持source ID、Article ID/URL/category、收藏/已读、开关及schema；归档不倒填/删除，媒体不变官方模型证据。V2EX/HN既有科技范围及linux.do独立传输不改。
+- 本轮修改NewsEngine/ReadingRules/FeaturedNews/MainActivity、Manifest、NativeEngineTest及UiSmoke；更新本文件、C08/D21/F32和UI_DESIGN。未改Go/Rust/来源JSON/目录正文或正式包，未提交/推送。
+- `python scripts/android/test.py`通过14组；`python scripts/android/build.py`成功；`build-smoke.py`及`--ui`独立测试包构建通过。本轮未重跑Rust/Go或真实新闻网络。
+- 新API30 AVD yilan-routing391/5586/ADB5048：3.9.0 seed→最终3.9.1 verify的收藏/已读/来源/主题保留通过；UiSmoke逐篇分流、选中来源去重及原UI回归通过。初次媒体fixture暴露判定不一致，统一规则后重建合成升级基线，最终通过。
+- 包内全部assets与原生库和3.9.0字节相同，原签名v2/v3、INTERNET-only与生产无测试类检查通过；旧测试/正式APK及资料哈希未变。证据.local/reports/routing391-baseline.json、routing391-runtime.json（首次失败）、routing391-final-runtime.json、routing391-package.json。
+- 测试仅用合成数据，新AVD/专用ADB已关闭；只产生工作区源码/文档、缓存、报告和测试包，没有安装工具或改系统网络。用户手机本轮分流及升级尚未验证，手机季度榜403仍未根治。
+
+以下3.9.0的实现/验证为历史证据，不当作3.9.1重新联网取帖。
+
+## 3.9.0历史：界面整理（D20）
+
+- 设置移除阅读分组，外观/消息来源标题在框外；大字与未读开关留在外观，分享安装包为无框文字入口。用户未另行确认这些细分解释，已在进展中说明。
+- 来源总框包紧凑小卡；标题点击发送对应home的浏览器Intent，开关独立；不再单列网址，长错误限三行、点击查看全文。
+- 来源顺序为linux.do置顶→失败→其余按快照条数降序，同分稳定保留原配置顺序。
+- 新闻最新改为平台区域+多选来源主题标签；平台动态改为平台区域+具体source ID多选。AI资料仍按厂商筛选，三处筛选互相独立，V2EX最新主题过滤保留。
+- AI顶栏为平台动态/linux.do/AI/分站热榜/精选；模型降为AI子页，与产品/Harness/SDK并列。全部显示工具及模型，精选异步/历史分支使用对应命名常量。
+- linux.do选择器纯文字，去掉ECH渠道说明；单站更新共用顶部动态等待条，批量仍按完成来源数计进度。逐源完成不再重建整页，完成后统一绘制，消除顶栏反复自动滚动。
+- **403未根治**：现有传输的宿主默认/季度/最新均200，未复现手机故障。Rust仅补失败诊断（challenge标记/请求端点），成功请求、安全规则及端点不变；错误详情点击查看，失败保留旧快照。
+
+## 3.9.0历史文件变更
+
+- 修改`android/src/cn/yilan/news/MainActivity.java`及Manifest：布局、筛选、层级、刷新绘制/进度与30900版本。
+- 新增`android/src/cn/yilan/news/SourceFilters.java`：UI来源区域/标签和设置排序；不复制来源端点或默认开关。
+- 修改Rust `lib.rs/main.rs`仅区分challenge与普通403、输出固定请求端点；不加重试、Cookie或新入口。
+- 修改`DeviceSmoke.java`增加真实JNI季度探测模式；修改`NativeEngineTest.java`、`scripts/android/test.py`；新增`android/tests/UiSmoke.java`；扩展`scripts/android/build-smoke.py --ui`：JVM及独立UI回归，测试类不进产品APK。
+- 更新`docs/android/UI_DESIGN.md`、LINUXDO文档当前范围提示、HANDOFF及既有记忆专题。未改Go、config/sources.json、ai_catalog.json、业务状态schema或正式下载。
+- 原有`linux.do/`、`AI情报站/`及其未跟踪资料均保留。前轮3.8.7修复（D19/F29/F30）仍在未提交基线，不当成本轮重新实现。
+
+## 3.9.0历史验证
+
+- `python scripts/android/test.py`：通过13组；`python scripts/android/native.py test --offline`：通过28项；`python scripts/android/build.py`：成功（3ABI/AAPT2/Java/D8/原签名）。实际使用E:/Conda/main/python.exe并载入dev-env.ps1。本轮Go未改、未重跑。
+- `python scripts/android/build-smoke.py`和`--ui`：构建独立签名测试APK，不夹进正式产品。
+- 全新API30隔离AVD yilan-ui390/5584，独立ADB5047：先3.8.7+DeviceSmoke seed，再覆盖3.9.0+verify，收藏/已读/关闭来源/夜间主题保留通过；合成测试数据不涉及个人数据库。
+- UiSmoke：设置嵌套与排序、标题浏览器Intent、两级筛选器布局、模型子级、逐源回调时顶栏View保持、linux.do共享等待条/更新中切主题/完成隐藏，均通过；补测403旧快照保留、进度停止与错误详情入口也通过。模拟采集用于UI，不能算该AVD真实取帖成功。
+- 已打开检查日夜设置、新闻筛选、平台动态、AI模型和linux.do进度六张截图。早期测试截图路径失败及绘制未完成已修正测试采集方式，未扩大产品存储权限；完整边界在UI_DESIGN。
+- Android真实网络：最终APK的DeviceSmoke linuxviews模式通过生产JNI取得37条过滤后季度帖子；同轮宿主auto季度JSON 200/50。只证明本机模拟器链路，手机403仍未解决。证据ui390-android-quarterly.json、ui390-final-runtime.json与ui390-quarterly-host-auto.json。
+- 实际网络：RSS auto由Cloudflare公共DoH取得200/30；季度与最新fallback由原第三方DoH取得200/50/50，均ECH accepted/HTTP2/证书验证。只代表宿主本次，不代表手机403已解决。
+- 包检查：全部assets与3.8.7相同，三ABI原生库与最终构建字节相同、仅libc/libdl依赖、64位16KiB对齐，原签名v2/v3有效、仅INTERNET，产品DEX含SourceFilters且不含UiSmoke/DeviceSmoke。报告ui390-package.json。
+- 私有证据：`.local/reports/ui390-runtime.json`（升级通过及早期测试故障）、ui390-ui-runtime.json（最终UI通过）、ui390-screens/、ui390-linux-*.json；基线在ui390-baseline.json与.local/ui390-baseline/。
+- `git diff --check`通过；记忆检查脚本仍会将开发Manifest与正式release版本差异判错，不能为此替换正式包。本轮最终检查仅报该一项，其余索引/链接/数量无报错。
+- 状态变化限工作区源码/文档、缓存、AVD、报告和APK。未安装工具、改系统DNS/hosts/证书/代理；本轮隔离模拟器与ADB已全部退出，缓存保留在工作区。
+
+## 工作断点与风险
+
+- 用户手机/家庭网络、偶发403、不同机型/大字体/长列表压力尚未验证；API30模拟器通过不是全机型认证。
+- 用户补充确认403发生在浏览量，Wi-Fi和移动网络均有；本轮Android与宿主均未复现。403已到HTTP阶段，需结合新版错误详情的challenge标记复核，不能继续当DNS故障处理；外部DoH/站点策略可变，宿主成功不能排除透明转发影响。
+- 模型资料是原快照，未因为界面重排改日期。来源主题标签不是逐条分析，也不表示国外分组可在所有网络访问。
+- 更新继续手动、linux.do三模式与通用流/归档隔离；单站没有可诚实计算的百分比，使用不定进度动画。
+- HF静态产品是否移除仍待用户决定；当前不是自动源，不作为采集报错处理。
+
+## 下一步
+
+1. 用户真机复验InfoQ等混合源的AI帖子进入AI平台动态、非AI仍在新闻，并查看来源多选、历史精选和旧收藏/已读。
+2. 手机浏览量若仍403，点击错误详情记录challenge标记及完整提示再排查；不靠WebView/账号/共享Cookie/关闭TLS，不能声称匿名访问可以无条件通过站点验证。
+3. 本轮已获Git提交/推送授权，先固化3.9.1基线，再开发4.0的可选用户API、固定模型、标题汇报/AI精选/手动翻译（D22）。正式发布未授权；不得覆盖正式包。
+
+## 记忆索引
+
+| 专题 | 内容 |
 | --- | --- |
-| Android 源码与测试包 | `3.8.4-dev` / code `30804`，`cn.yilan.news`，Android 8.0+ / target36 |
-| 当前测试 APK | [yilan-standalone-3.8.4-dev.apk](dist/android/yilan-standalone-3.8.4-dev.apk)，10,655,033字节；加固后三条路径本机均HTTP200/30条，新版手机待验；3.8.3旧可用包保留 |
-| 测试包身份与报告 | [dist 元数据](dist/android/release.json)、[签名与权限报告](dist/android/android-verification.txt)；哈希以元数据为准 |
-| 正式 APK（未替换） | `3.0.0` / code `30000`，[正式 APK](releases/android/yilan-standalone-3.0.0.apk)，62,219 字节 |
-| 正式发布身份 | [release.json](releases/android/release.json) 与同目录 SHA 文件；README 正式下载仍指向 3.0.0 |
-| 来源配置 | 37 源，默认29（11综合+18AI），8个实验源默认关；新增 linuxdo 官方公开 RSS |
-| AI 资料 | 本轮未改；16平台 / 31工具，checkedAt=2026-10-28；另有模型结构，日期/置信度见 contracts C06 |
-| Windows | 仍 1.1.0；仅同步 linuxdo 默认关闭的 RSS 注册以维持共享配置一致性，未加 ECH、未重建桌面包 |
-| Git | main / `97368a8ce5f5e869e1c2bfd43c8bc68818eef962`；3.8.4加固源码与交接未提交 |
-| origin | `https://github.com/Wenjin-GM/News_getting.git`；上一轮已同步97368a8；本轮仅授权加固，没有新增提交/推送或正式发布授权 |
-
-任务基线仅剩未跟踪linux.do/与AI情报站私有文件，保留且不提交。002e1e5为此前双方3.8增量快照，97368a8为审查后基线。本轮仅原生网络/缓存、宿主诊断、版本及相关文档；新增fallback.rs、cfg(test)的test_support.rs。来源/目录/状态格式/界面不改；.local/.cache/dist与签名不提交。
-
-## 当前工作断点与下一步 · P1 / Pending
-
-1. **验收边界**：3.8.3已获用户手机取帖成功反馈；3.8.4加固版尚未真机覆盖安装，不能沿用旧通过结论。来源开关/收藏/已读升级保留也未单独获确认。
-2. **用户当前任务**：授权加固且要求不影响获取。保留已成功的h2/ALPN/请求头、第三方接口与8秒/3次重试、原公共预算；加固HTTPS/响应、缓存和诊断。具体实现由[LINUXDO](docs/android/LINUXDO.md#384加固实现与本轮验证)维护，契约见C03。
-3. **本轮实测**：修改前RSS30条；修改后三种模式均HTTP200/30条、HTTP/2、ECH accepted/证书验证通过。纯缓存前后文件哈希一致。25项Rust、JVM10组、三ABI构建/原签名/INTERNET-only与打包差异核对通过。
-4. **下一步**：用户覆盖安装3.8.4，开启LINUX DO并单独更新，复验取帖/升级数据。总硬上限从65增至90秒，公共45/第三方25，慢失败后给缓存/站点留约20秒；正常成功立即返回。真实手机网络/断电/慢网尚未独立执行；外部DNS单点、ECH轮换与站点策略仍有风险。
-5. UI与模型资料未改：3.5修正版用户已确认通过；3.7新背景/底栏视觉没有新的完整验收结论。资料checkedAt=2026-10-28、模型asOf=2026-10-21不变。docs/TODO.md不自动启动更多功能。
-
-## 已有验证与边界 · P1 / Active
-
-- 本轮native.py test --offline的25项Rust、test.py的JVM10组、build.py均通过。覆盖第三方重定向/响应边界、慢公共阶段→第三方/两层超时→缓存、错误保留、旧缓存兼容/原子替换/到期/回拨/不续期。JVM不执行按钮/JNI，手机升级需另验。
-- 本轮三ABI库与APK字节一致且不同于3.8.3；全部assets未改且匹配维护源。ELF仅系统libc/libdl依赖，64位LOAD段16KiB对齐；ABI仍arm64/armv7/x86_64，不含32位Intel x86，生产DEX未含DeviceSmoke。正式3.0与旧可用3.8.3哈希均未变。
-- 本轮构建3.8.4原证书、INTERNET-only、SDK/版本检查通过；新依赖/许可证没有变化。打包报告.local/reports/linuxdo-hardening-package.json，产物身份仅由dist元数据持有。
-- `go test ./...` 是 3.8 轮通过的历史证据，含共享来源注册表一致性；3.8.3 未改 Go/来源表，未重跑 Go 或重建桌面产品。
-- 本轮真实网络：自动经Cloudflare、强制第三方经aaa.ddd.oaifree.com、只用缓存三模式各200/30条；报告.local/reports/linuxdo-ech-rss-{auto,fallback,cache}.json。DNS强制第三方诊断亦退出0，已记录实际来源/状态。修改前基线在linuxdo-hardening-before.json；不把宿主成功当手机通过，no_proxy仍不排除宿主透明转发，见F19/F22。
-- 早期build-smoke.py已编译测试APK，但模拟器等待240秒仍offline，后续重试也未出现可用ADB，未安装APK，启动根因未确认。当前h2版已有用户手机取帖成功反馈；独立设备instrumentation、升级数据保留仍未完成，本轮未启动模拟器。
-- 正式 3.0、既有3.5真机/早期无模型精选和网络成功记录仅为历史证据，入口仍为 [安卓验收](docs/android/VALIDATION.md)。不延伸为当前版本或全源/全机型认证。
-- dist/测试包/报告仅在本工作区；Git 不含这些产物。新克隆必须准备 Rust/NDK/依赖和有效签名，不能把源码提交理解为正式下载更新。
-
-## 本机状态与风险 · P1 / Active
-
-- 已安装便携 Rust 1.99.1（含Android三目标）、NDK r30、CMake4.4.4到 .cache/native*；模拟器/API30镜像/ADB 到 .cache/android/，均只配置工作区缓存/数据。原有宿主 GCC 仅调用，未在外部安装；不需要先装 Android Studio。
-- Google 主站/中国域名 TLS EOF 后，官方 gvt1 CDN 下载及固定哈希校验成功；未关闭 TLS。准备/重试入口与操作细节由 conventions/ F20 / LINUXDO 持有。
-- 前轮自建模拟器/ADB已关闭并核过端口，本轮未重启；未更改系统DNS/hosts/证书/代理、全局PATH或驱动。新生成仅工作区构建/诊断报告，诊断脚本在.local/maintenance，运行报告在.local/reports。既有工具与AVD保留。
-- 首次普通请求的成功会受现有桌面加速配置影响；no_proxy 只排除 HTTP 代理，不证明宿主没有透明转发。协议/电脑构建与真实手机网络验收严格区分，见 F19。
-- 精选只有本机实际抓到的有界历史；模型快照未逐条重新事实核验；新增来源不等于获取旧日记录或更新模型资料。完整规则由 contracts 维护。
-- 微博、X、旧人民网 RSS 等未新增接入。完整情报站、模型/密钥、备份和正式发布仍须新指令；不继承历史发布请求。
-- 交接检查器已知问题为Manifest/正式包版本不一致及未发布来源警告，不能为凑通过替换正式包，见F16。此次完整暂存检查发现第三方许可原文尾空白，保留原文；排除该生成许可后的源码/文档检查通过。
-
-## 专题索引（单一知识所有权）
-
-| 专题 | 何时读取 / 权威内容 |
-| --- | --- |
-| [architecture](memory/architecture.md) | 模块、数据流、共享维护源、文件职责 |
-| [decisions](memory/decisions.md) | 用户确认需求、执行者取舍与未授权的方案 |
-| [contracts](memory/contracts.md) | 数据/时间/ID、网络/TLS、归并归档、兼容与发布 |
-| [pitfalls](memory/pitfalls.md) | 高价值失败、根因证据与适用限制 |
-| [conventions](memory/conventions.md) | 环境、构建/测试/发布操作、私有路径 |
-
-五专题由本文件直接索引，无需 INDEX；P0 规则只由 AGENTS 完整维护。普通开发按任务读专题，仅记忆维护读取 MEMORY_PROTOCOL。
-
-## 接续与记忆沿革 · P2 / Active
-
-- 新任务核对实际 Git/源码/用户最新授权；README 是正式安装/当前开发入口，TODO 不是自动执行授权。
-- 本轮更新相关既有专题与交接，不创建日期型总结；实现/实测集中LINUXDO，私有报告/缓存不提交。正式、旧可用包和新测试包身份分别保留。
-- 旧十专题合并后的知识继续保留；不要恢复旧摘要副本、旧 PWA 运行架构或失效部署细节。界面生成工具默认工作区外缓存的历史边界仍见 F18。
-- 文档维护检查 `python scripts/check-handoff.py`、`git diff --check`；保留真实失败，不以重建/改正式包作为记忆维护手段。
+| [memory/architecture.md](memory/architecture.md) | 双产品、模块地图、共享JSON及SourceFilters |
+| [memory/decisions.md](memory/decisions.md) | D01–D22，D22为4.0用户API开发授权 |
+| [memory/contracts.md](memory/contracts.md) | C01–C08，来源、状态及3.9筛选/分流契约 |
+| [memory/pitfalls.md](memory/pitfalls.md) | F01–F32，F32为筛选去重顺序及AI口径一致性 |
+| [memory/conventions.md](memory/conventions.md) | 工具、构建、隔离UI/升级测试及私有状态 |

@@ -12,8 +12,8 @@ public final class FeaturedNews {
   public static final long WINDOW_MS=72L*3600000;
   public static final double MIN_SIMILARITY=0.76;
   private static final ZoneId SHANGHAI=ZoneId.of("Asia/Shanghai");
-  public static boolean latestSource(Source s){return !Arrays.asList("v2ex","v2ex-latest","hackernews").contains(s.id)&&Arrays.asList("news","tech","finance").contains(s.category);}
-  public static boolean stationSource(String id){return "toutiao".equals(id)||"tieba".equals(id);}
+  public static boolean latestSource(Source s){return !Arrays.asList("linuxdo","v2ex","v2ex-latest","hackernews").contains(s.id)&&(Arrays.asList("news","tech","finance").contains(s.category)||"community".equals(s.category)&&"rss".equals(s.kind));}
+  public static boolean stationSource(String id){return Arrays.asList("toutiao","tieba","baidu","weibo","zhihu","douyin","bilibili","bilibili-video").contains(id);}
   public static List<Article> hotItems(String id,Snapshot snapshot,boolean ai,Set<String> aiURLs){
     if(!ai&&!stationSource(id))return new ArrayList<>();
     List<Article> items=NewsEngine.hotItems(id,snapshot,ai,aiURLs);
@@ -54,7 +54,7 @@ public final class FeaturedNews {
     List<Article> articles=new ArrayList<>();Set<String> links=new HashSet<>();
     input.stream().sorted((a,b)->Long.compare(b.published,a.published)).forEach(a->{
       Source s=sources.get(a.source);
-      if(s!=null&&(ai?ReadingRules.aiArticle(s,a,visibleBoards):latestSource(s))&&Boolean.TRUE.equals(enabled.get(a.source))&&a.published>0&&links.add(a.source+"|"+a.url))articles.add(a);
+      if(s!=null&&(ai?ReadingRules.aiArticle(s,a,visibleBoards):ReadingRules.newsArticle(s,a))&&Boolean.TRUE.equals(enabled.get(a.source))&&a.published>0&&links.add(a.source+"|"+a.url))articles.add(a);
     });
     List<Event> groups=new ArrayList<>();Map<String,Set<Integer>> index=new HashMap<>();
     for(Article a:articles){
