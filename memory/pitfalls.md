@@ -1,6 +1,6 @@
 # 高价值失败经验
 
-增量核实：2026-11-09。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F18 为后续开发/工具调用新增核对。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
+增量核实：2026-11-11。F01–F13 多为迁移保留的历史经验，未在本轮重现；F14–F21 为后续开发/工具调用新增核对。区分实际失败、源码证据与待真机验证的修正，新故障先确认版本与环境。
 
 ## F01 · P1 / Active · 方案看似可安装，实际仍依赖云
 
@@ -126,6 +126,38 @@
 - 已做处理：三张选定图复制到 `android/res/drawable-nodpi/`，提示词及资源路径见 `assets/android-background-prompts.json`；APK 只依赖项目资源。工具原缓存保留，已向用户披露，没有擅自跨目录清理。
 - 防复发：使用成图工具前确认其真实落盘机制，不能凭提示词宣称写入已受限；不能将这次实际缓存视为永久的工作区外写入授权。边界仍有效时优先采用已授权且能限定工作区落盘的公开图片获取方案，或取得明确的缓存例外授权。
 - 证据：本会话 image_gen 返回的默认保存路径、项目资源与提示词记录；生成资产归属与呈现规范由 UI_DESIGN 维护，不重复保存图片/提示词副本。
+
+## F19 · P1 / Active · 桌面加速成功不能证明匿名 ECH 抓取或移动端可嵌入
+
+- 本轮只读核对发现系统 hosts 早已将 linux.do 指向 127.211.73.84；普通 HTTPS 请求返回 200 是受已有加速路径影响的证据，不能写成无加速器直连/手机通过。未还原或修改用户原系统配置。
+- 独立客户端不用系统 HTTP 代理或 linux.do hosts，并用公共根验证站点，ECH Accepted 后 RSS/JSON 实测均 HTTP 403。ECH 只解决握手隐私/可连接性，不执行站点访问挑战；no_proxy 也不能证明宿主机没有系统级透明转发，手机目标网络仍须单独验收。
+- 用户后续 3.8 手机截图为 encrypted DNS unavailable / Connection reset by peer（最后报告 Cloudflare DoH）。表明手机已运行到原生 DNS 连接阶段，但未到帖子接口，不能将电脑的 HTTP403 当作手机已遇到的相同故障。新增独立更新入口只方便单站重试，不能声称已修复 DNS 或挑战。
+- 用户提供的 Android 稿实际 cargo check 首先失败于 hyper-util 不存在的 rt feature；仅有说明和源码不等于已编译。另有本地 CA/私钥与 WebView 认证范围变化，不能由第三方文档替用户授权。
+- 本轮改用独立无 CA/登录/监听的 Rust/JNI 公开 RSS 实验源，挑战即停并保留旧快照；构建和工具链不等于已取到内容。证据与原稿审查集中在 [LINUXDO](../docs/android/LINUXDO.md)，报告只留 .local/reports。
+
+## F20 · P1 / Active · Google 主下载域名 TLS 失败可尝试官方 CDN，仍须验哈希
+
+- 本轮 NDK 主站/中国域名均 SSL EOF，已有 JVM/Java 工具并不等于具备 NDK。未关闭 TLS 或安装第三方 CA。
+- 经用户授权，Google redirector.gvt1.com/edgedl/android/repository/ 官方 CDN 下载成功；NDK、模拟器和镜像均核对固定官方校验值后才使用。脚本分别为 prepare-native.py --ndk-cdn、prepare-tests.py --emulator --google-cdn，不使用不明镜像包。
+- 工具下载成功不代表模拟器启动成功；没有可用硬件加速时不自动安装驱动/启用 Windows 功能。运行结果和自建进程关闭情况看 HANDOFF，不把本轮工具准备误记成运行验收。
+
+## F21 · P1 / Active · DoH 连得上也可能没有 ECH，只保留末次错误会误导诊断
+
+- 3.8 手机截图只有最后一个 Cloudflare DoH reset；不能由它推断所有服务都是连接失败。2026-11-11 本机实测：DNSPod/阿里返回HTTP200与有效二进制DNS，但linux.do的HTTPS记录没有ECH；旧客户端只剩Cloudflare这一条可能可用的回退，且其域名引导仍依赖系统DNS。
+- 3.8.2新增OpenDNS/AdGuard、官方IP引导且保留域名SNI/证书校验、GET及有限POST回退、有限并发与全部原因诊断。本机实际Rust客户端取得三家有效ECH并完成站点验证，但RSS/JSON仍403。证明本机DNS阶段可用，不证明手机或取帖通过。
+- 后续手机3.8.2复验：OpenDNS/AdGuard/Cloudflare均超时，阿里/DNSPod缺ECH，证明上一轮仍未解决手机问题。指定TCP引导IP仍发送域名SNI；截图无法区分链路阻断与2.3秒预算过短，不把其中一种推测写成已确认根因。
+- 3.8.3新增Cloudflare/Google HTTPS IP URL并正常验证公共证书/IP SAN（不发域名SNI），保留域名回退、将路线预算放宽到5秒。本机实际Rust两家主IP均取得ECH，后续站点仍403；备用IP仅有Python校验证书的探测记录，新版手机仍待验。IP URL支持按实际握手验证，不从运营商公布IP推断其必然支持IP证书，也不保证未来永远可用。
+- 引导表只能是公共DNS服务自己的官方地址；不把过时linux.do目标IP/ECH密钥固化进APK，不用私有DoH后端或TLS放行补成功率。详细来源、实测与测试在 [LINUXDO](../docs/android/LINUXDO.md)，当前验收断点见 HANDOFF。
+
+## F22 · P1 / Active · 标准加密 DNS 与替代 HTTP 客户端的死路（2026-11-11）
+
+- 条件：当前网络对知名 DoH IP 做 IP 封锁（1.1.1.1/8.8.8.8/9.9.9.9:443 超时），国内 DoH 剥离 ECH。系统排查“TCP 可连”不等于“能完成 TLS”：
+  - **DoT 853**：1.1.1.1:853 TCP 可连，但 TLS 握手被 RST（10054），DPI 按 SNI=cloudflare-dns.com 阻断。
+  - **CF 边缘 IP 绕路**：188.114.96.1/97.1、104.17.1.1 TCP 可连，但用其访问 cloudflare-dns.com 超时（同样 SNI 阻断），不能替代 1.1.1.1。
+  - **NextDNS/Yandex**：45.90.28.0、77.88.8.8 TCP 可连，TLS 握手 RST；**360**（101.198.198.198）返回 403。
+- 供应链事实：**rquest 所有版本（0.20/0.31/1.x/2.x）已从 crates.io yanked**，不能作为新依赖；Cloudflare 官方 **boring/boring-sys（5.3/5.4 非 yanked）可用且含完整 ECH API**，但 boring-sys 构建需 git（PQC 补丁）与 nasm，本机无 git/nasm（perl 在 msys64）。最终未引入，h2 已用现有 rustls 达成目标。
+- 有效解：保持 ECH + TLS 校验，传输改 h2 + Chrome Mobile UA（见 D14），ECH 用公共→第三方 JSON DoH→缓存三级获取（见 D15）。
+- 防复发：判断加密 DNS 可用性必须验证到 TLS 握手与实际 ECH，不能只测 TCP；不要重复 rquest/boring 或 DoT/边缘 IP 路线。证据在 .local/reports/{net-reach,dot-reach,cf-doh-reach,doh-ip-reach}.txt 与 [LINUXDO](../docs/android/LINUXDO.md)。
 
 ## P3 / Obsolete · 已退役层的临时排障
 

@@ -39,16 +39,23 @@
 
 ## 开发与构建
 
-以下命令在仓库根目录执行。Windows 构建需要 Python 3.10+；Go 版另需 Go 1.24+，网页语法检查使用 Node.js。手机运行 APK 不需要这些开发工具。
+以下命令在仓库根目录执行。当前 3.8 开发源码需要 Python 3.11+、便携 JDK/SDK 和 Rust/Android NDK；Go 版另需 Go 1.24+，网页语法检查使用 Node.js。手机运行 APK 不需要这些开发工具。正式下载仍为上面的 3.0.0。
 
 ```powershell
 . .\scripts\dev-env.ps1
 python scripts/android/prepare.py
+python scripts/android/prepare-native.py --rust
+python scripts/android/prepare-native.py --ndk-cdn
+python -m pip --isolated install --index-url https://pypi.org/simple --target .cache/native/python-tools --no-cache-dir cmake==4.4.4
+python scripts/android/native.py test
+python scripts/android/native.py build
 python scripts/android/test.py
 python scripts/android/build.py
 ```
 
-工具从官方发布渠道下载并校验，放在 `.cache/android/`，APK 输出到 `dist/android/`。首次源码构建会在 `.local/signing/android/` 创建个人发布密钥；请妥善保管。自行生成的新密钥不能覆盖安装仓库提供的正式 APK。
+官方工具位于 `.cache/android/` 与 `.cache/native/`，生成物和缓存仍在工作区；APK 输出到 `dist/android/`。当前 `-dev` 升级构建要求 `.local/signing/android/` 中已有原签名材料，缺失即失败，不自动创建替代身份。新克隆不包含私钥，自行签名不能覆盖安装仓库提供的正式 APK。
+
+3.8 额外注册默认关闭的 LINUX DO 实验来源，开发配置共 37 源、默认仍 29。当前 ECH 握手已实测，但公开取数仍被访问验证阻止；原方案核对、工具准备和未验证项见 [LINUX DO 实验说明](docs/android/LINUXDO.md)。这不是正式包已更新或手机已能稳定抓帖的声明。
 
 电脑版：
 

@@ -318,6 +318,7 @@ public final class NativeEngineTest {
     deviceCorrections(engine,args[0]);
     themePreferences(engine);
     glassThemes();
+    linuxDoTransport(args[0]);
     System.out.println("PASS: native RSS/Atom/JSON, HTML cleanup, draft/stale rejection, URL safety, stable IDs and offline snapshot persistence");
     if(args.length>1&&args[1].equals("--live")){
       List<NewsEngine.Source> selected=new ArrayList<>();for(NewsEngine.Source s:engine.sources)if(s.defaultEnabled)selected.add(s);
@@ -325,5 +326,41 @@ public final class NativeEngineTest {
       for(NewsEngine.Source source:selected)tasks.add(pool.submit(()->{long start=System.currentTimeMillis();NewsEngine.Snapshot value=engine.fetch(source,null,false);JSONObject row=new JSONObject().put("id",source.id).put("items",value.items.size()).put("error",value.error).put("ms",System.currentTimeMillis()-start);System.out.println(source.id+": "+value.items.size()+(value.error.isEmpty()?"":" · "+value.error));return row;}));
       JSONArray checks=new JSONArray();int count=0,total=0;for(Future<JSONObject> task:tasks){JSONObject row=task.get();checks.put(row);if(row.optInt("items")>0)count++;total+=row.optInt("items");}pool.shutdown();JSONObject report=new JSONObject().put("checkedAt",Instant.now().toString()).put("runtime","Java HTTPS direct collector; no proxy/backend").put("sources",selected.size()).put("success",count).put("items",total).put("checks",checks);Files.write(Paths.get(args[2]),report.toString(2).getBytes(StandardCharsets.UTF_8));System.out.println("Native direct collection: "+count+"/"+selected.size()+" sources, "+total+" items");
     }
+  }
+  private static void linuxDoTransport(String sourceFile)throws Exception{
+    String config=new String(Files.readAllBytes(Paths.get(sourceFile)),StandardCharsets.UTF_8);
+    String fixture="<rss><channel><item><title>开源 Linux 工具发布</title><link>https://linux.do/t/topic/123456</link><description>&lt;p&gt;公开帖子摘要&lt;/p&gt;&lt;script&gt;ignored()&lt;/script&gt;</description><pubDate>"+java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Shanghai")).format(java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME)+"</pubDate></item></channel></rss>";
+    NewsEngine ok=new NewsEngine(config,(source,url)->fixture);NewsEngine.Source source=ok.sourceMap.get("linuxdo");
+    check(source!=null&&source.experimental&&!source.defaultEnabled,"Unverified linux.do source remains optional/off");
+    NewsEngine.Snapshot good=ok.fetch(source,null,true);
+    check(good.error.isEmpty()&&good.items.size()==1&&good.channel.contains("ECH"),"Official RSS uses ordinary Article normalization");
+    NewsEngine.Article item=good.items.get(0);check(item.summary.equals("公开帖子摘要")&&item.url.equals("https://linux.do/t/topic/123456"),"Feed HTML becomes plain text and keeps canonical link");
+    NewsState state=new NewsState();state.restore(ok,new JSONObject().put("favorites",new JSONArray().put(item.json())).put("read",new JSONArray().put(item.id)));
+    check(!state.sourceEnabled.get(source.id),"Older state defaults the new experimental source off");
+    good.fetched=good.checked=1;String before=good.json().toString();
+    for(String error:new String[]{"linux.do 需要访问验证","加密 DNS 不可用","证书验证失败"}){
+      NewsEngine fail=new NewsEngine(config,(s,url)->{throw new java.io.IOException(error);});
+      NewsEngine.Snapshot failed=fail.fetch(source,good,true);
+      check(failed.error.equals(error)&&failed.fetched==1&&failed.checked>1&&failed.items.get(0).id.equals(item.id),"Transport error retains successful snapshot/IDs: "+error);
+      check(good.json().toString().equals(before),"Failure does not mutate original snapshot");state.snapshots.put(source.id,failed);
+      NewsState restored=new NewsState();restored.restore(ok,state.json());
+      check(restored.favorites.get(0).id.equals(item.id)&&restored.read.contains(item.id)&&restored.snapshots.get(source.id).items.get(0).id.equals(item.id),"Failed source reload retains favorites/read/cache");
+    }
+    NewsEngine malformed=new NewsEngine(config,(s,url)->"<html>challenge-platform</html>");
+    check(malformed.fetch(source,good,true).items.get(0).id.equals(item.id),"Challenge/invalid feed never erases old items");
+    int[] requests={0};NewsEngine retry=new NewsEngine(config,(s,url)->{check(s.id.equals("linuxdo"),"One-shot retry must only request linux.do");requests[0]++;return fixture;});
+    NewsEngine.Snapshot recent=NewsEngine.Snapshot.from(source.id,good.json());recent.checked=recent.fetched=System.currentTimeMillis();recent.error="加密 DNS 不可用";
+    check(retry.fetch(source,recent,true).cached&&requests[0]==0,"Ordinary update retains recent-error cooldown");
+    NewsEngine.Snapshot retried=retry.recheck(source,recent);
+    check(requests[0]==1&&retried.error.isEmpty()&&!retried.cached&&retried.items.get(0).id.equals(item.id),"Explicit one-shot retry performs exactly one fresh request and keeps IDs");
+    int[] failures={0};NewsEngine offline=new NewsEngine(config,(s,url)->{failures[0]++;throw new java.io.IOException("加密 DNS 不可用");});
+    NewsEngine.Snapshot stillFailed=offline.recheck(source,recent);
+    check(failures[0]==1&&!stillFailed.error.isEmpty()&&stillFailed.fetched==recent.fetched&&stillFailed.items.get(0).id.equals(item.id),"One failed manual request keeps previous content without automatic retry");
+    try{new LinuxDoTransport("").get(source,"https://linux.do/login");throw new AssertionError("Unexpected native endpoint accepted");}
+    catch(java.io.IOException expected){check(expected.getMessage().contains("非登记"),"Endpoint must be checked before loading native library");}
+    NewsEngine.Source other=new NewsEngine.Source(new JSONObject().put("id","other").put("endpoints",new JSONArray().put("http://example.com/a")));
+    try{new LinuxDoTransport("").get(other,"http://example.com/a");throw new AssertionError("Unexpected insecure transport");}
+    catch(java.io.IOException expected){check(expected.getMessage().contains("非登记"),"Other sources keep original HTTPS validation, no native library dependency");}
+    System.out.println("PASS: optional linux.do source, bounded RSS normalization, transport/parse failure retention, old-state identity and fixed native endpoints");
   }
 }

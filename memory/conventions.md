@@ -1,12 +1,12 @@
 # 开发规范、环境与操作约定
 
-增量核实：2026-11-09，依据当前脚本/目录；不表示本次重新构建或联网测源。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
+增量核实：2026-11-10，依据当前脚本/目录与实际工具准备；验收结果由 HANDOFF 维护。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
 
 ## P2 / Active · 日常协作与开发环境
 
 - 默认中文，简明说明结果、验证与限制；自主完成已授权工作，只有实质缺失信息才澄清。用户偏好及一次性安排边界见 D09。
 - 原工作空间 `F:\SELF\Try\News`，Windows/PowerShell；所有命令默认在根目录。换机器必须按当次环境定位工具，不硬编码 Codex 自带运行时或用户名。
-- Python 3.10+ 标准库；Go 1.24+；Node 20.11+ 仅电脑版语法检查/.mjs 烟测，安卓构建无需 Node。
+- Python 3.11+ 标准库（3.8 原生许可生成使用 tomllib）；Go 1.24+；Node 20.11+ 仅电脑版语法检查/.mjs 烟测，安卓构建无需 Node。
 - 便携 JDK 21.0.12.1、Platform 36 r02、Build Tools 36 在 `.cache/android/`；固定官方 URL 与 SHA 值由 prepare.py 持有。
 - 先 `. .\scripts\dev-env.ps1`，只影响当前进程：Go 缓存、TEMP/TMP、Python 字节码开关等均指向工作空间。不要覆盖 `$HOME` 或 `$CODEX_HOME`，不改全局 PATH/注册表/执行策略。
 - `.gitattributes`：普通文本 LF，ps1/cmd CRLF，二进制不转码；ps1 保留 UTF-8 BOM 兼容 PS5。第三方许可保持原字节，不为消除空白告警改正文。
@@ -22,7 +22,9 @@ python scripts/android/build.py
 
 prepare.py 从官方来源下载校验工具，只写工作空间；有匹配 ready 标记则复用。仅验证过 Windows 工具链，不宣称 Linux/macOS 已可构建。
 
-build.py 在已验证生成边界内清理 classes/dex/gen，复制维护 JSON 和 PNG，执行 AAPT2 → javac --release 8 → D8 → zipalign → apksigner。输出到 `dist/android/`，公开包身份真值与升级约束见 C01。
+build.py 先离线编译 Rust 三 ABI 库和生成许可，再在已验证生成边界内清理 classes/dex/gen，复制维护 JSON 和 PNG，执行 AAPT2 → javac --release 8 → D8 → zipalign → apksigner，并装入 .so/许可。输出到 `dist/android/`，公开包身份真值与升级约束见 C01。新克隆还须先准备 native 工具/依赖，不能继续把 3.8 称为 Java-only 构建。
+
+Rust/NDK/CMake、Cargo 缓存和目标在 `.cache/native*`；`prepare-native.py` 管理便携官方工具，native.py 提供 test/build/probe，具体版本/完整命令见 [LINUXDO](../docs/android/LINUXDO.md)。Rustup 使用 manager 模式而非系统安装，不改全局 PATH 或注册表；不要运行用户资料目录中的系统证书/hosts/代理安装脚本。
 
 3.7 背景原图维护在 `android/res/drawable-nodpi/`，生成提示词在 `assets/android-background-prompts.json`，不是只保留工具缓存。输出路径限制的实际陷阱见 pitfalls F18。Git 提交源码/资源不自动发布 dist APK；新克隆没有本机测试包和原签名材料，不能按交接中的本机产物链接推断可直接下载。
 
@@ -30,7 +32,7 @@ build.py 在已验证生成边界内清理 classes/dex/gen，复制维护 JSON �
 
 默认 `test.py` 只准备固定 SHA-256 的 `org.json:json:20250517` JVM JAR，运行 fixture；JAR 不进 APK，手机用系统 org.json。
 
-测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules/ReaderTheme，不编译或运行 MainActivity。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
+测试入口编译 NewsEngine/NewsState/NewsArchive/FeaturedNews/ReadingRules/ReaderTheme/LinuxDoTransport，不编译或运行 MainActivity；JVM 不执行 JNI。分类集合与 checked[] 回归通过仍不能代替原生对话框实测；必须在交付中区分 JVM、构建/签名与手机验收。相同版本号修正版可重建到同名 dist 文件，不能仅凭“3.5.0-dev”区分首包/修正版，应查当前元数据哈希；历史同版包可能已被替换。
 
 ```powershell
 python scripts/android/test.py --live
@@ -40,7 +42,7 @@ python scripts/android/test.py --live
 
 ### P2 / Active · 仅 GUI 验证时准备模拟器
 
-`python scripts/android/prepare-tests.py --emulator` 会下载大型官方工具和 API30/Android11 x86_64 镜像；不加参数只准备 JVM 依赖。此前大文件已清理，不能假定设备仍在。
+`python scripts/android/prepare-tests.py --emulator --google-cdn` 经 Google 官方 CDN 下载并校验模拟器和 API30/Android11 x86_64 镜像；不加参数只准备 JVM 依赖。本轮已准备；更换环境须核实，不凭历史推断仍在。当前脚本 emulator-env.ps1、prepare-avd.py、build-smoke.py、smoke.py 的职责和限制见 LINUXDO；旧配方仅作历史参考。
 
 可复用的历史隔离配方（参数不是当下设备状态）：
 

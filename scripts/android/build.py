@@ -1,5 +1,5 @@
-"""Build and sign a small Java-only APK using the pinned official portable toolchain."""
-import hashlib,json,os,pathlib,secrets,subprocess,zipfile,shutil,xml.etree.ElementTree as ET
+"""Build/sign the native Android APK and its optional fixed-host Rust transport."""
+import hashlib,json,os,pathlib,secrets,subprocess,sys,zipfile,shutil,xml.etree.ElementTree as ET
 root=pathlib.Path(__file__).resolve().parents[2]; android=root/'android'; tools=root/'.cache'/'android'
 jdk=next((tools/'jdk').glob('*/bin')); platform=tools/'platform'/'android-36'/'android.jar'; buildtools=tools/'build-tools'/'android-16'
 build=root/'.cache'/'android-build'; signing=root/'.local'/'signing'/'android'; output=root/'dist'/'android'
@@ -7,6 +7,9 @@ manifest_root=ET.parse(android/'AndroidManifest.xml').getroot()
 version=manifest_root.get('{http://schemas.android.com/apk/res/android}versionName')
 version_code=int(manifest_root.get('{http://schemas.android.com/apk/res/android}versionCode'))
 development=version.endswith('-dev')
+native_targets={'arm64-v8a':'aarch64-linux-android','armeabi-v7a':'armv7-linux-androideabi','x86_64':'x86_64-linux-android'}
+subprocess.run([sys.executable,str(root/'scripts/android/native.py'),'build','--offline'],cwd=root,check=True)
+subprocess.run([sys.executable,str(root/'scripts/android/native-licenses.py')],cwd=root,check=True)
 password=signing/'keystore-password.txt';key=signing/'yilan-release.p12'
 if development and (not password.is_file() or not key.is_file()):raise RuntimeError('Development upgrade build requires the existing signing identity; no key will be generated.')
 for name in ['classes','dex','gen']:
@@ -25,6 +28,7 @@ if not development and not password.exists():password.write_text(secrets.token_u
 env['YILAN_SIGN_PASS']=password.read_text(encoding='utf-8').strip()
 if not development and not key.exists():run(jdk/'keytool.exe','-genkeypair','-keystore',key,'-storetype','PKCS12','-alias','yilan-release','-keyalg','RSA','-keysize','3072','-sigalg','SHA256withRSA','-validity','10000','-storepass:env','YILAN_SIGN_PASS','-dname','CN=Yilan News Release, OU=Personal Project, O=Yilan, C=CN')
 shutil.copy2(root/'assets'/'icon-192.png',android/'res'/'mipmap-xxxhdpi'/'ic_launcher.png')
+shutil.copy2(root/'docs/android/licenses/linuxdo-dependencies.txt',assets/'linuxdo-dependencies.txt')
 run(buildtools/'aapt2.exe','compile','--dir',android/'res','-o',build/'resources.zip')
 run(buildtools/'aapt2.exe','link','-I',platform,'--manifest',android/'AndroidManifest.xml','--java',build/'gen','--min-sdk-version','26','--target-sdk-version','36','-A',assets,'-o',build/'unsigned.apk',build/'resources.zip')
 java=list((android/'src').rglob('*.java'))+list((build/'gen').rglob('*.java'))
@@ -32,6 +36,8 @@ run(jdk/'javac.exe','-encoding','UTF-8','--release','8','-classpath',platform,'-
 run(jdk/'java.exe','-cp',buildtools/'lib'/'d8.jar','com.android.tools.r8.D8','--release','--min-api','26','--lib',platform,'--output',build/'dex',*list((build/'classes').rglob('*.class')))
 with zipfile.ZipFile(build/'unsigned.apk','a',compression=zipfile.ZIP_DEFLATED) as apk:
  for dex in (build/'dex').glob('*.dex'):apk.write(dex,dex.name)
+ for abi,triplet in native_targets.items():
+  apk.write(root/'.cache/native-build'/triplet/'release/libyilan_linuxdo.so','lib/'+abi+'/libyilan_linuxdo.so')
 run(buildtools/'zipalign.exe','-f','-p','4',build/'unsigned.apk',build/'aligned.apk')
 target=output/('yilan-standalone-'+version+'.apk')
 run(jdk/'java.exe','-jar',buildtools/'lib'/'apksigner.jar','sign','--ks',key,'--ks-key-alias','yilan-release','--ks-pass','env:YILAN_SIGN_PASS','--v4-signing-enabled','false','--out',target,build/'aligned.apk')
@@ -53,6 +59,8 @@ with zipfile.ZipFile(target) as apk:
   if banned in dex:raise RuntimeError('Forbidden runtime dependency found: '+repr(banned))
  for required in ['assets/sources.json','assets/ai-catalog.json']:
   if required not in apk.namelist():raise RuntimeError('Missing embedded data: '+required)
+ for abi in native_targets:
+  if 'lib/'+abi+'/libyilan_linuxdo.so' not in apk.namelist():raise RuntimeError('Missing ECH library for '+abi)
 metadata=dict(version=version,versionCode=version_code,package='cn.yilan.news',file=target.name,bytes=target.stat().st_size,sha256=digest,certificateSha256=cert,minAndroid='8.0',minSdk=26,targetSdk=36,permissions=['android.permission.INTERNET'],runtime='native-android',collection='direct-on-device',backendRequired=False,accountRequired=False,webView=False,privateStorageOnly=True,apkShare='read-only URI grant to user-selected receiver')
 (output/'release.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2),encoding='utf-8')
 (output/'android-verification.txt').write_text(verification+'\n'+manifest,encoding='utf-8')

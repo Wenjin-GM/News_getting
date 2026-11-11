@@ -41,7 +41,7 @@ public final class MainActivity extends Activity {
   private LinearLayout body,nav;private ScrollView scroll;private ProgressBar progress;private EditText search;
   private int tab=0,aiMode=0,limit=30,hotLimit=10,done=0,total=0,updated=0,failed=0,cached=0;
   private String query="",category="all",provider="all";private boolean busy=false,destroyed=false,compact=false,large=false,unread=false,hotMode=false;
-  private Button refresh;
+  private Button refresh,linuxRefresh;private boolean linuxUpdating;
   private ReaderBackdrop backdrop;
   private final Set<String> categories=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
   private final Map<String,String> historyResults=new HashMap<>();
@@ -98,7 +98,7 @@ public final class MainActivity extends Activity {
   }
   private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
   private String asset(String name)throws IOException{try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>2*1024*1024)throw new IOException("内置资料过大");out.write(b,0,n);}return out.toString("UTF-8");}}
-  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();chrome();render(false);handler.post(()->refresh(false));}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
+  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();chrome();render(false);handler.post(()->refresh(false));}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
   private void chrome(){
     FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
     if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});else root.setFitsSystemWindows(true);
@@ -125,7 +125,7 @@ public final class MainActivity extends Activity {
     }
   }
   private void render(boolean keepScroll){
-    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;body.removeAllViews();
+    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxRefresh=null;body.removeAllViews();
     backdrop.showPage(tab,palette);nav.setBackgroundColor(tab==3?palette.surface:palette.dark?0xeb101c2c:0xebf5f9fd);search.setBackground(floating(false,16));styleButton(refresh,true);
     if(tab==3)settings();else if(tab==1)ai();else news();scroll.post(()->scroll.scrollTo(0,y));
   }
@@ -333,9 +333,10 @@ public final class MainActivity extends Activity {
     LinearLayout preferences=card();preferences.addView(text("阅读",16,INK,true));gap(preferences,8);toggle(preferences,"大字阅读",large,value->{large=value;saveSoon();render(true);});divider(preferences);toggle(preferences,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
     LinearLayout share=card();share.addView(button("分享安装包",true,()->shareApk()));
     gap(body,8);body.addView(text("信息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,16);
-    for(Source source:engine.sources){LinearLayout c=card();Switch sw=new Switch(ui);sw.setText(source.name+(source.experimental?" · 实验渠道":""));styleSwitch(sw);sw.setChecked(Boolean.TRUE.equals(sourceEnabled.get(source.id)));sw.setOnCheckedChangeListener((v,checked)->{sourceEnabled.put(source.id,checked);saveSoon();});c.addView(sw);gap(c,10);
+    for(Source source:engine.sources){LinearLayout c=card();Switch sw=new Switch(ui);sw.setText(source.name+(source.experimental?" · 实验渠道":""));styleSwitch(sw);sw.setChecked(Boolean.TRUE.equals(sourceEnabled.get(source.id)));sw.setOnCheckedChangeListener((v,checked)->{sourceEnabled.put(source.id,checked);saveSoon();if("linuxdo".equals(source.id))updateRefreshControls();});c.addView(sw);gap(c,10);
       Snapshot snap=snapshots.get(source.id);String value=snap==null?"尚未获取":(!snap.error.isEmpty()?(snap.items.isEmpty()?"获取失败":"历史快照"):"已获取 "+snap.items.size()+" 条")+" · "+(snap.fetched>0?stamp(snap.fetched,false):"尚无成功快照");c.addView(text(value,12,MUTED,false));
       if(snap!=null&&!snap.error.isEmpty()){gap(c,6);c.addView(text(snap.error,12,palette.danger,false));}gap(c,6);c.addView(text(source.home,12,MUTED,false));
+      if("linuxdo".equals(source.id)){gap(c,12);linuxRefresh=button("单独更新 LINUX DO",false,this::refreshLinuxDo);linuxRefresh.setContentDescription("单独更新一次 LINUX DO 帖子");c.addView(linuxRefresh);gap(c,6);c.addView(text("开启来源后，可单独更新本站",12,MUTED,false));updateRefreshControls();}
     }
   }
   private void themeOption(LinearLayout row,String mode,String label,String glyph){
@@ -362,14 +363,28 @@ public final class MainActivity extends Activity {
     for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(force||NewsEngine.shouldAutoCheck(s,snapshots.get(s.id),now)))selected.add(s);
     startRefresh(selected,force,false,"",false);
   }
+  private void updateRefreshControls(){
+    if(refresh!=null)refresh.setEnabled(!busy);
+    if(linuxRefresh!=null){linuxRefresh.setEnabled(!busy&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));linuxRefresh.setText(linuxUpdating?"正在更新 LINUX DO…":busy?"更新进行中，请稍候":"单独更新 LINUX DO");}
+  }
+  private void refreshLinuxDo(){
+    if(busy||destroyed||engine==null||body==null)return;
+    Source source=engine.sourceMap.get("linuxdo");if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(source.id)))return;
+    // Explicit one-shot retry: bypass the ordinary recent-error/cache cooldown.
+    startRefresh(Collections.singletonList(source),true,true,"",false,true);
+  }
   private void startRefresh(List<Source> selected,boolean force,boolean recheck,String historyKey,boolean ai){
+    startRefresh(selected,force,recheck,historyKey,ai,false);
+  }
+  private void startRefresh(List<Source> selected,boolean force,boolean recheck,String historyKey,boolean ai,boolean linuxOnly){
+    if(busy||destroyed)return;
     if(selected.isEmpty()){if(!historyKey.isEmpty()){historyResults.put(historyKey,"没有已启用的相关来源");render(true);}return;}
-    busy=true;done=updated=failed=cached=0;total=selected.size();refresh.setEnabled(false);progress.setMax(total);progress.setProgress(0);progress.setVisibility(View.VISIBLE);
+    busy=true;linuxUpdating=linuxOnly;done=updated=failed=cached=0;total=selected.size();updateRefreshControls();progress.setMax(total);progress.setProgress(0);progress.setVisibility(View.VISIBLE);
     for(Source s:selected){final Snapshot old=snapshots.get(s.id);network.execute(()->{
       Snapshot value=recheck?engine.recheck(s,old):engine.fetch(s,old,force);handler.post(()->{
         if(destroyed)return;snapshots.put(s.id,value);if(!value.cached&&value.error.isEmpty()){long before=archive.revision;archive.accept(value,engine,System.currentTimeMillis());if(archive.revision!=before){archiveDirty=true;handler.removeCallbacks(archiveSaveTask);handler.postDelayed(archiveSaveTask,500);}}done++;if(!value.error.isEmpty())failed++;else if(value.cached)cached++;else updated++;
         progress.setProgress(done);handler.removeCallbacks(renderTask);handler.postDelayed(renderTask,120);saveSoon();
-        if(done==total){busy=false;refresh.setEnabled(true);progress.setVisibility(View.GONE);toast("更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
+        if(done==total){busy=false;linuxUpdating=false;updateRefreshControls();progress.setVisibility(View.GONE);toast(linuxOnly?(value.error.isEmpty()?"LINUX DO 已获取 "+value.items.size()+" 条":"LINUX DO 更新失败，请查看来源提示"):"更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
           if(!historyKey.isEmpty()){String day=historyKey.substring(historyKey.indexOf(':')+1);boolean returned=false;for(Source src:selected){Snapshot snap=snapshots.get(src.id);if(snap!=null&&snap.error.isEmpty())for(Article a:snap.items)if(a.published>0&&FeaturedNews.day(a.published).equals(day))returned=true;}historyResults.put(historyKey,returned?"来源已返回该日条目，未形成该日独立精选":failed==total?"本次检查失败，旧记录已保留":"来源没有返回这一天（"+day+"）");}
           render(true);if(!pendingDay.isEmpty()){String day=pendingDay;boolean scope=pendingAI;pendingDay="";handler.post(()->requestHistory(scope,day));}}
       });

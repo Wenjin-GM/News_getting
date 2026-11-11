@@ -1,0 +1,33 @@
+[package]
+name = "yilan_linuxdo"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "linuxdo-probe"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+bytes = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1", "http2"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+jni = "0.21"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-webpki-roots", "json"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "net", "time", "macros"] }
+tokio-rustls = { version = "0.26", default-features = false }
+webpki-roots = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1

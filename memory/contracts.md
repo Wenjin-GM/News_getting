@@ -1,6 +1,6 @@
 # 接口、数据结构与兼容性约束
 
-增量核实：2026-11-09；基于未发布 Java、Manifest、维护 JSON、构建脚本与正式/测试 APK。这里只记录实现契约；用户选择原因见 [decisions](decisions.md)，环境与操作见 [conventions](conventions.md)。
+增量核实：2026-11-11；基于未发布 Java/Rust、Manifest、维护 JSON、构建脚本与正式/测试 APK。这里只记录实现契约；用户选择原因见 [decisions](decisions.md)，环境与操作见 [conventions](conventions.md)。
 
 ## C01 · P0 / Active · 发布身份和升级边界
 
@@ -16,7 +16,7 @@
 依据 [Manifest](../android/AndroidManifest.xml)、[Provider](../android/src/cn/yilan/news/ApkProvider.java)、`android/res/xml/`：
 
 - 唯一声明权限为 `android.permission.INTERNET`；无存储、定位、通讯录、相机、麦克风、安装其他应用权限。
-- `debuggable=false`、`usesCleartextTraffic=false`、关闭系统备份；信任系统 CA，不用用户新增 CA/TLS 失败放行作为修复。
+- `debuggable=false`、`usesCleartextTraffic=false`、关闭系统备份；Java 路径信任系统 CA；linux.do 原生传输使用公共 Mozilla 根证书，仍验证证书链/主机名。不用用户新增 CA/TLS 失败放行作为修复。
 - MainActivity 仅导出启动入口，不把传入任意 URL 当抓取请求。
 - Provider `exported=false`、`grantUriPermissions=true`；仅 `content://cn.yilan.news.apk/release.apk`，拒绝查询参数、片段或错误 authority。
 - 只允许 `r`，底层固定 `ApplicationInfo.sourceDir`；query 只返回本 APK 文件名和大小，insert/update/delete 不支持。
@@ -40,6 +40,10 @@ Go `builtins()` 与安卓配置的字段、顺序、端点及 enabled/experiment
 - 响应解压后正文最多 5 MiB，JSON 嵌套最多 64，解析结果最多 40 条/源。
 - 不执行脚本或 XML 外部实体请求；来源内容只作为数据。
 
+`linuxdo` 为默认关闭的公开 RSS 实验源，APK 经 LinuxDoTransport/JNI 调用固定站点 Rust ECH 客户端，其余来源不走该组件。仅取最新一批 RSS，不承诺完整历史或当天无遗漏。**ECH 获取为三级容错**（dns.rs `resolve(cache_dir)`）：六家标准公共 DoH → 公共无密钥 JSON DoH 兜底（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）→ 应用私有目录 ECH 缓存（cache.rs，文件 `linuxdo-ech-cache.json`，最长 7 天，读回重新校验 ECH）。拒绝私网/回环目标；向站点发送 HTTP 前必须验证正常证书/主机名并确认 EchStatus::Accepted。**站点传输为 HTTP/2**（ALPN `h2,http/1.1`，hyper http2，Chrome Mobile UA）；无私有 CA、代理监听、Cookie、登录、JS、重定向或明文 SNI 降级。整体65秒、DNS响应65,535字节、内容5MiB上限；遇验证停止并沿用 C04 保留策略。JNI `nativeGet(endpoint,cacheDir)` 新增缓存目录参数，MainActivity 传入 `getFilesDir()` 绝对路径。详细接口/预算由 [LINUXDO](../docs/android/LINUXDO.md) 维护；不扩展为 GitHub/YouTube 通用连接器。
+
+3.8.3 的公共 DNS 优先尝试 Cloudflare/Google 的 HTTPS IP URL，正常验证公共证书链/IP SAN；域名引导及系统解析作备用，验证真实域名。只有实测支持IP证书的服务启用IP URL，不扩大Java新闻链接的允许范围或信任根。HTTP200不算完整解析，必须取得受支持 ECH 和公网地址；可用同条有效 HTTPS 记录的 ipv4hint 弥补 A 失败，但仍作站点证书/ECH验证。最多两家并发；首个完整结果取消其他任务，全部失败保留各家原因。不得把“DNS已解析”与后续403/取帖成功混为一谈。完整路线、预算和诊断入口由 LINUXDO 文档持有。
+
 ## C04 · P1 / Active · Article / Snapshot 与降级
 
 `NewsEngine.Article` 序列化字段：`id/source/sourceName/category/provider/title/url/summary/heat/published/fetched/dateOnly/rank`。时间戳为毫秒；发布时间未知为 0，不能用采集时间伪装发布时间；dateOnly 保留仅日期的精度。
@@ -55,7 +59,7 @@ ID = `SHA-256(sourceId + "|" + URL)` 的前 12 字节十六进制；收藏/已�
 - 非 AI 的普通 RSS 最新已知发布时间早于 7 天判疑似停更；低频 AI 官方发布豁免；最新时间超过未来一天拒绝。
 - GitHub draft 跳过；prerelease 保留并标注，不能宣传为稳定版。
 
-`recheck` 是精选缺日期时的例外：跳过 interval/近期缓存与失败冷却，仍执行相同网络/解析安全约束与失败保留策略。它只重新请求现有端点，不提供历史分页。
+`recheck` 用于精选缺日期再取及 LINUX DO 专用单次更新：跳过 interval/近期缓存与失败冷却，仍执行相同网络/解析安全约束与失败保留策略。专用按钮只选择 linuxdo，要求来源已开启，更新期间禁用；不改变来源开关，不自动循环重试。顶部更新仍按原规则选择已启用来源。它只重新请求现有端点，不提供历史分页。
 
 Activity 启动/回前台用 `shouldAutoCheck` 决定请求：已启用官方 AI 来源距最近成功满 24 小时检查，失败 60 秒内不重试；其他源仍用自身 interval。手动更新选择全部已启用源，但 `fetch` 仍可沿用 60 秒内缓存。工具卡片仅凭合法关联来源展示动态与检查时间，不能修改目录正文或声称所有工具今日已更新。
 

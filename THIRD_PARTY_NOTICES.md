@@ -4,6 +4,8 @@ The Windows / Go edition includes dependencies listed in go.mod and go.sum. Sour
 
 The standalone Android APK uses Android platform APIs and does not bundle the JDK, Android SDK, the optional JVM JSON test library, a browser engine, or advertising / analytics SDKs. Build tools are downloaded from their official publishers for local development only; test dependencies are not included in the APK.
 
+The 3.8 development APK additionally bundles an independently implemented, fixed-host Rust ECH transport for the optional linux.do public RSS source. It uses rustls, AWS-LC, Tokio, reqwest, Hyper, JNI bindings and their transitive dependencies, plus the Rust standard library and public Mozilla trust anchors. Versions are locked in `android/native/linuxdo/Cargo.lock`. Complete dependency/runtime notices are in `docs/android/licenses/linuxdo-dependencies.txt` and the APK asset `linuxdo-dependencies.txt`. The user-supplied accelerator binaries, CA, proxy implementation and login code are not incorporated.
+
 - modernc.org/sqlite and modernc.org/libc: BSD-3-Clause; SQLite engine: public domain. https://gitlab.com/cznic/sqlite
 - github.com/skip2/go-qrcode: MIT. https://github.com/skip2/go-qrcode
 - github.com/dustin/go-humanize: MIT.

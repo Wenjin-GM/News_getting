@@ -1,10 +1,11 @@
 """Optional portable emulator and JVM test dependency; no system installation or driver changes."""
 import concurrent.futures,hashlib,pathlib,urllib.request,zipfile,argparse
-options=argparse.ArgumentParser();options.add_argument('--emulator',action='store_true');args=options.parse_args()
+options=argparse.ArgumentParser();options.add_argument('--emulator',action='store_true');options.add_argument('--google-cdn',action='store_true',help='Download Google packages from its official gvt1 redirector');args=options.parse_args()
 root=pathlib.Path(__file__).resolve().parents[2]/'.cache'/'android';root.mkdir(parents=True,exist_ok=True)
 packages=[('platform-tools','https://dl.google.com/android/repository/platform-tools_r37.0.1-win.zip','e03e78b1d80b396f1c3358e31251cb31740e1110'),('emulator','https://dl.google.com/android/repository/emulator-windows_x64-16428233.zip','488ed747e82de7e9bb5247becd1ac043c7e5e85d'),('system-image','https://dl.google.com/android/repository/sys-img/android/x86_64-30_r11.zip','5e4de3946d46f88856c35efcc4d797b381456347')]
 def download(p):
  name,url,expected=p;archive=root/(name+'.zip');destination=root/name
+ if args.google_cdn:url=url.replace('https://dl.google.com/android/','https://redirector.gvt1.com/edgedl/android/')
  def digest():
   h=hashlib.sha1()
   with archive.open('rb') as stream:

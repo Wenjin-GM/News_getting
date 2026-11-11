@@ -89,7 +89,10 @@ public final class NewsEngine {
   private static final class Raw {String title="",url="",summary="",heat="";Object date;boolean dateOnly;Raw(String t,String u){title=t;url=u;}}
   public final List<Source> sources=new ArrayList<>();
   public final Map<String,Source> sourceMap=new LinkedHashMap<>();
-  public NewsEngine(String config)throws Exception{JSONArray a=new JSONArray(config);if(a.length()>100)throw new IOException("来源配置过大");for(int i=0;i<a.length();i++){Source s=new Source(a.getJSONObject(i));sources.add(s);sourceMap.put(s.id,s);}}
+  public interface Transport {String get(Source source,String endpoint)throws Exception;}
+  private final Transport transport;
+  public NewsEngine(String config)throws Exception{this(config,NewsEngine::download);}
+  public NewsEngine(String config,Transport transport)throws Exception{this.transport=Objects.requireNonNull(transport);JSONArray a=new JSONArray(config);if(a.length()>100)throw new IOException("来源配置过大");for(int i=0;i<a.length();i++){Source s=new Source(a.getJSONObject(i));sources.add(s);sourceMap.put(s.id,s);}}
   public Snapshot fetch(Source source,Snapshot previous,boolean force){
     return fetchInternal(source,previous,force,false);
   }
@@ -99,7 +102,7 @@ public final class NewsEngine {
     if(!recheck&&previous!=null&&((!previous.error.isEmpty()&&now-previous.checked<60000)||(previous.fetched>0&&now-previous.fetched<(force?60:source.interval)*1000L)))return previous.copy();
     List<String> errors=new ArrayList<>();
     for(int i=0;i<source.endpoints.size();i++)try{
-      String body=download(source,source.endpoints.get(i));List<Article> items=parse(source,body,System.currentTimeMillis());Snapshot s=new Snapshot(source.id);s.items.addAll(items);s.fetched=s.checked=System.currentTimeMillis();s.channel=i==0?"手机直连 · 主渠道":"手机直连 · 同平台备用";return s;
+      String body=transport.get(source,source.endpoints.get(i));List<Article> items=parse(source,body,System.currentTimeMillis());Snapshot s=new Snapshot(source.id);s.items.addAll(items);s.fetched=s.checked=System.currentTimeMillis();s.channel="linuxdo".equals(source.id)?"手机 ECH 直连 · 官方公开 RSS":i==0?"手机直连 · 主渠道":"手机直连 · 同平台备用";return s;
     }catch(Exception e){String error=error(e);if(!errors.contains(error))errors.add(error);}
     Snapshot failed=previous==null?new Snapshot(source.id):previous.copy();failed.checked=System.currentTimeMillis();failed.error=bounded(String.join("；",errors),200);return failed;
   }
@@ -107,7 +110,7 @@ public final class NewsEngine {
     if(raw==null||raw.length()>2048||Pattern.compile("[\\x00-\\x1f\\x7f]").matcher(raw).find())return null;
     try{URI u=new URI(decode(raw.trim()));String protocol=u.getScheme(),host=u.getHost();if(!("https".equalsIgnoreCase(protocol)||"http".equalsIgnoreCase(protocol))||host==null||u.getUserInfo()!=null)return null;host=host.toLowerCase(Locale.ROOT).replaceAll("\\.$","");if(!host.contains(".")||!host.matches("[a-z0-9.-]+")||host.matches("[0-9.]+")||host.matches(".*(?:^|\\.)(?:localhost|local|localdomain|internal|intranet|lan|home|arpa|onion)$"))return null;int port=u.getPort();if(port!=-1&&!(protocol.equalsIgnoreCase("https")&&port==443)&&!(protocol.equalsIgnoreCase("http")&&port==80))return null;String path=u.getPath();if(path!=null&&path.toLowerCase(Locale.ROOT).matches(".*\\.(?:exe|msi|msix|apk|aab|bat|cmd|ps1|vbs|scr|dll|com|jar|sh)$"))return null;return u.toASCIIString();}catch(Exception ignored){return null;}
   }
-  private static String download(Source s,String endpoint)throws Exception{
+  static String download(Source s,String endpoint)throws Exception{
     String current=endpoint;long deadline=System.nanoTime()+18000000000L;
     for(int hop=0;hop<=3;hop++){
       String safe=publicURL(current);if(safe==null||!safe.startsWith("https:")||!s.hosts.contains(new URI(safe).getHost()))throw new IOException("已阻止来源跳转到非登记主机");

@@ -308,6 +308,21 @@
     "name": "BBC · World"
   },
   {
+    "category": "tech",
+    "color": "#d6a84a",
+    "custom": false,
+    "description": "官方公开 RSS · Android ECH 实验直连，访问验证时停止",
+    "enabled": false,
+    "endpoints": ["https://linux.do/latest.rss"],
+    "experimental": true,
+    "home": "https://linux.do",
+    "icon": "L",
+    "id": "linuxdo",
+    "interval": 900,
+    "kind": "rss",
+    "name": "LINUX DO"
+  },
+  {
     "category": "ai",
     "color": "#b77964",
     "custom": false,

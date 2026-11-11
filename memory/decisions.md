@@ -1,6 +1,6 @@
 # 技术决策、原因与取舍
 
-增量核实：2026-11-09。用户需求依据当前会话的人类消息与明确授权的 TODO；实现依据源码。优先级和状态按根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)；本文件拥有决策原因，硬规则执行入口为 [AGENTS](../AGENTS.md)。
+增量核实：2026-11-10。用户需求依据当前会话的人类消息与明确授权的 TODO；实现依据源码。优先级和状态按根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)；本文件拥有决策原因，硬规则执行入口为 [AGENTS](../AGENTS.md)。
 
 ## D01 · P0 / Active · 手机必须真正独立
 
@@ -83,6 +83,25 @@
 **用户明确授权**：参考 aihot.news 与 glowsunset.cn 的前端优化原生 Android 视觉，设计日间/夜间并允许设置切换；先保存并推送已验收基线，再做 UI。
 
 **本轮实现选择**：两套本机配色与原生主题，即时切换并保存，旧安装默认日间；系统字体、原生绘制图标，无联网字体/图片、网页外壳或参考站后端依赖。后续用户明确要求去掉分页大标题与筛选外框、修正底栏居中，并使用各阅读页不同的内置生成背景与半透明泛光面板，设置不铺图。视觉取舍与验收边界由 [UI_DESIGN](../docs/android/UI_DESIGN.md) 维护，不把网站参考当成新增来源或内容采集授权。
+
+## D14 · P1 / Active · linux.do 匿名 ECH + h2，不继承第三方证书/认证方案
+
+**用户本轮授权**：参考新增 linux.do/ 资料尝试让 APK 获取帖子；需要时安装 Rust/Android 工具，尽量限制工作区。
+
+**执行者实现选择**：独立固定站点 Rust/JNI 直连与官方公开 RSS，默认关闭实验源。未把“参考资料”解释为同意 WebView、固定 CA 私钥入包、修改系统或要求每位使用者登录。
+
+**应用层挑战根因（2026-11-11 实证）**：ECH 解决 SNI 阻断后，Cloudflare 对 **HTTP/1.1 + 非浏览器 TLS 指纹**下发托管挑战（403，cf-mitigated: challenge）；仅改 UA/请求头无效。决定性实验：ALPN 改为 `h2` 优先、hyper http2 握手、Chrome Mobile UA 后，`/latest.rss` 直接 **200**（无 cf-mitigated，application/rss+xml），`/about.json` 200；`/latest.json` 仍 403（生产不依赖）。修复仅在访问层，ECH 断言、证书/主机名校验、5MiB/类型校验全部保留，没有降低 TLS、复用 Cookie 或伪报完整性。具体契约在 C03，实测见 [LINUXDO](../docs/android/LINUXDO.md)。
+
+## D15 · P1 / Active · ECH 多级获取：公共优先 + 第三方 DoH 兜底 + 本地缓存
+
+**用户明确确认（交互选择）**：当前网络对标准公共 DoH 全面收紧，用户选择“公共优先 + 私人兜底 + ECH 缓存”。
+
+**多级流程（dns.rs `resolve(cache_dir)`）**：
+1. 六家标准公共 DoH 有界 failover（Cloudflare/Google/OpenDNS/AdGuard/阿里/DNSPod），网络允许时优先，完全沿用原设计。
+2. 公共全失败 → 公共无密钥 JSON DoH（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）；它只做 DNS 解析、不承载用户流量，返回的 ECH/IP 仍经 EchConfig 校验与 public_v4 过滤。
+3. 实时通道全失败 → 读取应用私有目录的 ECH 缓存（cache.rs，最长 7 天，读回时重新校验 ECH）。
+
+**原因与边界**：第三方 DoH 不是作者账号、无需密钥，任何安装者可用，不构成“作者私有访问门槛”；但它是单一域名依赖，可能被封/停服，故置于兜底层而非首选，且缓存进一步降低实时依赖。安全模型不依赖该 DoH 的可信性：即使其返回伪造数据，端到端 TLS/ECH 校验会失败，不会泄露或接受假内容。不引入 rquest（全版本 yanked），也未引入 boring（构建需 git/nasm，本机无），h2 方案已用现有 rustls 达成目标。
 
 ## P3 / Superseded · 最小历史链
 

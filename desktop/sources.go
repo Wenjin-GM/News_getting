@@ -70,6 +70,7 @@ func builtins() []Source {
 		{ID: "v2ex-latest", Name: "V2EX · 最新", Category: "community", Description: "官方 Atom · 最新主题（非热榜）", Kind: "rss", Home: "https://www.v2ex.com", Color: "#6b8880", Icon: "V", Interval: 600, Endpoints: []string{"https://www.v2ex.com/index.xml"}},
 		{ID: "hackernews", Name: "Hacker News", Category: "tech", Description: "Algolia 搜索 API · 首页热门", Kind: "json", Home: "https://news.ycombinator.com", Color: "#d48242", Icon: "Y", Interval: 600, Endpoints: []string{"https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=30"}},
 		{ID: "bbc", Name: "BBC · World", Category: "news", Description: "官方 RSS · 英文国际新闻", Kind: "rss", Home: "https://www.bbc.com/news/world", Color: "#4a4a4a", Icon: "B", Interval: 900, Experimental: true, Endpoints: []string{"https://feeds.bbci.co.uk/news/world/rss.xml"}},
+		{ID: "linuxdo", Name: "LINUX DO", Category: "tech", Description: "官方公开 RSS · Android ECH 实验直连，访问验证时停止", Kind: "rss", Home: "https://linux.do", Color: "#d6a84a", Icon: "L", Interval: 900, Experimental: true, Endpoints: []string{"https://linux.do/latest.rss"}},
 	}, aiSources()...)
 }
 

@@ -1,6 +1,6 @@
 # 架构与模块关系
 
-增量核实：2026-11-09；Android 依据当前未发布源码、配置和测试包，Windows 沿用先前证据。验收范围见 [HANDOFF](../HANDOFF.md)。本文件拥有架构与文件职责；字段约束见 [contracts](contracts.md)，决策原因见 [decisions](decisions.md)。
+增量核实：2026-11-11；Android 依据当前未发布源码、配置和测试包；Windows 保留3.8阶段同步默认关闭来源注册的改动，本轮未改或重测。验收范围见 [HANDOFF](../HANDOFF.md)。本文件拥有架构与文件职责；字段约束见 [contracts](contracts.md)，决策原因见 [decisions](decisions.md)。
 
 ## P1 / Active · 两个独立产品
 
@@ -26,6 +26,9 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | --- | --- |
 | [MainActivity.java](../android/src/cn/yilan/news/MainActivity.java) | 全部原生 UI、导航、搜索/筛选、刷新调度、私有状态与系统分享 |
 | [NewsEngine.java](../android/src/cn/yilan/news/NewsEngine.java) | 纯 Java 来源/文章/快照模型、HTTPS、RSS/Atom/JSON/HTML 适配、安全 URL 与降级 |
+| [LinuxDoTransport.java](../android/src/cn/yilan/news/LinuxDoTransport.java)、[Rust 核心](../android/native/linuxdo/src/lib.rs) | 可选固定站点 ECH/JNI；仅 linuxdo 使用，其余来源保留标准 HTTPS；站点走 HTTP/2，不监听本地端口或引入认证页 |
+| [dns.rs](../android/native/linuxdo/src/dns.rs) | ECH 三级获取：公共 DoH failover → 第三方 JSON DoH 兜底 → 缓存；A/HTTPS 完整性校验、有限并发与阶段诊断 |
+| [cache.rs](../android/native/linuxdo/src/cache.rs) | 应用私有目录 ECH 缓存（`linuxdo-ech-cache.json`，最长 7 天，读回重新校验），仅实时通道全失败时使用 |
 | [NewsState.java](../android/src/cn/yilan/news/NewsState.java) | 不依赖 UI 的旧状态恢复、默认设置与序列化 |
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |
 | [FeaturedNews.java](../android/src/cn/yilan/news/FeaturedNews.java) | 无模型标题归并、机构去重与上海日期分组 |
@@ -53,6 +56,8 @@ Activity 使用原生控件，底栏为新闻、AI 专栏、收藏、设置。�
 | [registry_test.go](../desktop/registry_test.go) | 比较来源定义、顺序、端点及默认启用与 Experimental 的对应关系 |
 
 构建复制两个 JSON 到被忽略的 `android/assets/`，复制 `assets/icon-192.png` 到生成的 mipmap 目录；不得维护生成副本。图标与 `assets/brand.svg` 是共享品牌资源。
+
+3.8 构建另用 `scripts/android/native.py` 编译三 ABI .so，依赖锁在 Cargo.lock，许可由 native-licenses.py 生成/打包。Rust/NDK 仅开发依赖；手机只运行内置库。传输、安全和失败语义由 contracts C03 维护，实测限制与操作入口见 [LINUXDO](../docs/android/LINUXDO.md)。
 
 当前来源数和目录规模见 HANDOFF；完整来源、工具和平台清单直接查 JSON，不在记忆复制第二份表格。
 
