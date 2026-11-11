@@ -33,12 +33,12 @@
 
 ## 已有验证与边界 · P1 / Active
 
-- 本轮 `native.py test` 的 **14 项 Rust 测试**（含 2 项缓存往返）、`test.py` JVM 10 项回归、`build.py` 三 ABI 编译/原签名/INTERNET-only 通过。DNS 测试含缺 ECH 不误报、合法 hint/私网拒绝、并发上限与取消、缓存读写；JVM 不执行按钮/JNI，手机新版待验。
+- 本轮复跑 `native.py test --offline` 的14项Rust测试、`test.py` JVM10组回归通过；三ABI构建/原签名/INTERNET-only通过属于前轮证据，本轮未执行build.py。JVM不执行按钮/JNI；手机取帖成功依据用户本轮反馈，不延伸为升级数据/全机型验收。
 - 已核对三 ABI 库与 APK 内字节一致（arm64 4,464,472 / armv7 2,823,220 / x86_64 5,087,816），全部 assets 未改并与维护源一致，正式 APK 哈希未变。ELF 仅系统 libc/libdl 依赖，64 位 LOAD 段 16KiB 对齐；ABI 仍 arm64/armv7/x86_64，不含 32 位 Intel x86。
-- `python scripts/android/build.py` 成功，APK 原证书匹配、仅 INTERNET、SDK/版本和三 ABI 资源检查通过。已核对内置来源/AI JSON 与维护源字节一致，正式 APK 哈希未变；生产 DEX 不含 DeviceSmoke。具体产物身份见 dist 元数据，不在记忆复制哈希。
+- 前轮 `python scripts/android/build.py` 成功，原证书/INTERNET-only/SDK版本等检查通过；本轮只复核现有APK哈希、三ABI库与维护资产一致、正式APK未变。生产DEX不含DeviceSmoke为既有构建检查证据，未在本轮重复扫描；产物身份见dist元数据。
 - `go test ./...` 是 3.8 轮通过的历史证据，含共享来源注册表一致性；3.8.3 未改 Go/来源表，未重跑 Go 或重建桌面产品。
 - 本轮真实网络：当前源码RSS探测退出0，约69KiB/30条；报告.local/reports/linuxdo-review-rss.json，CLI不使用ECH缓存。成功输出未标记DNS服务，不能断言本轮走了第三方回退。前轮记录标准DoH超时、第三方成功仅属于当时网络，不当作永久封锁结论。no_proxy和绕过linux.do hosts仍不证明宿主没有透明转发，见F19/F22。
-- build-smoke.py 已编译独立同签名 instrumentation 测试 APK；smoke.py 在首次软件模拟器等待240秒后退出1，未安装任何 APK。关闭 Vulkan/单核重试仍未出现可用 ADB，实例已结束；该轮模拟器内的实际升级、JNI、Activity 启动与截图均未验证，启动失败根因未确认；随后用户已给出3.8手机运行/原生DNS失败截图，但升级数据保留、新按钮和成功抓帖仍未验收。
+- 早期build-smoke.py已编译测试APK，但模拟器等待240秒仍offline，后续重试也未出现可用ADB，未安装APK，启动根因未确认。当前h2版已有用户手机取帖成功反馈；独立设备instrumentation、升级数据保留仍未完成，本轮未启动模拟器。
 - 正式 3.0、既有3.5真机/早期无模型精选和网络成功记录仅为历史证据，入口仍为 [安卓验收](docs/android/VALIDATION.md)。不延伸为当前版本或全源/全机型认证。
 - dist/测试包/报告仅在本工作区；Git 不含这些产物。新克隆必须准备 Rust/NDK/依赖和有效签名，不能把源码提交理解为正式下载更新。
 
