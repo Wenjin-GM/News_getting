@@ -46,6 +46,7 @@ public final class MainActivity extends Activity {
   private Button refresh,linuxUpdateBtn;private boolean linuxUpdating;private int linuxTab=0;
   private final ArticleTextCache linuxFullCache=new ArticleTextCache();
   private ReaderBackdrop backdrop;
+  private AiCoordinator aiService;
   private final Set<String> newsTags=new LinkedHashSet<>(),feedSources=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
   private final Map<String,String> historyResults=new HashMap<>();
   private String newsRegion="all",feedRegion="all",region="all",toolType="all",pendingDay="";private boolean pendingAI,userScrolling;
@@ -100,7 +101,7 @@ public final class MainActivity extends Activity {
   }
   private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
   private String asset(String name)throws IOException{try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>2*1024*1024)throw new IOException("内置资料过大");out.write(b,0,n);}return out.toString("UTF-8");}}
-  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
+  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();aiService=new AiCoordinator(new AiVault(getFilesDir()),handler,disk,()->{if(destroyed)return;updateRefreshControls();if(!aiService.running)render(true);});aiService.load();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
   private void chrome(){
     FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
     if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});else root.setFitsSystemWindows(true);
@@ -154,7 +155,7 @@ public final class MainActivity extends Activity {
       row.addView(filterButton(newsTags.isEmpty()?"全部标签 ▾":"标签 · "+newsTags.size()+" ▾",()->pickMany("标签",Arrays.asList(SourceFilters.TAGS),Arrays.asList(SourceFilters.TAG_NAMES),newsTags,()->{limit=30;render(false);})),new LinearLayout.LayoutParams(0,dp(40),1));
       body.addView(row);gap(body,10);
     }
-    showArticles(articles(false));
+    if(tab==0)aiReport(AiEngine.NEWS);showArticles(articles(false));
   }
   private void setNewsMode(int mode){hotMode=mode==1;featuredMode=mode==2;limit=30;hotLimit=10;saveSoon();render(false);}
   private void requestFeatured(boolean ai){
@@ -174,6 +175,7 @@ public final class MainActivity extends Activity {
     limit+=30;render(true);
   }
   private void featuredNews(boolean ai){
+    if(aiService!=null&&aiService.enabled()){aiFeatured(ai);return;}
     requestFeatured(ai);body.addView(text("本机已抓来源归并",12,INK,false));gap(body,10);
     if(archive.incomplete)body.addView(text("归档容量已满，部分新条目未保存",12,INK,false));
     if(!featuredKey.equals(builtFeaturedKey)){body.addView(text("正在归并…",12,INK,false));return;}
@@ -211,6 +213,7 @@ public final class MainActivity extends Activity {
     while(read.size()>2000)read.remove(read.iterator().next());saveSoon();render(true);ScrollView view=new ScrollView(ui);view.addView(content);dialog().setView(view).setPositiveButton("关闭",null).show();
   }
   private void hotNews(boolean ai){
+    if(!ai)aiReport(AiEngine.HOT);
     boolean more=false;Set<String> aiURLs=NewsEngine.aiHotURLs(snapshots,sourceEnabled);
     for(String id:NewsEngine.HOT_SOURCES){
       Source source=engine.sourceMap.get(id);if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(id))||(!ai&&!FeaturedNews.stationSource(id))||(ai&&!ReadingRules.aiBoard(id,snapshots.get(id))))continue;
@@ -242,6 +245,9 @@ public final class MainActivity extends Activity {
     Snapshot snapshot=snapshotOf(a);if(snapshot!=null&&!snapshot.error.isEmpty()){gap(content,8);content.addView(text("历史快照",12,MUTED,false));}
     gap(content,20);
     final TextView bodyView=text(linux?"正在获取全文…":a.summary,16,INK,false);content.addView(bodyView);
+    final String[] original={a.summary};final boolean[] loading={linux};
+    final TextView translated=text("",15,INK,false);translated.setVisibility(View.GONE);content.addView(translated);
+    final Button translate=filterButton("翻译",()->{});translate.setVisibility(AiEngine.foreign(a.title+"\n"+a.summary)?View.VISIBLE:View.GONE);translate.setEnabled(!linux);content.addView(translate);
     gap(content,24);divider(content);gap(content,16);LinearLayout actions=new LinearLayout(ui);
     Button star=button(isFavorite(a.id)?"已收藏":"收藏",isFavorite(a.id),()->{});
     star.setOnClickListener(v->{if(isFavorite(a.id))favorites.removeIf(x->x.id.equals(a.id));else{favorites.add(0,a);if(favorites.size()>500)favorites.remove(500);}star.setText(isFavorite(a.id)?"已收藏":"收藏");styleButton(star,isFavorite(a.id));saveSoon();drawNav();render(true);});
@@ -249,17 +255,22 @@ public final class MainActivity extends Activity {
     ScrollView reader=new ScrollView(ui);reader.addView(content);
     final AlertDialog preview=dialog().setView(reader).setPositiveButton("关闭",null).create();
     preview.show();
+    translate.setOnClickListener(v->{
+      if(loading[0])return;String sourceText=a.title+"\n\n"+original[0];if(!AiEngine.foreign(sourceText)){toast("当前预览并非纯外文");return;}
+      translate.setEnabled(false);translated.setVisibility(View.VISIBLE);translated.setText("正在翻译…");
+      aiService.translate(sourceText,value->{if(!destroyed&&preview.isShowing()){translated.setText("译文（AI）\n"+value);translate.setEnabled(true);}},reason->{if(!destroyed&&preview.isShowing()){translated.setText(reason);translate.setEnabled(true);}});
+    });
     if(linux){
       final Source src=engine.sourceMap.get("linuxdo");final long topicId=topicIdFromUrl(a.url);final String fallback=a.summary;
       String cachedText=linuxFullCache.get(a.id);
-      if(cachedText!=null)bodyView.setText(cachedText);
-      else if(src==null||topicId<=0)bodyView.setText(fallback+"\n\n无法识别帖子编号");
+      if(cachedText!=null){bodyView.setText(cachedText);original[0]=cachedText;loading[0]=false;translate.setEnabled(true);translate.setVisibility(AiEngine.foreign(a.title+"\n"+cachedText)?View.VISIBLE:View.GONE);}
+      else if(src==null||topicId<=0){bodyView.setText(fallback+"\n\n无法识别帖子编号");loading[0]=false;translate.setEnabled(true);}
       else network.execute(()->{
         try{
           final String full=engine.fetchLinuxTopic(src,topicId);
-          handler.post(()->{if(destroyed)return;linuxFullCache.put(a.id,full);if(preview.isShowing())bodyView.setText(full);});
+          handler.post(()->{if(destroyed)return;linuxFullCache.put(a.id,full);if(preview.isShowing()){bodyView.setText(full);original[0]=full;loading[0]=false;translate.setEnabled(true);translate.setVisibility(AiEngine.foreign(a.title+"\n"+full)?View.VISIBLE:View.GONE);}});
         }catch(Exception e){final String reason=NewsEngine.error(e);
-          handler.post(()->{if(!destroyed&&preview.isShowing())bodyView.setText((fallback.isEmpty()?"":fallback+"\n\n")+"全文获取失败："+reason);});}
+          handler.post(()->{if(!destroyed&&preview.isShowing()){bodyView.setText((fallback.isEmpty()?"":fallback+"\n\n")+"全文获取失败："+reason);loading[0]=false;translate.setEnabled(true);}});}
       });
     }
   }
@@ -282,7 +293,7 @@ public final class MainActivity extends Activity {
     for(int i=0;i<names.length;i++){final int mode=i;chip(modes,names[i],aiMode==i,()->{aiMode=mode;limit=30;hotLimit=10;render(false);});}
     if(aiMode==AI_HOT){hotNews(true);return;}if(aiMode==AI_FEATURED){featuredNews(true);return;}
     if(aiMode==AI_LINUX){linuxdoPage();return;}
-    if(aiMode==AI_PLATFORM){sourceFilters();showArticles(articles(true));return;}
+    if(aiMode==AI_PLATFORM){sourceFilters();aiReport(AiEngine.AI);showArticles(articles(true));return;}
     LinearLayout kinds=chips(body);String[] ids={"all","product","harness","sdk","model"},labels={"全部","产品","Harness","SDK","模型"};
     for(int i=0;i<ids.length;i++){final String id=ids[i];chip(kinds,labels[i],toolType.equals(id),()->{toolType=id;render(false);});}
     platformFilters();if(toolType.equals("model")){modelPage();return;}
@@ -409,6 +420,7 @@ public final class MainActivity extends Activity {
     body.addView(text("外观",16,INK,true));gap(body,10);LinearLayout appearance=card();LinearLayout options=new LinearLayout(ui);
     themeOption(options,"day","日间","sun");themeOption(options,"night","夜间","moon");appearance.addView(options);gap(appearance,12);divider(appearance);
     toggle(appearance,"大字显示",large,value->{large=value;saveSoon();render(true);});divider(appearance);toggle(appearance,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
+    body.addView(filterButton("AI功能 · "+(aiService!=null&&aiService.enabled()?aiService.config.model:"未启用")+" ▾",this::aiSettings));gap(body,8);
     body.addView(filterButton("分享安装包 ↗",this::shareApk));gap(body,12);
     body.addView(text("消息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,10);
     LinearLayout group=card();group.setPadding(dp(10),dp(10),dp(10),dp(2));
@@ -425,6 +437,38 @@ public final class MainActivity extends Activity {
         TextView error=text(snap.error,12,palette.danger,false);error.setMaxLines(3);error.setEllipsize(TextUtils.TruncateAt.END);error.setContentDescription("查看"+source.name+"完整错误");error.setOnClickListener(v->dialog().setTitle(source.name).setMessage(snap.error).setPositiveButton("关闭",null).show());gap(c,3);c.addView(error);
       }
     }
+  }
+  private void aiSettings(){
+    if(aiService.loading||aiService.saving){toast("正在读取或保存 AI 配置，请稍候");return;}
+    AiSettingsDialog.show(ui,aiService.config,aiService.loadError,aiService.client,aiService.tests,handler,next->aiService.save(next,reason->{if(!destroyed)toast(reason.isEmpty()?(next.enabled?"已锁定模型："+next.model:"AI 已停用"):reason);}),()->{aiService.forget();toast("AI 配置已清除");});
+  }
+  private void aiReport(String scope){
+    if(aiService==null||!aiService.enabled())return;LinearLayout card=card();card.addView(text("AI 更新汇报",15,INK,true));gap(card,8);
+    AiEngine.Result result=aiService.results.get(scope);String error=aiService.errors.get(scope);
+    if(aiService.running)card.addView(text("正在按标题分批分析，完成后显示汇报…",12,MUTED,false));
+    if(error!=null)card.addView(text("本次分析失败："+error+"；下方保留上次结果。",12,palette.danger,false));
+    if(result==null)card.addView(text("一键更新后生成；只发送本轮成功快照中的标题（含沿用缓存），不受页面筛选和分页影响。",13,MUTED,false));
+    else{card.addView(text(result.text,14,INK,false));gap(card,8);card.addView(text(result.model+" · "+stamp(result.at,false)+" · "+result.count+" 条标题；不含失败来源旧数据，AI 未核实正文",12,MUTED,false));}
+    if(!aiService.running)card.addView(filterButton("重新分析本机数据",()->{aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());render(true);}));
+  }
+  private void aiFeatured(boolean ai){
+    String scope=ai?AiEngine.FEATURED_AI:AiEngine.FEATURED_NEWS;AiEngine.Result result=aiService.results.get(scope);
+    body.addView(text("AI 精选 · "+aiService.config.model,13,INK,true));gap(body,10);
+    if(aiService.running)body.addView(text("AI 正在选择标题，可继续阅读上次结果…",12,MUTED,false));
+    if(aiService.errors.containsKey(scope))body.addView(text("本次失败："+aiService.errors.get(scope)+"；保留上次 AI 精选。",12,palette.danger,false));
+    if(result==null){emptyState("尚无 AI 精选。请一键更新或分析本机已存标题。");if(!aiService.running)body.addView(button("分析本机标题",false,()->{aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());render(true);}));return;}
+    body.addView(text("生成于 "+stamp(result.at,false)+" · "+result.count+" 条本地标题 · 允许单篇推荐，AI 分析未核实正文",12,MUTED,false));gap(body,10);
+    List<AiEngine.Group> groups=new ArrayList<>(result.groups);groups.sort((a,b)->Long.compare(b.latest(),a.latest()));String last="";
+    for(AiEngine.Group group:groups){String day=group.latest()>0?FeaturedNews.day(group.latest()):"未提供报道日期";if(!last.equals(day)){body.addView(text(day,14,INK,true));gap(body,8);last=day;}
+      LinearLayout c=card();c.addView(text(group.title,17,INK,true));gap(c,6);c.addView(text(group.reason,13,MUTED,false));gap(c,6);c.addView(text(group.reports.size()+" 篇原始报道",12,MUTED,false));c.setOnClickListener(v->openAiGroup(group));
+    }
+    if(groups.isEmpty())body.addView(text(result.text,14,MUTED,false));
+    if(!aiService.running)body.addView(button("更早的本地 AI 精选",false,()->{if(!aiService.older(ai,engine,sourceEnabled,snapshots,archive.articles()))toast("没有更早的相关本地记录，或已达本地上限");else render(true);}));
+  }
+  private void openAiGroup(AiEngine.Group group){
+    LinearLayout content=vertical();content.setPadding(dp(20),dp(16),dp(20),dp(16));content.addView(text(group.reason+"\n仅依据标题的AI分析，请查看原始报道。",14,MUTED,false));
+    for(Article article:group.reports){gap(content,12);content.addView(button(article.title,false,()->open(article)));content.addView(text(article.sourceName+" · "+publication(article),12,MUTED,false));}
+    ScrollView view=new ScrollView(ui);view.addView(content);dialog().setTitle(group.title).setView(view).setPositiveButton("关闭",null).show();
   }
   private void themeOption(LinearLayout row,String mode,String label,String glyph){
     ReaderTheme preview=ReaderTheme.forMode(mode);boolean selected=mode.equals(savedState.themeMode);LinearLayout option=vertical();option.setPadding(dp(14),dp(14),dp(14),dp(14));option.setGravity(Gravity.CENTER_VERTICAL);option.setBackground(ripple(shape(preview.surface,selected?ACCENT:palette.line,16)));option.setSelected(selected);option.setFocusable(true);option.setContentDescription(label+"主题"+(selected?"，已选中":""));
@@ -445,7 +489,7 @@ public final class MainActivity extends Activity {
   private int enabledCount(){int n=0;for(Boolean enabled:sourceEnabled.values())if(Boolean.TRUE.equals(enabled))n++;return n;}
   private void shareApk(){Uri uri=Uri.parse("content://"+getPackageName()+".apk/release.apk");Intent share=new Intent(Intent.ACTION_SEND).setType("application/vnd.android.package-archive").putExtra(Intent.EXTRA_STREAM,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);share.setClipData(ClipData.newUri(getContentResolver(),"一览独立版 APK",uri));try{startActivity(Intent.createChooser(share,"分享一览安装包"));}catch(ActivityNotFoundException e){toast("没有可接收安装包的分享应用，请使用电脑发送原始 APK");}}
   private void refresh(boolean force){
-    if(busy||destroyed||engine==null||body==null)return;
+    if(busy||destroyed||engine==null||body==null||aiService!=null&&aiService.running)return;
     List<Source> selected=new ArrayList<>();long now=System.currentTimeMillis();
     for(Source s:engine.sources)if(!"linuxdo".equals(s.id)&&Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(force||NewsEngine.shouldAutoCheck(s,snapshots.get(s.id),now)))selected.add(s);
     startRefresh(selected,force,false,"",false);
@@ -455,7 +499,7 @@ public final class MainActivity extends Activity {
   }
   private void updateRefreshControls(){
     syncProgress();
-    if(refresh!=null)refresh.setEnabled(!busy);
+    if(refresh!=null)refresh.setEnabled(!busy&&(aiService==null||!aiService.running&&!aiService.saving));
     if(linuxUpdateBtn!=null){linuxUpdateBtn.setText(linuxUpdating?"更新中…":"更新");linuxUpdateBtn.setEnabled(!busy&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));}
   }
   private void refreshLinuxTab(){
@@ -485,6 +529,7 @@ public final class MainActivity extends Activity {
         progress.setProgress(done);saveSoon();
         if(done==total){busy=false;updateRefreshControls();progress.setVisibility(View.GONE);toast("更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
           if(!historyKey.isEmpty()){String day=historyKey.substring(historyKey.indexOf(':')+1);boolean returned=false;for(Source src:selected){Snapshot snap=snapshots.get(src.id);if(snap!=null&&snap.error.isEmpty())for(Article a:snap.items)if(a.published>0&&FeaturedNews.day(a.published).equals(day))returned=true;}historyResults.put(historyKey,returned?"来源已返回该日条目，未形成该日独立精选":failed==total?"本次检查失败，旧记录已保留":"来源没有返回这一天（"+day+"）");}
+          if(!recheck&&historyKey.isEmpty()&&aiService!=null&&aiService.enabled())aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());
           render(true);if(!pendingDay.isEmpty()){String day=pendingDay;boolean scope=pendingAI;pendingDay="";handler.post(()->requestHistory(scope,day));}}
       });
     });}
@@ -503,5 +548,5 @@ public final class MainActivity extends Activity {
   private void saveNow(){if(storage==null||disk.isShutdown())return;try{savedState.compact=compact;savedState.large=large;savedState.unread=unread;savedState.hotMode=hotMode;byte[] bytes=savedState.json().toString().getBytes(StandardCharsets.UTF_8);disk.execute(()->{FileOutputStream out=null;try{out=storage.startWrite();out.write(bytes);storage.finishWrite(out);}catch(Exception e){if(out!=null)storage.failWrite(out);if(!destroyed)handler.post(()->toast("缓存保存失败，请检查设备剩余空间"));}});}catch(Exception ignored){}}
   @Override protected void onPause(){saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
   @Override protected void onResume(){super.onResume();}
-  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
+  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();if(aiService!=null)aiService.close();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
 }
