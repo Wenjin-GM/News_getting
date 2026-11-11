@@ -21,6 +21,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['test', 'probe', 'build'])
     parser.add_argument('--feed', choices=['rss', 'json', 'dns'], default='rss')
+    parser.add_argument('--dns-mode', choices=['auto', 'fallback', 'cache'], default='auto',
+                        help='Developer probe only; APK always uses automatic failover')
+    parser.add_argument('--cache-dir', type=pathlib.Path, help='Probe cache, inside this workspace')
     parser.add_argument('--offline', action='store_true')
     args = parser.parse_args()
     env = PREPARE['environment']()
@@ -43,9 +46,16 @@ def main():
         subprocess.run(command + ['build', '--bin', 'linuxdo-probe'] + common,
                        env=env, cwd=ROOT, check=True)
         binary = pathlib.Path(env['CARGO_TARGET_DIR']) / 'debug/linuxdo-probe.exe'
-        result = subprocess.run([str(binary), args.feed], env=env, cwd=ROOT,
-                                capture_output=True, text=True, encoding='utf-8', timeout=75)
-        report = ROOT / '.local/reports' / ('linuxdo-ech-' + args.feed + '.json')
+        probe = [str(binary), args.feed, args.dns_mode]
+        if args.cache_dir:
+            directory = args.cache_dir.resolve()
+            if not directory.is_relative_to(ROOT):
+                raise SystemExit('Probe cache must stay inside this workspace')
+            directory.mkdir(parents=True, exist_ok=True)
+            probe.append(str(directory))
+        result = subprocess.run(probe, env=env, cwd=ROOT,
+                                capture_output=True, text=True, encoding='utf-8', timeout=100)
+        report = ROOT / '.local/reports' / ('linuxdo-ech-' + args.feed + '-' + args.dns_mode + '.json')
         report.parent.mkdir(parents=True, exist_ok=True)
         record = dict(exitCode=result.returncode, stdout=result.stdout, stderr=result.stderr)
         report.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')

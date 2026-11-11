@@ -51,6 +51,7 @@ pub struct Resolved {
     pub ips: Vec<Ipv4Addr>,
     pub ech: Vec<u8>,
     pub resolver: String,
+    pub from_cache: bool,
 }
 
 struct Attempt {
@@ -153,7 +154,7 @@ fn select_records(
             .map(Ipv4Addr::from).filter(public_v4).collect();
         for ip in binding.ips { if public_v4(&ip) && !ips.contains(&ip) { ips.push(ip); } }
         ips.truncate(4);
-        if !ips.is_empty() { return Ok(Resolved { ips, ech, resolver: resolver.name.into() }); }
+        if !ips.is_empty() { return Ok(Resolved { ips, ech, resolver: resolver.name.into(), from_cache: false }); }
         bail!("ECH 已取得，但没有公网地址");
     }
     bail!("未提供有效 ECH 配置")
@@ -233,110 +234,75 @@ where F: Fn(Resolver) -> Fut + Clone + Send + 'static,
     (None, reports, failures)
 }
 
-/// Fallback JSON DoH used only when every standard public resolver fails.
-/// It is a public, keyless DNS endpoint; it returns no user traffic and the
-/// ECH/IP it provides are still validated before use.
-const PRIVATE_DOH: &str = "https://aaa.ddd.oaifree.com/query-dns";
+// With unchanged per-provider/per-attempt limits, standard DNS finishes in
+// at most ~43s. Keep its full budget, all three 8s fallback attempts, and leave
+// at least 20s of the 90s source deadline for cached addresses/site connections.
+const PUBLIC_BUDGET: Duration = Duration::from_secs(45);
+const FALLBACK_BUDGET: Duration = Duration::from_secs(25);
 
-async fn private_doh_resolve() -> Result<Resolved> {
-    let http = reqwest::Client::builder()
-        .no_proxy()
-        .timeout(Duration::from_secs(8))
-        .build()?;
-    let mut last = anyhow!("第三方 DoH 无响应");
-    // A bounded retry: this endpoint occasionally needs a couple of attempts.
-    for _ in 0..3 {
-        match private_doh_attempt(&http).await {
-            Ok(resolved) => return Ok(resolved),
-            Err(e) => last = e,
+struct Trace {
+    selected: Option<Resolved>,
+    reports: Vec<serde_json::Value>,
+    failures: Vec<String>,
+}
+type PublicResult = (Option<Resolved>, Vec<serde_json::Value>, Vec<String>);
+
+async fn pipeline<P, F>(cache_dir: Option<&str>, mode: DnsMode, public: P, fallback: F,
+    public_budget: Duration, fallback_budget: Duration) -> Trace
+where P: std::future::Future<Output=PublicResult>, F: std::future::Future<Output=Result<Resolved>> {
+    let mut trace = Trace { selected:None, reports:Vec::new(), failures:Vec::new() };
+    if mode == DnsMode::Auto {
+        match tokio::time::timeout(public_budget, public).await {
+            Ok((selected,reports,failures)) => {
+                trace.reports=reports;trace.failures=failures;
+                if selected.is_some() { trace.selected=selected;return trace; }
+            }
+            Err(_) => {
+                trace.reports.push(serde_json::json!({"resolver":"public","usable":false,"error":"public phase timed out"}));
+                trace.failures.push("公共 DNS 阶段超时".into());
+            }
         }
     }
-    Err(last)
+    if mode != DnsMode::Cache {
+        let result = tokio::time::timeout(fallback_budget, fallback).await
+            .context("第三方 DNS 阶段超时").and_then(|r|r);
+        match result {
+            Ok(resolved) => {
+                trace.reports.push(serde_json::json!({"resolver":"third-party","usable":true,"source":resolved.resolver}));
+                trace.selected=Some(resolved);return trace;
+            }
+            Err(error) => {
+                trace.reports.push(serde_json::json!({"resolver":"third-party","usable":false,"error":format!("{error:#}")}));
+                let brief = if error.is::<reqwest::Error>() { reason(&error).to_string() }
+                    else { error.to_string().chars().take(48).collect() };
+                trace.failures.insert(0, format!("第三方 DNS：{brief}"));
+            }
+        }
+    }
+    if mode == DnsMode::Fallback { return trace; }
+    trace.selected=cache::read(cache_dir);
+    trace.reports.push(serde_json::json!({"resolver":"cache","usable":trace.selected.is_some(),
+        "configured":cache_dir.is_some()}));
+    if trace.selected.is_none() { trace.failures.insert(0, "无有效本地 ECH 缓存".into()); }
+    trace
 }
 
-async fn private_doh_attempt(http: &reqwest::Client) -> Result<Resolved> {
-    let value: serde_json::Value = http
-        .get(PRIVATE_DOH)
-        .query(&[("name", HOST), ("type", "HTTPS")])
-        .header("accept", "application/dns-json")
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await
-        .context("第三方 DoH 响应无效")?;
-    ensure!(value["Status"] == 0, "第三方 DoH 返回错误状态");
-    let data = value["Answer"]
-        .as_array()
-        .and_then(|rows| rows.iter().find(|r| r["type"] == 65))
-        .and_then(|r| r["data"].as_str())
-        .context("第三方 DoH 未返回 HTTPS 记录")?;
-
-    let ech_b64 = svc_field(data, "ech").context("第三方 DoH 未提供 ECH")?;
-    let ech = base64::engine::general_purpose::STANDARD
-        .decode(ech_b64)
-        .context("ECH base64 解码失败")?;
-    // Validate the ECH before it can be used.
-    if EchConfig::new(
-        EchConfigListBytes::from(ech.clone()),
-        rustls::crypto::aws_lc_rs::hpke::ALL_SUPPORTED_SUITES,
-    )
-    .is_err()
-    {
-        bail!("第三方 DoH 提供了不受支持的 ECH");
-    }
-    let mut ips: Vec<Ipv4Addr> = svc_field(data, "ipv4hint")
-        .into_iter()
-        .flat_map(|v| v.split(','))
-        .filter_map(|s| s.parse::<Ipv4Addr>().ok())
-        .filter(public_v4)
-        .collect();
-    ips.truncate(4);
-    ensure!(!ips.is_empty(), "第三方 DoH 未提供公网地址");
-    Ok(Resolved {
-        ips,
-        ech,
-        resolver: "第三方 DoH · aaa.ddd.oaifree.com".into(),
-    })
+async fn trace(cache_dir: Option<&str>, mode: DnsMode) -> Trace {
+    pipeline(cache_dir,mode,gather(true),crate::fallback::resolve(),PUBLIC_BUDGET,FALLBACK_BUDGET).await
 }
 
-/// Extract a single SVCB text field value (token up to the next space).
-fn svc_field<'a>(data: &'a str, key: &str) -> Option<&'a str> {
-    let marker = format!("{key}=");
-    let start = data.find(&marker)? + marker.len();
-    let rest = &data[start..];
-    Some(match rest.find(' ') {
-        Some(end) => &rest[..end],
-        None => rest,
-    })
+pub async fn resolve(cache_dir: Option<&str>, mode: DnsMode) -> Result<Resolved> {
+    let trace=trace(cache_dir,mode).await;
+    trace.selected.ok_or_else(|| DnsFailure {
+        details:serde_json::json!(trace.reports),summary:trace.failures.join("; ")
+    }.into())
 }
 
-pub async fn resolve(cache_dir: Option<&str>) -> Result<Resolved> {
-    // 1. Standard public DoH failover.
-    let (resolved, reports, failures) = gather(true).await;
-    if let Some(resolved) = resolved {
-        cache::write(cache_dir, &resolved);
-        return Ok(resolved);
-    }
-    // 2. Public keyless JSON DoH fallback.
-    if let Ok(resolved) = private_doh_resolve().await {
-        cache::write(cache_dir, &resolved);
-        return Ok(resolved);
-    }
-    // 3. Last resort: a still-valid locally cached ECH set.
-    if let Some(resolved) = cache::read(cache_dir) {
-        return Ok(resolved);
-    }
-    Err(DnsFailure {
-        details: serde_json::json!(reports),
-        summary: failures.join("；"),
-    }
-    .into())
-}
-
-pub async fn diagnose() -> serde_json::Value {
-    let (_, reports, _) = gather(false).await;
-    serde_json::json!({"host":HOST,"stage":"dns-only","resolvers":reports})
+pub async fn diagnose(cache_dir: Option<&str>, mode: DnsMode) -> serde_json::Value {
+    let trace=trace(cache_dir,mode).await;
+    serde_json::json!({"host":HOST,"stage":"dns-pipeline","usable":trace.selected.is_some(),
+        "selected":trace.selected.as_ref().map(|r|&r.resolver),"resolvers":trace.reports,
+        "failures":trace.failures})
 }
 
 #[cfg(test)]
@@ -431,7 +397,7 @@ mod tests {
                     Attempt { resolved: None, brief: "未提供有效 ECH 配置".into(), details: serde_json::json!({"usable":false}) }
                 } else if resolver.name == "Google" {
                     tokio::time::sleep(Duration::from_millis(2)).await;
-                    Attempt { resolved: Some(Resolved { ips: vec![Ipv4Addr::new(104,18,26,233)], ech: ech_fixture(), resolver: resolver.name.into() }), brief: String::new(), details: serde_json::json!({"usable":true}) }
+                    Attempt { resolved: Some(Resolved { ips: vec![Ipv4Addr::new(104,18,26,233)], ech: ech_fixture(), resolver: resolver.name.into(), from_cache: false }), brief: String::new(), details: serde_json::json!({"usable":true}) }
                 } else { std::future::pending::<Attempt>().await }
             }
         }};
@@ -450,5 +416,58 @@ mod tests {
         let (selected, reports, failures) = gather_with(true, worker).await;
         assert!(selected.is_none());assert_eq!(reports.len(), RESOLVERS.len());
         for resolver in RESOLVERS { assert!(failures.iter().any(|error| error.starts_with(resolver.name))); }
+    }
+    fn sample() -> Resolved {
+        Resolved { ips:vec![Ipv4Addr::new(104,20,16,234)], ech:ech_fixture(), resolver:"fixture".into(), from_cache:false }
+    }
+    fn public_failure() -> PublicResult {
+        (None,vec![serde_json::json!({"resolver":"public-fixture","usable":false})],vec!["public failed".into()])
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn public_success_never_polls_third_party_or_writes_unverified_cache() {
+        let dir=crate::test_support::TempDir::new();let called=std::cell::Cell::new(false);
+        let outcome=pipeline(Some(dir.str()),DnsMode::Auto,
+            async {(Some(sample()),vec![],vec![])},
+            async {called.set(true);Err(anyhow!("must not run"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
+        assert!(outcome.selected.is_some());assert!(!called.get());assert!(cache::read(Some(dir.str())).is_none());
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn public_timeout_still_allows_the_live_fallback_to_succeed() {
+        let outcome=pipeline(None,DnsMode::Auto,std::future::pending(),async {Ok(sample())},
+            Duration::from_millis(2),Duration::from_secs(1)).await;
+        assert!(!outcome.selected.unwrap().from_cache);
+        assert!(outcome.failures.iter().any(|s|s.contains("超时")));
+        assert!(outcome.reports.iter().any(|r|r["resolver"]=="third-party" && r["usable"]==true));
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn both_slow_phases_leave_time_to_use_cache_and_preserve_errors() {
+        let dir=crate::test_support::TempDir::new();cache::write(Some(dir.str()),&sample());
+        let outcome=tokio::time::timeout(Duration::from_secs(1),pipeline(Some(dir.str()),DnsMode::Auto,
+            std::future::pending(),std::future::pending(),Duration::from_millis(2),Duration::from_millis(2))).await.unwrap();
+        assert!(outcome.selected.unwrap().from_cache);
+        assert_eq!(outcome.failures.len(),2);
+        for phase in ["public","third-party","cache"] {
+            assert!(outcome.reports.iter().any(|r|r["resolver"]==phase));
+        }
+        // Keep the original limits intact and explicitly reserve site time.
+        assert!(PUBLIC_BUDGET+FALLBACK_BUDGET+Duration::from_secs(20)<=Duration::from_secs(90));
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn missing_cache_reports_third_party_failure_instead_of_hiding_it() {
+        let outcome=pipeline(None,DnsMode::Auto,async {public_failure()},
+            async {Err(anyhow!("fallback fixture error"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
+        assert!(outcome.selected.is_none());
+        assert!(outcome.failures.iter().any(|s|s.contains("fallback fixture error")));
+        assert!(outcome.reports.iter().any(|r|r["resolver"]=="cache" && r["usable"]==false));
+    }
+    #[tokio::test(flavor = "current_thread")]
+    async fn cache_probe_is_network_free_and_fallback_probe_cannot_hide_behind_cache() {
+        let dir=crate::test_support::TempDir::new();cache::write(Some(dir.str()),&sample());
+        let cached=pipeline(Some(dir.str()),DnsMode::Cache,std::future::pending(),std::future::pending(),
+            PUBLIC_BUDGET,FALLBACK_BUDGET).await;
+        assert!(cached.selected.unwrap().from_cache);
+        let forced=pipeline(Some(dir.str()),DnsMode::Fallback,std::future::pending(),
+            async {Err(anyhow!("forced failure"))},PUBLIC_BUDGET,FALLBACK_BUDGET).await;
+        assert!(forced.selected.is_none());
     }
 }

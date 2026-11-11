@@ -10,34 +10,34 @@
 
 | 项目 | 当前本地核实 |
 | --- | --- |
-| Android 源码与测试包 | `3.8.3-dev` / code `30803`，`cn.yilan.news`，Android 8.0+ / target36 |
-| 当前测试 APK | [yilan-standalone-3.8.3-dev.apk](dist/android/yilan-standalone-3.8.3-dev.apk)，10,630,457 字节；h2 + 第三方DoH兜底 + ECH缓存；用户已报告手机取帖成功，本轮独立宿主复验取得30条RSS |
+| Android 源码与测试包 | `3.8.4-dev` / code `30804`，`cn.yilan.news`，Android 8.0+ / target36 |
+| 当前测试 APK | [yilan-standalone-3.8.4-dev.apk](dist/android/yilan-standalone-3.8.4-dev.apk)，10,655,033字节；加固后三条路径本机均HTTP200/30条，新版手机待验；3.8.3旧可用包保留 |
 | 测试包身份与报告 | [dist 元数据](dist/android/release.json)、[签名与权限报告](dist/android/android-verification.txt)；哈希以元数据为准 |
 | 正式 APK（未替换） | `3.0.0` / code `30000`，[正式 APK](releases/android/yilan-standalone-3.0.0.apk)，62,219 字节 |
 | 正式发布身份 | [release.json](releases/android/release.json) 与同目录 SHA 文件；README 正式下载仍指向 3.0.0 |
 | 来源配置 | 37 源，默认29（11综合+18AI），8个实验源默认关；新增 linuxdo 官方公开 RSS |
 | AI 资料 | 本轮未改；16平台 / 31工具，checkedAt=2026-10-28；另有模型结构，日期/置信度见 contracts C06 |
 | Windows | 仍 1.1.0；仅同步 linuxdo 默认关闭的 RSS 注册以维持共享配置一致性，未加 ECH、未重建桌面包 |
-| Git | main；3.8系列源码已提交并推送为 `002e1e5`；本轮审查文档另作增量提交，最终HEAD以git log为准 |
-| origin | `https://github.com/Wenjin-GM/News_getting.git`；用户本轮明确授权提交Git与GitHub；测试包仍只在dist，未发布正式包 |
+| Git | main / `97368a8ce5f5e869e1c2bfd43c8bc68818eef962`；3.8.4加固源码与交接未提交 |
+| origin | `https://github.com/Wenjin-GM/News_getting.git`；上一轮已同步97368a8；本轮仅授权加固，没有新增提交/推送或正式发布授权 |
 
-任务基线的未跟踪 `linux.do/` 及 `AI情报站/` 私有部署文件、REFRESH.md、.scratch/ 原样保留且未提交。002e1e5是先前3.8系列双方增量的完整源码快照，不能把全部改动归给最后一名执行者。本轮随后只独立审查、运行测试/宿主探测和维护文档，未修改业务代码、未重建APK。`.local/`、`.cache/`、dist与签名不提交。
+任务基线仅剩未跟踪linux.do/与AI情报站私有文件，保留且不提交。002e1e5为此前双方3.8增量快照，97368a8为审查后基线。本轮仅原生网络/缓存、宿主诊断、版本及相关文档；新增fallback.rs、cfg(test)的test_support.rs。来源/目录/状态格式/界面不改；.local/.cache/dist与签名不提交。
 
 ## 当前工作断点与下一步 · P1 / Pending
 
-1. **用户验收新增事实**：用户报告另一个模型接手升级后，APK已能访问并获取linux.do内容；这属于用户真机反馈，不是本轮执行者亲手操作手机。来源开关/收藏/已读升级保留未单独获确认。
-2. **独立源码核对**：在原ECH直连上新增HTTP/2及Chrome Mobile请求头、无密钥第三方JSON DoH回退、私有目录ECH缓存。当前RSS成功；不能据此断言Cloudflare内部的具体判定规则或完整模拟了Chrome TLS指纹。决策见D14/D15，契约见C03。
-3. **本轮独立实测通过**：Rust14项、JVM10组PASS；重新离线编译宿主CLI，不用ECH缓存请求官方RSS，4.58秒取得30条、ECH accepted且TLS验证通过。现有APK三ABI库与编译输出、内置来源/资料、元数据哈希一致；本轮没有重建APK，三ABI构建属于前轮证据。
-4. **审查断点**：新增第三方DoH的HTTPS/重定向与响应上限、回退耗时可能挤掉缓存、诊断遗漏新增层等需后续加固，详见[LINUXDO独立审查](docs/android/LINUXDO.md#独立审查发现与待办)。当前用户只要求提交并查看，没有自动修改已可用的实现。
+1. **验收边界**：3.8.3已获用户手机取帖成功反馈；3.8.4加固版尚未真机覆盖安装，不能沿用旧通过结论。来源开关/收藏/已读升级保留也未单独获确认。
+2. **用户当前任务**：授权加固且要求不影响获取。保留已成功的h2/ALPN/请求头、第三方接口与8秒/3次重试、原公共预算；加固HTTPS/响应、缓存和诊断。具体实现由[LINUXDO](docs/android/LINUXDO.md#384加固实现与本轮验证)维护，契约见C03。
+3. **本轮实测**：修改前RSS30条；修改后三种模式均HTTP200/30条、HTTP/2、ECH accepted/证书验证通过。纯缓存前后文件哈希一致。25项Rust、JVM10组、三ABI构建/原签名/INTERNET-only与打包差异核对通过。
+4. **下一步**：用户覆盖安装3.8.4，开启LINUX DO并单独更新，复验取帖/升级数据。总硬上限从65增至90秒，公共45/第三方25，慢失败后给缓存/站点留约20秒；正常成功立即返回。真实手机网络/断电/慢网尚未独立执行；外部DNS单点、ECH轮换与站点策略仍有风险。
 5. UI与模型资料未改：3.5修正版用户已确认通过；3.7新背景/底栏视觉没有新的完整验收结论。资料checkedAt=2026-10-28、模型asOf=2026-10-21不变。docs/TODO.md不自动启动更多功能。
 
 ## 已有验证与边界 · P1 / Active
 
-- 本轮复跑 `native.py test --offline` 的14项Rust测试、`test.py` JVM10组回归通过；三ABI构建/原签名/INTERNET-only通过属于前轮证据，本轮未执行build.py。JVM不执行按钮/JNI；手机取帖成功依据用户本轮反馈，不延伸为升级数据/全机型验收。
-- 已核对三 ABI 库与 APK 内字节一致（arm64 4,464,472 / armv7 2,823,220 / x86_64 5,087,816），全部 assets 未改并与维护源一致，正式 APK 哈希未变。ELF 仅系统 libc/libdl 依赖，64 位 LOAD 段 16KiB 对齐；ABI 仍 arm64/armv7/x86_64，不含 32 位 Intel x86。
-- 前轮 `python scripts/android/build.py` 成功，原证书/INTERNET-only/SDK版本等检查通过；本轮只复核现有APK哈希、三ABI库与维护资产一致、正式APK未变。生产DEX不含DeviceSmoke为既有构建检查证据，未在本轮重复扫描；产物身份见dist元数据。
+- 本轮native.py test --offline的25项Rust、test.py的JVM10组、build.py均通过。覆盖第三方重定向/响应边界、慢公共阶段→第三方/两层超时→缓存、错误保留、旧缓存兼容/原子替换/到期/回拨/不续期。JVM不执行按钮/JNI，手机升级需另验。
+- 本轮三ABI库与APK字节一致且不同于3.8.3；全部assets未改且匹配维护源。ELF仅系统libc/libdl依赖，64位LOAD段16KiB对齐；ABI仍arm64/armv7/x86_64，不含32位Intel x86，生产DEX未含DeviceSmoke。正式3.0与旧可用3.8.3哈希均未变。
+- 本轮构建3.8.4原证书、INTERNET-only、SDK/版本检查通过；新依赖/许可证没有变化。打包报告.local/reports/linuxdo-hardening-package.json，产物身份仅由dist元数据持有。
 - `go test ./...` 是 3.8 轮通过的历史证据，含共享来源注册表一致性；3.8.3 未改 Go/来源表，未重跑 Go 或重建桌面产品。
-- 本轮真实网络：当前源码RSS探测退出0，约69KiB/30条；报告.local/reports/linuxdo-review-rss.json，CLI不使用ECH缓存。成功输出未标记DNS服务，不能断言本轮走了第三方回退。前轮记录标准DoH超时、第三方成功仅属于当时网络，不当作永久封锁结论。no_proxy和绕过linux.do hosts仍不证明宿主没有透明转发，见F19/F22。
+- 本轮真实网络：自动经Cloudflare、强制第三方经aaa.ddd.oaifree.com、只用缓存三模式各200/30条；报告.local/reports/linuxdo-ech-rss-{auto,fallback,cache}.json。DNS强制第三方诊断亦退出0，已记录实际来源/状态。修改前基线在linuxdo-hardening-before.json；不把宿主成功当手机通过，no_proxy仍不排除宿主透明转发，见F19/F22。
 - 早期build-smoke.py已编译测试APK，但模拟器等待240秒仍offline，后续重试也未出现可用ADB，未安装APK，启动根因未确认。当前h2版已有用户手机取帖成功反馈；独立设备instrumentation、升级数据保留仍未完成，本轮未启动模拟器。
 - 正式 3.0、既有3.5真机/早期无模型精选和网络成功记录仅为历史证据，入口仍为 [安卓验收](docs/android/VALIDATION.md)。不延伸为当前版本或全源/全机型认证。
 - dist/测试包/报告仅在本工作区；Git 不含这些产物。新克隆必须准备 Rust/NDK/依赖和有效签名，不能把源码提交理解为正式下载更新。
@@ -67,6 +67,6 @@
 ## 接续与记忆沿革 · P2 / Active
 
 - 新任务核对实际 Git/源码/用户最新授权；README 是正式安装/当前开发入口，TODO 不是自动执行授权。
-- 3.8阶段维护既有五专题，本轮增量仅contracts/pitfalls与本交接，不创建日期型总结；技术实测集中LINUXDO，私有运行报告不提交。正式/开发身份分开维护。
+- 本轮更新相关既有专题与交接，不创建日期型总结；实现/实测集中LINUXDO，私有报告/缓存不提交。正式、旧可用包和新测试包身份分别保留。
 - 旧十专题合并后的知识继续保留；不要恢复旧摘要副本、旧 PWA 运行架构或失效部署细节。界面生成工具默认工作区外缓存的历史边界仍见 F18。
 - 文档维护检查 `python scripts/check-handoff.py`、`git diff --check`；保留真实失败，不以重建/改正式包作为记忆维护手段。

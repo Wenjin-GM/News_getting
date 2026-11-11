@@ -40,9 +40,9 @@ Go `builtins()` 与安卓配置的字段、顺序、端点及 enabled/experiment
 - 响应解压后正文最多 5 MiB，JSON 嵌套最多 64，解析结果最多 40 条/源。
 - 不执行脚本或 XML 外部实体请求；来源内容只作为数据。
 
-`linuxdo` 为默认关闭的公开 RSS 实验源，APK 经 LinuxDoTransport/JNI 调用固定站点 Rust ECH 客户端，其余来源不走该组件。仅取最新一批 RSS，不承诺完整历史或当天无遗漏。**ECH 获取为三级容错**（dns.rs `resolve(cache_dir)`）：六家标准公共 DoH → 公共无密钥 JSON DoH 兜底（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）→ 应用私有目录 ECH 缓存（cache.rs，文件 `linuxdo-ech-cache.json`，最长 7 天，读回重新校验 ECH）。拒绝私网/回环目标；向站点发送 HTTP 前必须验证正常证书/主机名并确认 EchStatus::Accepted。**站点传输为 HTTP/2**（ALPN `h2,http/1.1`，hyper http2，Chrome Mobile UA）；无私有 CA、代理监听、Cookie、登录、JS、重定向或明文 SNI 降级。整体65秒、DNS响应65,535字节、内容5MiB上限；遇验证停止并沿用 C04 保留策略。JNI `nativeGet(endpoint,cacheDir)` 新增缓存目录参数，MainActivity 传入 `getFilesDir()` 绝对路径。详细接口/预算由 [LINUXDO](../docs/android/LINUXDO.md) 维护；不扩展为 GitHub/YouTube 通用连接器。
+`linuxdo`默认关闭，只取官方最新一批RSS，不承诺完整历史。APK由LinuxDoTransport/JNI进入固定站点Rust；其余来源仍原HTTPS。ECH三级顺序为标准公共DoH→既有无密钥第三方→私有缓存；站点始终正常验证证书/主机名、ECH Accepted和h2协商。原ALPN列表/Chrome Mobile请求头保留，无CA/登录/Cookie/JS/代理监听或站点重定向。3.8.4总上限90秒（公共45、第三方25），各次原预算/重试不缩短；全部DNS/缓存读入65,535字节、内容5MiB，失败沿用C04旧快照。JNI签名仍nativeGet(endpoint,cacheDir)，目录仍getFilesDir()。完整路线、阶段预算及验证由[LINUXDO](../docs/android/LINUXDO.md)维护，不扩展为通用连接器。
 
-实现例外已独立核实：上述DNS65,535字节与禁重定向仅覆盖标准二进制DoH/站点路径，第三方JSON客户端未加同等响应上限且沿用默认重定向；不能宣称所有DNS路线均已受限。三级预算、缓存语义、诊断覆盖与ALPN回退的待加固项由[LINUXDO审查](../docs/android/LINUXDO.md#独立审查发现与待办)统一维护；本轮只审查，未改业务实现。
+3.8.4已修复第三方例外：HTTPS-only、最多两次同域HTTPS/443重定向、响应上限与本站HTTPS参数校验。缓存旧字段兼容，原子替换，仅站点响应通过校验后写；缓存命中不续期，最长7天且拒绝明显未来时间。诊断共用生产管道并保留每层错误；强制fallback/cache仅宿主探测，JNI始终auto。具体测试/真机未验证范围见LINUXDO，不能把本机三模式成功当新版手机已验收。
 
 3.8.3 的公共 DNS 优先尝试 Cloudflare/Google 的 HTTPS IP URL，正常验证公共证书链/IP SAN；域名引导及系统解析作备用，验证真实域名。只有实测支持IP证书的服务启用IP URL，不扩大Java新闻链接的允许范围或信任根。HTTP200不算完整解析，必须取得受支持 ECH 和公网地址；可用同条有效 HTTPS 记录的 ipv4hint 弥补 A 失败，但仍作站点证书/ECH验证。最多两家并发；首个完整结果取消其他任务，全部失败保留各家原因。不得把“DNS已解析”与后续403/取帖成功混为一谈。完整路线、预算和诊断入口由 LINUXDO 文档持有。
 

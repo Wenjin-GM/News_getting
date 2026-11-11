@@ -28,7 +28,8 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | [NewsEngine.java](../android/src/cn/yilan/news/NewsEngine.java) | 纯 Java 来源/文章/快照模型、HTTPS、RSS/Atom/JSON/HTML 适配、安全 URL 与降级 |
 | [LinuxDoTransport.java](../android/src/cn/yilan/news/LinuxDoTransport.java)、[Rust 核心](../android/native/linuxdo/src/lib.rs) | 可选固定站点 ECH/JNI；仅 linuxdo 使用，其余来源保留标准 HTTPS；站点走 HTTP/2，不监听本地端口或引入认证页 |
 | [dns.rs](../android/native/linuxdo/src/dns.rs) | ECH 三级获取：公共 DoH failover → 第三方 JSON DoH 兜底 → 缓存；A/HTTPS 完整性校验、有限并发与阶段诊断 |
-| [cache.rs](../android/native/linuxdo/src/cache.rs) | 应用私有目录 ECH 缓存（`linuxdo-ech-cache.json`，最长 7 天，读回重新校验），仅实时通道全失败时使用 |
+| [fallback.rs](../android/native/linuxdo/src/fallback.rs) | 原第三方JSON DoH的有界HTTPS传输、同域重定向/记录校验；不承载新闻正文 |
+| [cache.rs](../android/native/linuxdo/src/cache.rs) | 私有ECH缓存，最长7天、有界读取和原子替换；仅实时通道失败时使用，站点响应成功才更新，命中不续期 |
 | [NewsState.java](../android/src/cn/yilan/news/NewsState.java) | 不依赖 UI 的旧状态恢复、默认设置与序列化 |
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |
 | [FeaturedNews.java](../android/src/cn/yilan/news/FeaturedNews.java) | 无模型标题归并、机构去重与上海日期分组 |

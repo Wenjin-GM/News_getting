@@ -10,6 +10,12 @@ use std::sync::Arc;
 use std::time::Duration;
 mod cache;
 mod dns;
+mod fallback;
+#[cfg(test)] mod test_support;
+
+/// Non-default modes are developer probes; JNI always selects Auto.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DnsMode { Auto, Fallback, Cache }
 
 const HOST: &str = "linux.do";
 const LIMIT: usize = 5 * 1024 * 1024;
@@ -19,6 +25,9 @@ const DNS_ID: u16 = 0;
 pub struct Fetched {
     pub body: Vec<u8>,
     pub content_type: String,
+    pub dns_source: String,
+    pub from_cache: bool,
+    pub status: u16,
 }
 
 #[derive(Debug)]
@@ -40,10 +49,14 @@ fn allowed_path(endpoint: &str) -> Result<&'static str> {
 
 /// One bounded request. ECH must be accepted before any HTTP request is sent.
 pub fn fetch(endpoint: &str, cache_dir: Option<&str>) -> Result<Fetched> {
+    fetch_mode(endpoint, cache_dir, DnsMode::Auto)
+}
+
+pub fn fetch_mode(endpoint: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Fetched> {
     let path = allowed_path(endpoint)?;
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
     let result = runtime.block_on(async {
-            tokio::time::timeout(Duration::from_secs(65), fetch_inner(path, cache_dir))
+            tokio::time::timeout(Duration::from_secs(90), fetch_inner(path, cache_dir, mode))
                 .await.context("linux.do 加密连接超时")?
         });
     // OS getaddrinfo is not cancellable. Do not wait indefinitely for a
@@ -53,9 +66,13 @@ pub fn fetch(endpoint: &str, cache_dir: Option<&str>) -> Result<Fetched> {
 }
 
 pub fn diagnose_dns() -> Result<serde_json::Value> {
+    diagnose_dns_mode(None, DnsMode::Auto)
+}
+
+pub fn diagnose_dns_mode(cache_dir: Option<&str>, mode: DnsMode) -> Result<serde_json::Value> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
-    let result = runtime.block_on(dns::diagnose());
+    let result = runtime.block_on(dns::diagnose(cache_dir, mode));
     runtime.shutdown_timeout(Duration::from_millis(100));
     Ok(result)
 }
@@ -64,13 +81,18 @@ pub fn dns_error_details(error: &anyhow::Error) -> Option<&serde_json::Value> {
     error.downcast_ref::<dns::DnsFailure>().map(|failure| &failure.details)
 }
 
-async fn fetch_inner(path: &str, cache_dir: Option<&str>) -> Result<Fetched> {
+async fn fetch_inner(path: &str, cache_dir: Option<&str>, mode: DnsMode) -> Result<Fetched> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-    let resolved = dns::resolve(cache_dir).await?;
+    let resolved = dns::resolve(cache_dir, mode).await?;
     let mut last = anyhow!("没有可用的站点地址");
-    for ip in resolved.ips {
+    for ip in resolved.ips.iter().copied() {
         match tokio::time::timeout(Duration::from_secs(10), send(ip, &resolved.ech, path)).await {
-            Ok(Ok(response)) => return Ok(response),
+            Ok(Ok(mut response)) => {
+                cache::write(cache_dir, &resolved);
+                response.dns_source = resolved.resolver;
+                response.from_cache = resolved.from_cache;
+                return Ok(response);
+            }
             Ok(Err(error)) if error.is::<AccessVerification>() =>
                 return Err(error.context(format!("DNS 已解析（{}）", resolved.resolver))),
             Ok(Err(error)) => last = error,
@@ -103,6 +125,7 @@ async fn send(ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
         .connect(ServerName::try_from(HOST.to_owned())?, tcp).await
         .context("linux.do ECH/certificate verification failed")?;
     ensure!(tls.get_ref().1.ech_status() == EchStatus::Accepted, "Server did not accept ECH");
+    ensure!(tls.get_ref().1.alpn_protocol() == Some(b"h2"), "linux.do 未协商 HTTP/2；已停止");
     let (mut sender, connection) = hyper::client::conn::http2::handshake(TokioExecutor::new(), TokioIo::new(tls)).await?;
     let task = tokio::spawn(async move { let _ = connection.await; });
     // Abort even on errors; no background listener or leaked connection task.
@@ -129,6 +152,7 @@ async fn send(ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
     ensure!(content_type.starts_with("application/rss+xml") || content_type.starts_with("application/json")
         || content_type.starts_with("application/xml") || content_type.starts_with("text/xml"),
         "linux.do returned a non-feed response; access verification may be required");
+    let status = response.status().as_u16();
     let mut incoming = response.into_body();
     let mut body = Vec::new();
     while let Some(frame) = incoming.frame().await {
@@ -138,7 +162,7 @@ async fn send(ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<Fetched> {
         }
     }
     ensure!(!body.is_empty(), "linux.do returned an empty response");
-    Ok(Fetched { body, content_type })
+    Ok(Fetched { body, content_type, dns_source: String::new(), from_cache: false, status })
 }
 
 fn dns_request(kind: u16) -> Vec<u8> {

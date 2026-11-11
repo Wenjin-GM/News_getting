@@ -1,15 +1,42 @@
 # LINUX DO 实验来源与本地验证
 
-## 当前状态：匿名 h2 取帖已获用户真机成功反馈
+## 当前状态：3.8.4加固版，三条路径本机取帖通过
 
 - **有效组合**：前轮记录HTTP/1.1请求遭403，而HTTP/2（ALPN `h2,http/1.1`、hyper http2握手）与Chrome Mobile UA组合取得RSS200；前轮还记载仅换UA无效、about.json200而latest.json仍403。本轮仅独立复验最终RSS组合，没有重演完整A/B；不能断言Cloudflare内部判定规则。底层仍为rustls，不等于完整模拟Chrome TLS指纹。
 - **ECH 三级获取**（dns.rs `resolve(cache_dir)`）：六家标准公共 DoH → 公共无密钥 JSON DoH（`aaa.ddd.oaifree.com/query-dns`，最多 3 次重试）兜底 → 应用私有目录缓存（cache.rs，`linuxdo-ech-cache.json`，最长 7 天，读回重新校验）。
 - **安全不变**：ECH Accepted、证书/主机名校验、5MiB/类型校验全部保留；无 Cookie/登录/WebView/代理，未关闭 TLS。第三方 DoH 仅返回公开 DNS 数据，即使被伪造也会在端到端 TLS 校验失败。
-- **当前验收**：用户已报告手机访问与取帖成功。本轮独立重跑Rust14项、JVM10组PASS；离线编译宿主CLI后关闭ECH缓存探测，4.58秒取得官方RSS30条（69,421字节）、ECH accepted及TLS验证通过，退出0。报告.local/reports/linuxdo-review-rss.json；输出不含DNS服务，不能断言这次走第三方兜底。现有APK10,630,457字节，哈希、三ABI库及维护资产核对一致；本轮未重建APK或操作手机。决策见D14/D15。
+- **当前验收**：3.8.3是用户已报告手机成功的基线；修改前宿主请求4.44秒取得30条。3.8.4的自动、强制第三方、纯缓存三条路径均实测HTTP200/30条、HTTP/2、ECH accepted及TLS验证通过。25项Rust测试、JVM10组回归、三ABI构建/原签名/INTERNET-only通过。新APK10,655,033字节，旧可用APK与正式包哈希未变；新版手机、覆盖安装数据保留未验证，不沿用旧版真机结论。
+
+## 3.8.4加固实现与本轮验证
+
+用户授权加固并要求保留取帖功能；基线main/97368a8。未提交/推送，不继承上一轮Git发布授权。
+
+本轮新增fallback.rs、test_support.rs；修改cache.rs/dns.rs/lib.rs/main.rs、Manifest、ApkProvider、native.py；同步README、本说明、HANDOFF及architecture/contracts/decisions/pitfalls四专题。没有删除文件；任务前未跟踪的linux.do/及AI情报站私有资料未改。git diff --check通过；check-handoff.py退出1，唯一错误仍为测试Manifest/正式包版本不一致，另有既有未发布来源警告，不以替换正式包消除提示。
+
+- 新增fallback.rs，将原第三方接口与8秒/3次重试原样保留；强制HTTPS，最多两次同域HTTPS/443重定向，拒绝降级、换域、凭据或其他端口。声明长度与逐块实际读取双重限制65,535字节，再解析JSON/本站HTTPS记录；校验所属名称、优先级/目标、端口、mandatory和重复字段，避免fake_ech等子串匹配。
+- dns.rs统一生产和诊断三级流程，第三方失败不再被丢弃，并报告缓存可用性。公共阶段45秒、第三方25秒，保留各家原请求预算和3×8秒重试；总来源从65改90秒，留约20秒给缓存/站点。正常成功立即返回，最坏失败等待增加。native.py的auto/fallback/cache仅用于开发探测，JNI始终自动模式。
+- cache.rs兼容原文件/字段，限制读入65,535字节；临时文件写完sync_all后同目录rename替换，失败不覆盖旧文件。只在站点响应通过既有TLS/ECH/状态/类型/大小校验后写入；缓存命中不续期。最长7天、容忍5分钟小幅时钟偏差，超过未来偏差/过期/损坏/私网/无效ECH拒绝；7天不保证服务器密钥有效7天，原子替换也不等于已做断电验收。
+- lib.rs保留原ALPN列表、HTTP/2、UA及全部成功请求头；仅显式要求实际协商h2，避免假称HTTP/1.1回退。RSS输出新增dnsSource/cacheUsed/httpStatus。没有新增依赖、改Cargo.lock、权限、来源/AI资料、状态schema或界面；Manifest/Provider递增为3.8.4-dev/30804。新增test_support.rs只用于cfg(test)，不进入APK。
+
+实际验证命令（已载入scripts/dev-env.ps1；本机使用已有E:/Conda/main/python.exe，未修改系统环境）：
+
+```powershell
+python scripts/android/native.py test --offline
+python scripts/android/test.py
+python scripts/android/native.py probe --feed rss --dns-mode auto --offline
+python scripts/android/native.py probe --feed rss --dns-mode fallback --cache-dir .local/linuxdo-hardening-cache --offline
+python scripts/android/native.py probe --feed rss --dns-mode cache --cache-dir .local/linuxdo-hardening-cache --offline
+python scripts/android/native.py probe --feed dns --dns-mode fallback --offline
+python scripts/android/build.py
+```
+
+以上均退出0；25项Rust测试含慢公共阶段→第三方、两阶段慢失败→缓存、全失败错误保留、重定向/超大响应/错误记录、旧缓存兼容/原子替换/到期/回拨/不续期。三条真实RSS路径各取得30条，纯缓存前后缓存文件哈希相同。基线报告.local/reports/linuxdo-hardening-before.json；新报告linuxdo-ech-{rss,dns}-{auto,fallback,cache}.json（按实际执行组合）、linuxdo-hardening-package.json。打包核对三ABI库字节一致且确实变更、仅系统libc/libdl依赖、64位16KiB对齐、全部assets未变、生产DEX不含DeviceSmoke，旧可用3.8.3及正式3.0哈希未变。
+
+未验证：新版手机运行/覆盖安装保留、真实慢网/断电；这轮慢失败主要由fixture验证。第三方DNS单点、ECH轮换和站点未来访问策略仍是外部风险。
 
 ## 独立审查发现与待办
 
-当前可用源码已提交并推送为002e1e5；以下仅记录审查结果，本轮不改业务实现。
+以下是3.8.3审查时的历史记录（当时源码快照002e1e5、审查未改业务）。已由上节3.8.4修复所列实现缺口；外部依赖风险仍保留，不将下列旧缺陷当作当前实现。
 
 - **实际改动位置**：lib.rs从HTTP/1.1改hyper HTTP/2、增加TokioExecutor及浏览器UA/Accept/语言头；dns.rs增加第三方JSON接口；cache.rs新增7天ECH/公网地址缓存；JNI/Java新增cacheDir参数，由MainActivity传getFilesDir()。Cargo开启hyper/http2及reqwest/json，锁文件和许可证已同步。原有单站按钮、37源注册与工具准备多数早于此次接手，不全算对方新写。
 - **依赖边界**：第三方只返回DNS/ECH/IP数据，不转发新闻正文，也不要求账号/API Key；站点内容仍由手机直接向linux.do取得。它不是本项目自建新闻后端，但增加了外部单一服务依赖；首次安装没有缓存，所有实时解析不可达就会失败。该服务能看到查询名称及连接元数据，不能把端到端内容校验写成“没有任何信息泄露”。
@@ -20,7 +47,7 @@
 
 ## 当前交付边界
 
-当前开发版 `3.8.3-dev / 30803`，针对手机 DNS 持续超时，增加验证 IP 证书的 HTTPS DNS 路径并放宽有限超时。3.8 首次增加默认关闭的 `linuxdo` 实验来源，3.8.1 在设置 → 信息来源 → LINUX DO 卡片中新增「单独更新 LINUX DO」。开启来源后点击，每次只发起一轮本站刷新，绕过普通缓存/失败冷却；期间禁用按钮，完成后显示取得条数或失败提示。顶部更新继续按既有开关规则工作，专用按钮不改变开关或自动循环重试。
+当前开发版 `3.8.4-dev / 30804`，加固已可用的h2/DNS回退。3.8首次增加默认关闭的linuxdo，3.8.1增加单站按钮；开启来源后每次只发起一轮本站刷新，绕过普通缓存/失败冷却，期间禁用并显示结果。顶部更新/开关规则不变，不自动循环重试。
 
 仅使用官方公开 `https://linux.do/latest.rss`，展示标题、原文链接、发布时间和 RSS 提供的文本摘要；沿用每源最多 40 条、摘要 300 字符的归一化规则。不抓私密帖子、完整回复串或任意历史分页，不承诺当天无遗漏。
 
@@ -89,7 +116,7 @@ MainActivity / NewsEngine
 - no_proxy 禁用的是 HTTP 代理，不证明宿主机不存在系统级透明转发；不能据本机探测断言用户的无 VPN 手机网络已通过。
 - DoH 使用前述六家公共服务的 HTTPS 二进制 DNS 协议；**（2026-11-11 更新）公共 DoH 全失败时已新增第三方 JSON DoH 兜底与本地缓存，见顶部小节与 D15**。DNS 和站点 TLS 都用内置公共 Mozilla 根证书正常校验，IP URL 校验 IP SAN，域名 URL 校验域名，没有跳过证书或身份校验的分支。信任根随依赖更新，不是系统 CA 的逐机副本。
 - 站点目标固定 linux.do:443；Java 只准 latest.rss，Rust 另准 latest.json 供开发诊断。拒绝私网/回环 IPv4，不接受任意 URL、重定向、登录 URL、Cookie、认证头或明文/ECH 降级。
-- 整次原生请求使用65秒 deadline；DoH预算见上节，单个站点尝试最多10秒。DNS 响应上限65,535字节，站点响应上限5 MiB；请求 identity 编码，拒绝意外压缩响应；只接受 RSS/XML/JSON 类型。
+- 整次原生请求使用90秒deadline；DoH分阶段预算见加固实现，单个站点尝试仍最多10秒。全部DNS响应及缓存读入上限65,535字节，站点响应上限5MiB；请求identity编码，拒绝意外压缩响应，只接受RSS/XML/JSON类型。
 - 403 或 cf-mitigated:challenge 返回“需要访问验证”，不执行 JS。失败交给 NewsEngine 原有逻辑，仅更新 checked/error，保留 items/fetched。NativeEngineTest 覆盖模拟挑战、解析失败、DNS/证书异常的旧快照与收藏/已读恢复。
 - 状态 schema 仍为 3，文章 ID 算法和已有来源 ID 不改；旧安装中不存在的新来源按默认关闭恢复。AI 资料和日期不改。
 - 维护表变为 37 源，默认仍 29。Go `builtins()` 仅补同一条默认关闭的 RSS 注册以通过共享注册表一致性测试；没有为桌面端引入 Rust/ECH。
@@ -121,7 +148,7 @@ go test ./desktop -run TestAndroidSourceRegistryMatchesDesktop -count=1
 python scripts/android/build.py
 ```
 
-首次依赖需联网；有 Cargo.lock 后构建默认 --locked，APK 构建使用 --offline，缺依赖直接失败，不悄悄发出不带 native 库的安装包。--offline 只限制 Cargo 下载，probe 仍发出实际网络请求。报告在 `.local/reports/linuxdo-ech-{dns,rss,json}.json`；dns 子模式至少一家有效才退出0，全部无效退出1；RSS/JSON 原生进程退出2表示完成 ECH/证书校验后仍需访问验证，不能归为抓取成功。
+首次依赖需联网；有Cargo.lock后构建默认--locked，APK构建--offline，缺依赖直接失败。--offline只限制Cargo下载，probe仍实际联网；新报告名linuxdo-ech-{feed}-{dns-mode}.json。dns模式与生产共用三级流程，usable=true才退出0，否则1；RSS/JSON遇访问验证子进程退出2，不算取帖成功。强制cache只省略DNS网络，仍需联网访问站点；APK没有这些模式的设置入口。
 
 可选 Android 运行检查：`prepare-tests.py --emulator --google-cdn` 下载；`. scripts/android/emulator-env.ps1` 设置进程内状态目录；`prepare-avd.py` 建 AVD；`build-smoke.py` 建独立同签名 instrumentation 测试 APK；`smoke.py` 只允许本轮空白 emulator-5580，验证本地已有的 3.7 APK → 3.8 升级、真实 JNI 与 Activity 启动。旧 APK、密钥、报告不在 Git，新克隆不能假定这些资产存在。脚本不负责启动/停止模拟器，必须另行记录进程状态。
 
@@ -145,7 +172,7 @@ python scripts/android/build.py
 | 新增 android/native/linuxdo/ 的 Cargo.toml、Cargo.lock、src/lib.rs、src/main.rs | 独立 ECH/JNI 实现、固定依赖与宿主诊断程序 |
 | 新增 LinuxDoTransport.java；修改 NewsEngine.java / MainActivity.java | 注入固定来源传输，接入原有刷新、解析与缓存失败保留 |
 | config/sources.json / desktop/sources.go | 新增默认关闭的同一 RSS 注册，Go 仅维持共享表一致 |
-| AndroidManifest.xml / ApkProvider.java | 当前3.8.3-dev / 30803 与分享文件名 |
+| AndroidManifest.xml / ApkProvider.java | 当前3.8.4-dev / 30804 与分享文件名 |
 | NativeEngineTest.java / 新增 DeviceSmoke.java | JVM 回归及独立设备 instrumentation；后者没有进入产品 DEX |
 | build.py / test.py / prepare-tests.py | 原生库/许可打包、增加 JVM 编译入口、官方 CDN 可选下载 |
 | 新增 prepare-native.py / native.py / native-licenses.py | 便携工具准备、编译/协议探测和许可证汇集 |
@@ -155,7 +182,7 @@ python scripts/android/build.py
 
 没有删除文件。源码快照002e1e5已按用户要求提交/推送，随后审查说明另作增量文档提交；任务前已有的linux.do/和AI情报站私有未跟踪内容保留且未提交。dist/.cache/.local是本地忽略产物。完整暂存检查发现生成许可原文尾空白，原文保留；排除该许可的源码/文档检查通过。交接检查器已知开发/正式版本不一致，不能据此替换正式包。
 
-历史首次3.8.3仅改DNS路线/预算；后续接手在同版本新增h2、第三方DoH、缓存及依赖。当前用户授权提交现状后审查，本轮只维护审查/交接文档和本地测试报告，没有修改业务代码、重建APK、清理参考目录或改来源/模型数据。
+历史首次3.8.3仅改DNS路线/预算；后续接手新增h2、第三方DoH、缓存及依赖，先提交后审查。当前用户追加授权加固，已构建3.8.4测试包；本轮未提交/推送、清理参考目录或改来源/模型资料，具体差异见顶部加固实现。
 
 ## 打开核对过的官方资料
 

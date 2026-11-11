@@ -159,6 +159,12 @@
 - 有效解：保持 ECH + TLS 校验，传输改 h2 + Chrome Mobile UA（见 D14），ECH 用公共→第三方 JSON DoH→缓存三级获取（见 D15）。
 - 防复发：可用性验证到TLS/ECH和实际RSS；重试历史失败路线需有网络/工具变化依据，不永久禁止。新增回退/缓存的审查待办由[LINUXDO](../docs/android/LINUXDO.md#独立审查发现与待办)维护；历史报告在.local/reports/{net-reach,dot-reach,cf-doh-reach,doh-ip-reach}.txt，本轮成功在linuxdo-review-rss.json。
 
+## F23 · P1 / Active · 总截止不能代替分阶段预算，缓存命中不能续期
+
+- 3.8.3标准DNS最坏约43秒加第三方3×8秒，已经超过65秒总限，缓存读取和站点连接可能根本没机会执行；只增加“最后读缓存”分支不保证回退可达。3.8.4保留原请求/重试预算，公共45/第三方25/总90秒，预留约20秒连接；慢阶段fixture确认能到缓存。
+- 旧缓存基于解析成功即写，可能覆盖旧可用记录；若每次命中又写回会无限续期。3.8.4只在站点响应通过验证后写、命中不更新saved_at，旧格式可读、坏更新不覆盖；纯缓存真实取帖前后文件哈希一致。7天仅本地淘汰上限，不能保证服务器ECH有效期。
+- 证据/完整实现由[LINUXDO](../docs/android/LINUXDO.md#384加固实现与本轮验证)、cache/dns测试维护；新版手机仍待验，不将本机三个成功模式称全网保证。
+
 ## P3 / Obsolete · 已退役层的临时排障
 
 旧 Vinext 的 Node 要求、manifest 登录凭据、Service Worker、CSP nonce、隐藏 stdin CR/LF 等均属于已删除 PWA。只保留该适用性边界，不迁移临时会话 ID、命令流水或失效部署步骤，不列为原生待办。

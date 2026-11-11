@@ -55,7 +55,7 @@ python scripts/android/build.py
 
 官方工具位于 `.cache/android/` 与 `.cache/native/`，生成物和缓存仍在工作区；APK 输出到 `dist/android/`。当前 `-dev` 升级构建要求 `.local/signing/android/` 中已有原签名材料，缺失即失败，不自动创建替代身份。新克隆不包含私钥，自行签名不能覆盖安装仓库提供的正式 APK。
 
-3.8 额外注册默认关闭的 LINUX DO 实验来源，开发配置共 37 源、默认仍 29。当前 ECH 握手已实测，但公开取数仍被访问验证阻止；原方案核对、工具准备和未验证项见 [LINUX DO 实验说明](docs/android/LINUXDO.md)。这不是正式包已更新或手机已能稳定抓帖的声明。
+3.8额外注册默认关闭的LINUX DO实验来源，开发配置37源、默认仍29。3.8.3已有用户手机取帖成功反馈；3.8.4加固版的自动解析、第三方回退、纯ECH缓存三模式本机均取得官方RSS，新版手机待复验。实现、工具和验证边界见[LINUX DO实验说明](docs/android/LINUXDO.md)，正式下载仍为3.0.0。
 
 电脑版：
 
