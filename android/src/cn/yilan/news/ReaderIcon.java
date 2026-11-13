@@ -15,6 +15,7 @@ public final class ReaderIcon extends Drawable {
       case "news":canvas.drawRoundRect(4,3,20,21,3,3,paint);canvas.drawLine(8,8,16,8,paint);canvas.drawLine(8,12,16,12,paint);canvas.drawLine(8,16,13,16,paint);break;
       case "ai":p.moveTo(12,2);p.lineTo(14.8f,9.2f);p.lineTo(22,12);p.lineTo(14.8f,14.8f);p.lineTo(12,22);p.lineTo(9.2f,14.8f);p.lineTo(2,12);p.lineTo(9.2f,9.2f);p.close();canvas.drawPath(p,paint);break;
       case "bookmark":p.moveTo(6,21);p.lineTo(6,4);p.quadTo(6,3,7,3);p.lineTo(17,3);p.quadTo(18,3,18,4);p.lineTo(18,21);p.lineTo(12,17);p.close();canvas.drawPath(p,paint);break;
+      case "archive":canvas.drawRoundRect(3,4,21,9,2,2,paint);canvas.drawRoundRect(5,9,19,21,2,2,paint);canvas.drawLine(10,13,14,13,paint);break;
       case "settings":for(int i=0;i<3;i++){float y=6+i*6,x=i==1?15:9;canvas.drawLine(3,y,x-3,y,paint);canvas.drawLine(x+3,y,21,y,paint);canvas.drawCircle(x,y,2.5f,paint);}break;
       case "search":canvas.drawCircle(10.5f,10.5f,6.5f,paint);canvas.drawLine(15.5f,15.5f,21,21,paint);break;
       case "refresh":canvas.drawArc(4,4,20,20,40,290,false,paint);p.moveTo(17,3);p.lineTo(20,6);p.lineTo(16,7);canvas.drawPath(p,paint);break;
@@ -25,6 +26,7 @@ public final class ReaderIcon extends Drawable {
       case "previous":p.moveTo(15,5);p.lineTo(8,12);p.lineTo(15,19);canvas.drawPath(p,paint);break;
       case "next":p.moveTo(9,5);p.lineTo(16,12);p.lineTo(9,19);canvas.drawPath(p,paint);break;
       case "check":p.moveTo(5,12);p.lineTo(10,17);p.lineTo(19,7);canvas.drawPath(p,paint);break;
+      case "close":canvas.drawLine(6,6,18,18,paint);canvas.drawLine(18,6,6,18,paint);break;
     }
     canvas.restoreToCount(saved);
   }

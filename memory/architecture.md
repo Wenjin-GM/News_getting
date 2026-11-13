@@ -37,7 +37,9 @@ Android 没有本地服务或WebView；4.0新增可选的用户自备API模型�
 | [AiHistory.java](../android/src/cn/yilan/news/AiHistory.java) | 本地归档/快照/精选原文合并，分日复用/选择/补取计划，非分页边界及幂等补迁移 |
 | [AiResultStore.java](../android/src/cn/yilan/news/AiResultStore.java) | 不可变按日文件及原子索引提交，旧格式兼容、容量/损坏保护，文件操作由AiVault注入 |
 | [ContentDates.java](../android/src/cn/yilan/news/ContentDates.java)、[CacheCalendarDialog.java](../android/src/cn/yilan/news/CacheCalendarDialog.java) | 上海内容日期、三日窗口、快照清理及原生日历确认 |
+| [ReaderUpdateTransition.java](../android/src/cn/yilan/news/ReaderUpdateTransition.java) | 可中断的搜索/更新按钮宽度过渡，不控制采集/AI请求或伪造进度 |
 | [AiChatPanel.java](../android/src/cn/yilan/news/AiChatPanel.java)、[SearchInput.java](../android/src/cn/yilan/news/SearchInput.java) | 锁定配置的临时原生聊天、键盘关闭搜索焦点处理 |
+| [AiChatDialog.java](../android/src/cn/yilan/news/AiChatDialog.java) | 独立非浮动聊天窗口、IME/system-bar Insets和固定输入操作区，消息区单独滚动 |
 | [AiVault.java](../android/src/cn/yilan/news/AiVault.java) | AndroidKeyStore AES-GCM配置及独立结果缓存，不扩展新闻状态文件 |
 | [NewsState.java](../android/src/cn/yilan/news/NewsState.java) | 不依赖 UI 的旧状态恢复、默认设置与序列化 |
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |

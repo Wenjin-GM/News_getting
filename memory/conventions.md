@@ -130,3 +130,7 @@ git diff --check
 4.1新增`python scripts/android/build-smoke.py --reader`，产物`.cache/android-reader-smoke/yilan-smoke.apk`、runner ReaderFeatureSmoke，合成接口验证日期/翻译/焦点/日历/聊天。UI截图与错误仅放.local/reports；隔离日期夹具，实际跨后台检查需确认返回同一Activity；无真实Key/付费API，不把通用协议支持称全厂商实测。
 
 4.1.1新增HistoryStorageTest（纳入test.py）及`build-smoke.py --history`/HistorySmoke。后者可先在旧APK以mode=seed保存旧格式，再覆盖升级以mode=verify验证真实Android AtomicFile及Keystore。容量故障后恢复用于读重试的索引，必须取最后一次成功提交的版本；不能用已被正常GC的更早索引指向的文件当恢复夹具。模拟器启动前创建ANDROID_EMULATOR_HOME等工作空间目录，避免缺目录锁文件错误刷屏；失败日志只保留必要首尾证据。
+
+4.2新增`build-smoke.py --surface`，runner SurfaceSmoke、`.cache/android-surface-smoke/yilan-smoke.apk`，用合成来源+闩验证设置入口/日夜/插画及真实宽度过渡。计时断言先保证来源不在冷却，错误采样与截图仅留.local/reports。背景prompt/分片规则由C10维护，原图资源不需要运行时API。
+
+4.2.1新增`build-smoke.py --chat`，ChatKeyboardSmoke/.cache/android-chat-smoke，用真实软键盘+sendPointerSync点发送/清空，不以performClick或仅设置焦点替代键盘验收。仅专属AVD设置show_ime_with_hard_keyboard，先核对AVD身份；不要改个人设备。API合成、模型锁定，断言多行输入、按钮间距/完整可见、不带用户前缀、清除后旧回复不复活和输入焦点保留。

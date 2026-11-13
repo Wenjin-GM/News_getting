@@ -53,6 +53,7 @@ public final class MainActivity extends Activity {
   private boolean keyboardVisible;private Runnable afterDateFetch;
   private final Map<Boolean,String> aiFloors=new HashMap<>();private final Set<String> collapsedAiDays=new HashSet<>();
   private android.animation.ValueAnimator refreshSpin;private android.graphics.drawable.RotateDrawable refreshGlyph;
+  private ReaderUpdateTransition updateTransition;private String viewKey="";private boolean changingNavigation;
   private boolean foreground=true;
   private void aiChanged(){if(destroyed)return;updateRefreshControls();updateTitleViews();if(aiService.running)updateAiReports();else render(true);}
   private final Set<String> newsTags=new LinkedHashSet<>(),feedSources=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
@@ -112,6 +113,7 @@ public final class MainActivity extends Activity {
   @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();aiService=new AiCoordinator(new AiVault(getFilesDir()),handler,disk,this::aiChanged);aiService.load();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
   private void chrome(){
     if(refreshSpin!=null)refreshSpin.cancel();
+    if(updateTransition!=null)updateTransition.finish();viewKey="";
     FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));root.setFocusableInTouchMode(true);
     if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});else root.setFitsSystemWindows(true);
     if(Build.VERSION.SDK_INT<30)root.getViewTreeObserver().addOnGlobalLayoutListener(()->{android.graphics.Rect frame=new android.graphics.Rect();root.getWindowVisibleDisplayFrame(frame);boolean visible=root.getRootView().getHeight()-frame.bottom>dp(160);if(keyboardVisible&&!visible)releaseSearch();keyboardVisible=visible;});
@@ -121,9 +123,9 @@ public final class MainActivity extends Activity {
     search.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);releaseSearch();return true;}return false;});
     LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(0,dp(48),1);sp.setMargins(0,0,dp(10),0);bar.addView(search,sp);
     refresh=button("更新",true,()->refresh(true));refresh.setContentDescription("一键更新所有已启用来源");refreshGlyph=new android.graphics.drawable.RotateDrawable();refreshGlyph.setDrawable(icon("refresh",palette.onAccent,17));refreshGlyph.setFromDegrees(0);refreshGlyph.setToDegrees(360);refreshGlyph.setPivotX(.5f);refreshGlyph.setPivotY(.5f);refreshGlyph.setPivotXRelative(true);refreshGlyph.setPivotYRelative(true);
-    refresh.setCompoundDrawablesRelativeWithIntrinsicBounds(refreshGlyph,null,null,null);refreshSpin=android.animation.ValueAnimator.ofInt(0,10000);refreshSpin.setDuration(900);refreshSpin.setRepeatCount(android.animation.ValueAnimator.INFINITE);refreshSpin.setInterpolator(new android.view.animation.LinearInterpolator());refreshSpin.addUpdateListener(a->refreshGlyph.setLevel((Integer)a.getAnimatedValue()));refresh.setCompoundDrawablePadding(dp(5));refresh.setEnabled(!busy);bar.addView(refresh,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(bar);
-    search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString().trim();limit=30;hotLimit=10;render(false);}public void afterTextChanged(Editable e){}});
-    progress=new ProgressBar(ui,null,android.R.attr.progressBarStyleHorizontal);progress.setProgressTintList(ColorStateList.valueOf(ACCENT));progress.setIndeterminateTintList(ColorStateList.valueOf(ACCENT));progress.setProgressBackgroundTintList(ColorStateList.valueOf(palette.line));progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setIndeterminate(linuxUpdating);progress.setVisibility(busy?View.VISIBLE:View.GONE);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(2)));
+    refresh.setCompoundDrawablesRelativeWithIntrinsicBounds(refreshGlyph,null,null,null);refreshSpin=android.animation.ValueAnimator.ofInt(0,10000);refreshSpin.setDuration(900);refreshSpin.setRepeatCount(android.animation.ValueAnimator.INFINITE);refreshSpin.setInterpolator(new android.view.animation.LinearInterpolator());refreshSpin.addUpdateListener(a->refreshGlyph.setLevel((Integer)a.getAnimatedValue()));refresh.setCompoundDrawablePadding(dp(5));refresh.setEnabled(!busy);refresh.setEllipsize(TextUtils.TruncateAt.END);bar.addView(refresh,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(bar);updateTransition=new ReaderUpdateTransition(bar,search,refresh,dp(10));
+    search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){if(changingNavigation)return;query=s.toString().trim();limit=30;hotLimit=10;render(false);}public void afterTextChanged(Editable e){}});
+    progress=new ProgressBar(ui,null,android.R.attr.progressBarStyleHorizontal);progress.setProgressTintList(ColorStateList.valueOf(ACCENT));progress.setIndeterminateTintList(ColorStateList.valueOf(ACCENT));progress.setProgressBackgroundTintList(ColorStateList.valueOf(palette.line));progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setIndeterminate(linuxUpdating);progress.setVisibility(busy?View.VISIBLE:View.INVISIBLE);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(2)));
     scroll=new ScrollView(ui);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);
     scroll.setOnTouchListener((v,event)->{userScrolling=event.getActionMasked()==MotionEvent.ACTION_MOVE;return false;});
     scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(!(aiService!=null&&aiService.enabled())&&userScrolling&&body!=null&&y>oldY&&y+scroll.getHeight()>=body.getHeight()-dp(24)&&(tab==0&&featuredMode||tab==1&&aiMode==AI_FEATURED)){userScrolling=false;final boolean ai=tab==1;handler.post(()->showOlder(ai));}});
@@ -135,14 +137,18 @@ public final class MainActivity extends Activity {
     for(int i=0;i<labels.length;i++){final int index=i;boolean selected=tab==i;LinearLayout item=vertical();item.setGravity(Gravity.CENTER);item.setPadding(0,dp(3),0,dp(3));item.setBackground(ripple(shape(Color.TRANSPARENT,0,18)));item.setSelected(selected);item.setFocusable(true);item.setMinimumHeight(dp(60));item.setContentDescription(labels[i]+(selected?"，已选中":""));
       ImageView mark=new ImageView(ui);mark.setImageDrawable(icon(icons[i],selected?ACCENT:MUTED,22));mark.setPadding(dp(14),dp(4),dp(14),dp(4));mark.setBackground(shape(selected?palette.soft:Color.TRANSPARENT,0,15));mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);item.addView(mark,new LinearLayout.LayoutParams(dp(52),dp(30)));gap(item,5);
       TextView label=text(labels[i],12,selected?ACCENT:MUTED,selected);label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);item.addView(label,new LinearLayout.LayoutParams(-2,-2));
-      item.setOnClickListener(v->{tab=index;limit=30;category="all";provider="all";query="";search.setText("");drawNav();render(false);});nav.addView(item,new LinearLayout.LayoutParams(0,-2,1));
+      item.setOnClickListener(v->{if(tab==index)return;releaseSearch();tab=index;limit=30;category="all";provider="all";query="";changingNavigation=true;search.setText("");changingNavigation=false;drawNav();render(false);});nav.addView(item,new LinearLayout.LayoutParams(0,-2,1));
     }
   }
   private void render(boolean keepScroll){
     if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxUpdateBtn=null;aiReportCards.clear();titleViews.clear();titleCandidates.clear();body.removeAllViews();
-    backdrop.showPage(tab,palette);nav.setBackgroundColor(tab==3?palette.surface:palette.dark?0xeb101c2c:0xebf5f9fd);search.setBackground(floating(false,16));styleButton(refresh,true);
+    if(!motionAllowed()){body.animate().cancel();body.setAlpha(1);body.setTranslationY(0);}
+    String next=tab+":"+aiMode+":"+toolType+":"+hotMode+":"+featuredMode;boolean pageChanged=!viewKey.isEmpty()&&!viewKey.equals(next);viewKey=next;
+    backdrop.showPage(tab,palette,savedState.backgroundArt);nav.setBackgroundColor(tab==3?palette.surface:palette.dark?0xeb101c2c:0xebf5f9fd);search.setBackground(floating(false,16));styleButton(refresh,true);
     if(tab==3)settings();else if(tab==1)ai();else news();scroll.post(()->scroll.scrollTo(0,y));if(aiService!=null)aiService.visibleTitles(titleCandidates);handler.removeCallbacks(titleRequest);handler.postDelayed(titleRequest,200);
+    if(pageChanged&&motionAllowed()&&foreground){body.animate().cancel();body.setAlpha(.35f);body.setTranslationY(dp(6));body.animate().alpha(1).translationY(0).setDuration(180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();}
   }
+  private boolean motionAllowed(){return savedState.motion&&android.animation.ValueAnimator.areAnimatorsEnabled();}
   private LinearLayout chips(LinearLayout parent){HorizontalScrollView h=new HorizontalScrollView(ui);h.setHorizontalScrollBarEnabled(false);LinearLayout row=new LinearLayout(ui);row.setPadding(0,0,dp(2),0);h.addView(row);parent.addView(h);gap(parent,14);return row;}
   private void chip(LinearLayout row,String label,boolean selected,Runnable click){
     Button b=filterButton(label,click);b.setSelected(selected);b.setTypeface(Typeface.create("sans-serif",selected?Typeface.BOLD:Typeface.NORMAL));
@@ -434,14 +440,18 @@ public final class MainActivity extends Activity {
   private void toolDetails(JSONObject t){LinearLayout content=vertical();content.setPadding(dp(22),dp(14),dp(22),dp(10));content.addView(text(t.optString("description"),15,INK,false));gap(content,12);content.addView(text("出品方："+providerName(t.optString("provider"))+"\n类型："+types(t.optJSONArray("kinds"))+"\n定位："+t.optString("role")+"\n许可："+t.optString("license")+"\n适用平台："+t.optJSONArray("platforms")+"\n工具资料核对于 "+catalog.optString("checkedAt"),13,MUTED,false));if(!t.optString("note").isEmpty()){gap(content,12);content.addView(text(t.optString("note"),13,ACCENT,false));}gap(content,12);JSONArray refs=t.optJSONArray("references");for(int i=0;refs!=null&&i<refs.length();i++){final String url=refs.optString(i);content.addView(button("官方依据 "+(i+1)+" ↗",false,()->external(url)));gap(content,6);}content.addView(button("前往官方产品 / 文档 ↗",true,()->external(t.optString("url"))));ScrollView s=new ScrollView(ui);s.addView(content);dialog().setTitle(t.optString("name")).setView(s).setPositiveButton("关闭",null).show();}
   private void settings(){
     storageWarnings();
-    body.addView(text("外观",16,INK,true));gap(body,10);LinearLayout appearance=card();LinearLayout options=new LinearLayout(ui);
+    settingsHeading("外观","sun","");LinearLayout appearance=card();appearance.setTag("settings-appearance");LinearLayout options=new LinearLayout(ui);
     themeOption(options,"day","日间","sun");themeOption(options,"night","夜间","moon");appearance.addView(options);gap(appearance,12);divider(appearance);
+    toggle(appearance,"背景插画",savedState.backgroundArt,value->{savedState.backgroundArt=value;saveSoon();render(true);});divider(appearance);
+    toggle(appearance,"界面动效",savedState.motion,value->{savedState.motion=value;saveSoon();if(updateTransition!=null)updateTransition.finish();updateRefreshControls();render(true);});divider(appearance);
     toggle(appearance,"大字显示",large,value->{large=value;saveSoon();render(true);});divider(appearance);toggle(appearance,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
-    body.addView(filterButton("AI功能 · "+(aiService!=null&&aiService.enabled()?aiService.config.model:"未启用")+" ▾",this::aiSettings));gap(body,8);
-    body.addView(sectionButton("清理缓存",this::cacheCalendar));gap(body,8);
-    body.addView(filterButton("分享安装包 ↗",this::shareApk));gap(body,12);
-    body.addView(text("消息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,10);
-    LinearLayout group=card();group.setPadding(dp(10),dp(10),dp(10),dp(2));
+    boolean enabled=aiService!=null&&aiService.enabled();settingsHeading("AI 功能","ai",enabled?"已启用":"未启用");LinearLayout aiCard=card();aiCard.setTag("settings-ai");
+    aiCard.addView(text(aiService!=null&&aiService.config!=null?aiService.config.model:"未配置接口",18,INK,true));gap(aiCard,16);
+    LinearLayout aiActions=new LinearLayout(ui);Button configure=button("接口与模型",true,this::aiSettings);aiActions.addView(configure,new LinearLayout.LayoutParams(0,dp(46),1));Button chat=button("与 AI 对话",false,()->aiSettings(true));chat.setEnabled(enabled);LinearLayout.LayoutParams chatLayout=new LinearLayout.LayoutParams(0,dp(46),1);chatLayout.leftMargin=dp(10);aiActions.addView(chat,chatLayout);aiCard.addView(aiActions);
+    settingsHeading("缓存管理","archive","");LinearLayout cache=card();cache.setTag("settings-cache");Map<String,Integer> dateCounts=cacheDates();int articles=0;for(int count:ContentDates.counts(cachedArticles()).values())articles+=count;
+    cache.addView(text(dateCounts.size()+" 个日期 · "+articles+" 条本地报道",17,INK,true));gap(cache,14);cache.addView(button("打开缓存日历",false,this::cacheCalendar),new LinearLayout.LayoutParams(-1,dp(46)));
+    settingsHeading("消息来源","news",enabledCount()+" / "+engine.sources.size()+" 已启用");
+    LinearLayout group=card();group.setTag("settings-sources");group.setPadding(dp(10),dp(10),dp(10),dp(2));
     List<Source> sources=SourceFilters.settingsOrder(engine.sources,snapshots,savedState.latestLinuxSnapshot());
     for(Source source:sources){
       LinearLayout c=vertical();c.setPadding(dp(12),dp(6),dp(12),dp(10));c.setBackground(shape(palette.raised,palette.line,12));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.bottomMargin=dp(8);group.addView(c,cp);
@@ -455,9 +465,12 @@ public final class MainActivity extends Activity {
         TextView error=text(snap.error,12,palette.danger,false);error.setMaxLines(3);error.setEllipsize(TextUtils.TruncateAt.END);error.setContentDescription("查看"+source.name+"完整错误");error.setOnClickListener(v->dialog().setTitle(source.name).setMessage(snap.error).setPositiveButton("关闭",null).show());gap(c,3);c.addView(error);
       }
     }
+    Button share=filterButton("分享安装包 ↗",this::shareApk);share.setGravity(Gravity.CENTER);body.addView(share,new LinearLayout.LayoutParams(-1,dp(48)));
   }
+  private void settingsHeading(String title,String glyph,String status){LinearLayout row=new LinearLayout(ui);row.setGravity(Gravity.CENTER_VERTICAL);row.setTag("settings-heading");ImageView mark=new ImageView(ui);mark.setImageDrawable(icon(glyph,ACCENT,19));mark.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);row.addView(mark,new LinearLayout.LayoutParams(dp(22),dp(22)));TextView label=text(title,16,INK,true);label.setPadding(dp(8),0,0,0);row.addView(label,new LinearLayout.LayoutParams(0,-2,1));if(!status.isEmpty())row.addView(text(status,12,MUTED,false));body.addView(row);gap(body,10);}
   private List<Article> cachedArticles(){List<Article> rows=archive.articles();for(Snapshot s:snapshots.values())rows.addAll(s.items);for(Snapshot s:linuxTabs.values())rows.addAll(s.items);if(aiService!=null)for(AiEngine.Result r:aiService.results.values())for(AiEngine.Group g:r.groups)rows.addAll(g.reports);return rows;}
-  private void cacheCalendar(){if(busy||aiService!=null&&(aiService.running||aiService.loading||aiService.saving)){toast("请等待更新完成后清理");return;}Map<String,Integer> dates=ContentDates.counts(cachedArticles());if(aiService!=null){for(String day:aiService.titles.dates())dates.putIfAbsent(day,1);for(String key:aiService.results.keySet()){String day=ContentDates.date(key);if(!day.isEmpty())dates.putIfAbsent(day,1);}}CacheCalendarDialog.show(ui,palette,dates,chosen->clearContentDates(chosen::contains),date->clearContentDates(day->day.compareTo(date)<0));}
+  private Map<String,Integer> cacheDates(){Map<String,Integer> dates=ContentDates.counts(cachedArticles());if(aiService!=null){for(String day:aiService.titles.dates())dates.putIfAbsent(day,1);for(String key:aiService.results.keySet()){String day=ContentDates.date(key);if(!day.isEmpty())dates.putIfAbsent(day,1);}}return dates;}
+  private void cacheCalendar(){if(busy||aiService!=null&&(aiService.running||aiService.loading||aiService.saving)){toast("请等待更新完成后清理");return;}CacheCalendarDialog.show(ui,palette,cacheDates(),chosen->clearContentDates(chosen::contains),date->clearContentDates(day->day.compareTo(date)<0));}
   private void storageWarnings(){
     if(!archiveLoadError.isEmpty()){body.addView(text(archiveLoadError,12,palette.danger,false));body.addView(filterButton("重试读取新闻归档",()->{loadArchive();render(true);}));}
     if(!archiveSaveError.isEmpty()){body.addView(text(archiveSaveError,12,palette.danger,false));body.addView(filterButton("重试保存新闻归档",()->{saveArchive();}));}
@@ -472,7 +485,11 @@ public final class MainActivity extends Activity {
     if(aiService!=null)aiService.deleteDates(dates);archiveDirty=true;featuredKey=builtFeaturedKey="";historyAttempts.clear();historyResults.clear();saveArchive();saveNow();render(true);toast("已清理所选内容日期；收藏和个人设置保留");
   }
   private void aiSettings(){
+    aiSettings(false);
+  }
+  private void aiSettings(boolean chat){
     if(aiService.loading||aiService.saving){toast("正在读取或保存 AI 配置，请稍候");return;}
+    if(chat){if(aiService.enabled())AiChatDialog.show(ui,aiService,handler,palette);return;}
     AiSettingsDialog.show(ui,aiService.config,aiService.loadError,aiService.client,aiService.tests,handler,next->aiService.save(next,reason->{if(!destroyed)toast(reason.isEmpty()?(next.enabled?"已锁定模型："+next.model:"AI 已停用"):reason);}),()->{aiService.forget();toast("AI 配置已清除");},aiService,palette);
   }
   private String aiUsage(AiEngine.Result result){return result.requests<0?"历史结果，未记录调用统计":"请求 "+result.requests+" 次 / 复用 "+result.reused+" 批";}
@@ -536,7 +553,7 @@ public final class MainActivity extends Activity {
     LinearLayout heading=new LinearLayout(ui);heading.setGravity(Gravity.CENTER_VERTICAL);ImageView image=new ImageView(ui);image.setImageDrawable(icon(glyph,preview.accent,22));heading.addView(image,new LinearLayout.LayoutParams(dp(22),dp(22)));
     TextView name=text(label,15,preview.ink,true);name.setPadding(dp(9),0,0,0);heading.addView(name,new LinearLayout.LayoutParams(0,-2,1));
     if(selected){ImageView tick=new ImageView(ui);tick.setImageDrawable(icon("check",preview.accent,17));heading.addView(tick,new LinearLayout.LayoutParams(dp(17),dp(17)));}option.addView(heading);gap(option,16);
-    View rule=new View(ui);rule.setBackground(shape(preview.soft,0,3));option.addView(rule,new LinearLayout.LayoutParams(-1,dp(5)));gap(option,6);View shorter=new View(ui);shorter.setBackground(shape(preview.line,0,3));option.addView(shorter,new LinearLayout.LayoutParams(dp(48),dp(4)));
+    FrameLayout miniature=new FrameLayout(ui);ReaderBackdrop picture=new ReaderBackdrop(ui);picture.showPage(0,preview);miniature.addView(picture,new FrameLayout.LayoutParams(-1,-1));LinearLayout sample=vertical();sample.setPadding(dp(7),dp(14),dp(7),0);for(int i=0;i<2;i++){View line=new View(ui);line.setBackground(shape(preview.dark?0xc21c3048:0xe8ffffff,preview.line,6));LinearLayout.LayoutParams lineLayout=new LinearLayout.LayoutParams(-1,dp(13));lineLayout.bottomMargin=dp(6);sample.addView(line,lineLayout);}miniature.addView(sample,new FrameLayout.LayoutParams(-1,-1));option.addView(miniature,new LinearLayout.LayoutParams(-1,dp(62)));
     option.setOnClickListener(v->{if(selected)return;int y=scroll.getScrollY();savedState.themeMode=mode;saveNow();applyTheme();chrome();render(false);scroll.post(()->scroll.scrollTo(0,y));});
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(row.getChildCount()==0?0:dp(10),0,0,0);row.addView(option,lp);
   }
@@ -557,16 +574,16 @@ public final class MainActivity extends Activity {
   }
   private void syncProgress(){
     if(progress==null)return;boolean aiRunning=aiService!=null&&aiService.running;
-    progress.setIndeterminate(linuxUpdating);progress.setMax(aiRunning?Math.max(1,aiService.stageTotal):Math.max(total,1));progress.setProgress(aiRunning?aiService.stageDone:done);progress.setVisibility(busy||aiRunning?View.VISIBLE:View.GONE);
+    progress.setIndeterminate(linuxUpdating);progress.setMax(aiRunning?Math.max(1,aiService.stageTotal):Math.max(total,1));progress.setProgress(aiRunning?aiService.stageDone:done);progress.setVisibility(busy||aiRunning?View.VISIBLE:View.INVISIBLE);
     progress.setContentDescription(aiRunning?aiService.stage+" · "+aiService.detail:"获取新闻 · "+done+"/"+total);
   }
   private void updateRefreshControls(){
     syncProgress();
     if(refresh!=null){boolean aiRunning=aiService!=null&&aiService.running,working=busy||aiRunning;
-      if(search!=null){if(working&&search.hasFocus())releaseSearch();search.setVisibility(working?View.GONE:View.VISIBLE);}
-      refresh.setEnabled(!working&&(aiService==null||!aiService.saving));refresh.setText(aiRunning?"正在"+aiService.stage:busy?"正在获取新闻":"更新");refresh.setSingleLine(true);
-      LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)refresh.getLayoutParams();lp.width=working?-1:-2;refresh.setLayoutParams(lp);
-      if(refreshSpin!=null){if(working&&foreground){if(!refreshSpin.isStarted())refreshSpin.start();}else{refreshSpin.cancel();refreshGlyph.setLevel(0);}}
+      if(search!=null&&working&&search.hasFocus())releaseSearch();
+      refresh.setEnabled(!working&&(aiService==null||!aiService.saving));String label=aiRunning?"正在"+aiService.stage:busy?"正在获取新闻":"更新";if(!label.contentEquals(refresh.getText())){refresh.animate().cancel();refresh.setText(label);if(motionAllowed()&&foreground){refresh.setAlpha(.65f);refresh.animate().alpha(1).setDuration(160).start();}else refresh.setAlpha(1);}refresh.setSingleLine(true);
+      if(updateTransition!=null)updateTransition.setWorking(working,motionAllowed()&&foreground);
+      if(refreshSpin!=null){if(working&&foreground&&motionAllowed()){if(!refreshSpin.isStarted())refreshSpin.start();}else{refreshSpin.cancel();refreshGlyph.setLevel(0);}}
       refresh.setContentDescription(aiRunning?aiService.stage+" · "+aiService.detail:busy?"获取新闻 · "+done+"/"+total:"一键更新所有已启用来源");
     }
     if(linuxUpdateBtn!=null){linuxUpdateBtn.setText(linuxUpdating?"更新中…":"更新");linuxUpdateBtn.setEnabled(!busy&&(aiService==null||!aiService.running)&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));}
@@ -618,7 +635,7 @@ public final class MainActivity extends Activity {
   private void saveNow(){if(storage==null||disk.isShutdown())return;try{savedState.compact=compact;savedState.large=large;savedState.unread=unread;savedState.hotMode=hotMode;byte[] bytes=savedState.json().toString().getBytes(StandardCharsets.UTF_8);disk.execute(()->{FileOutputStream out=null;try{out=storage.startWrite();out.write(bytes);storage.finishWrite(out);}catch(Exception e){if(out!=null)storage.failWrite(out);if(!destroyed)handler.post(()->toast("缓存保存失败，请检查设备剩余空间"));}});}catch(Exception ignored){}}
   private void releaseSearch(){if(search==null)return;boolean active=search.hasFocus();search.clearFocus();search.setCursorVisible(false);search.setFocusable(false);if(active){handler.removeCallbacks(titleRequest);handler.postDelayed(titleRequest,200);}if(active)((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
   @Override public boolean dispatchTouchEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&search!=null&&search.hasFocus()){android.graphics.Rect bounds=new android.graphics.Rect();search.getGlobalVisibleRect(bounds);if(!bounds.contains((int)event.getRawX(),(int)event.getRawY()))releaseSearch();}return super.dispatchTouchEvent(event);}
-  @Override protected void onPause(){releaseSearch();foreground=false;if(refreshSpin!=null)refreshSpin.cancel();saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
+  @Override protected void onPause(){releaseSearch();foreground=false;if(refreshSpin!=null)refreshSpin.cancel();if(updateTransition!=null)updateTransition.finish();if(refresh!=null){refresh.animate().cancel();refresh.setAlpha(1);}if(body!=null){body.animate().cancel();body.setAlpha(1);body.setTranslationY(0);}saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
   @Override protected void onResume(){super.onResume();foreground=true;updateRefreshControls();}
-  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(titleRequest);if(refreshSpin!=null)refreshSpin.cancel();handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();if(aiService!=null)aiService.close();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
+  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(titleRequest);if(refreshSpin!=null)refreshSpin.cancel();if(updateTransition!=null)updateTransition.finish();handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();if(aiService!=null)aiService.close();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
 }

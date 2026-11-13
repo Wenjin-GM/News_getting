@@ -63,7 +63,7 @@ public final class AiSmoke extends Instrumentation {
         }finally{activeCalls.decrementAndGet();}
       });
       main(()->{((AiCoordinator)get("aiService")).close();service=new AiCoordinator(vault,handler,disk,()->{call("aiChanged",new Class<?>[0]);
-        if(service.running){stages.add(service.stage);ProgressBar bar=(ProgressBar)get("progress");Button update=(Button)get("refresh");invalidProgress|=bar.getVisibility()!=View.VISIBLE||!update.getText().toString().equals("正在"+service.stage)||update.getLayoutParams().width!=-1||bar.getProgress()>bar.getMax()||update.getCurrentTextColor()!=((ReaderTheme)get("palette")).onAccent;}
+        if(service.running){stages.add(service.stage);ProgressBar bar=(ProgressBar)get("progress");Button update=(Button)get("refresh");invalidProgress|=bar.getVisibility()!=View.VISIBLE||!update.getText().toString().equals("正在"+service.stage)||update.getLayoutParams().width!=-1&&!((ReaderUpdateTransition)get("updateTransition")).isAnimating()||bar.getProgress()>bar.getMax()||update.getCurrentTextColor()!=((ReaderTheme)get("palette")).onAccent;}
 },fake);set("aiService",service);set("tab",3);call("render",new Class<?>[]{boolean.class},false);});
       final AlertDialog[] dialog={null};final List<EditText> edits=new ArrayList<>();
       main(()->{
@@ -108,7 +108,7 @@ public final class AiSmoke extends Instrumentation {
       final int[] rotation={0};main(()->rotation[0]=((android.graphics.drawable.RotateDrawable)get("refreshGlyph")).getLevel());SystemClock.sleep(150);main(()->check(rotation[0]!=((android.graphics.drawable.RotateDrawable)get("refreshGlyph")).getLevel(),"Animated icon must advance while waiting for the service"));
       shot("featured-progress");holdFeatured=false;featuredGate.countDown();
       waitUntil(()->!((Boolean)get("busy"))&&!service.running&&service.results.size()>=5);
-      main(()->check(!invalidProgress&&stages.contains("生成汇报")&&stages.contains("生成精选")&&((Button)get("refresh")).getText().toString().equals("更新")&&((Button)get("refresh")).getLayoutParams().width==-2&&((ProgressBar)get("progress")).getVisibility()==View.GONE&&!((android.animation.ValueAnimator)get("refreshSpin")).isStarted(),"All stages show current progress and restore idle header"));
+      waitUntil(()->!((ReaderUpdateTransition)get("updateTransition")).isAnimating());main(()->check(!invalidProgress&&stages.contains("生成汇报")&&stages.contains("生成精选")&&((Button)get("refresh")).getText().toString().equals("更新")&&((Button)get("refresh")).getLayoutParams().width==-2&&((ProgressBar)get("progress")).getVisibility()!=View.VISIBLE&&!((android.animation.ValueAnimator)get("refreshSpin")).isStarted(),"All stages show current progress and restore idle header"));
       check(service.results.size()>=5&&service.results.get(AiEngine.FEATURED_AI).groups.size()==1,"Five AI sections were not generated");
       main(()->{set("tab",0);set("featuredMode",false);set("hotMode",false);call("drawNav",new Class<?>[0]);call("render",new Class<?>[]{boolean.class},false);});shot("report");
       main(()->{set("tab",1);set("aiMode",4);call("drawNav",new Class<?>[0]);call("render",new Class<?>[]{boolean.class},false);});shot("featured");

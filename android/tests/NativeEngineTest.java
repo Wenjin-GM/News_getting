@@ -27,7 +27,8 @@ public final class NativeEngineTest {
   private static void themePreferences(NewsEngine engine)throws Exception{
     NewsEngine.Article a=report("chinanews","日夜切换保留原收藏",1,"theme-favorite");NewsEngine.Snapshot feed=new NewsEngine.Snapshot(a.source);feed.items.add(a);feed.fetched=1;
     JSONObject legacy=new JSONObject().put("schema",3).put("favorites",new JSONArray().put(a.json())).put("read",new JSONArray().put(a.id)).put("feeds",new JSONObject().put(a.source,feed.json())).put("enabled",new JSONObject().put(a.source,false)).put("large",true);
-    NewsState state=new NewsState();state.restore(engine,legacy);check(state.themeMode.equals("day"),"Pre-theme installations default to day without migration");
+    NewsState state=new NewsState();state.restore(engine,legacy);check(state.themeMode.equals("day")&&state.backgroundArt&&state.motion,"Legacy installations default to day artwork and motion without migration");
+    state.backgroundArt=false;state.motion=false;NewsState appearance=new NewsState();appearance.restore(engine,state.json());check(!appearance.backgroundArt&&!appearance.motion&&appearance.favorites.get(0).id.equals(a.id)&&appearance.read.contains(a.id),"Appearance preferences survive reload and preserve reading data");
     for(String mode:new String[]{"night","day","night"}){
       state.themeMode=mode;NewsState next=new NewsState();next.restore(engine,new JSONObject(state.json().toString()));
       check(next.themeMode.equals(mode)&&next.large,"Theme survives reload with existing reading preference");

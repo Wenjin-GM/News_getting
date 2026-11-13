@@ -13,6 +13,7 @@ public final class NewsState {
   public final List<Article> favorites=new ArrayList<>();
   public final Set<String> read=new LinkedHashSet<>();
   public boolean compact,large,unread,hotMode;
+  public boolean backgroundArt=true,motion=true;
   public String themeMode="day";
   private static final String[] LINUX_TAB_KEYS={"default","views","latest"};
 
@@ -26,6 +27,7 @@ public final class NewsState {
   public void restore(NewsEngine engine,JSONObject j){
     snapshots.clear();linuxTabs.clear();sourceEnabled.clear();favorites.clear();read.clear();
     compact=large=unread=hotMode=false;
+    backgroundArt=motion=true;
     themeMode="day";
     for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);
     if(j==null)return;
@@ -55,6 +57,7 @@ public final class NewsState {
     }
     compact=j.optBoolean("compact");large=j.optBoolean("large");unread=j.optBoolean("unread");hotMode=j.optBoolean("hotMode");
     themeMode=ReaderTheme.mode(j.optString("themeMode"));
+    backgroundArt=j.optBoolean("backgroundArt",true);motion=j.optBoolean("motion",true);
   }
 
   public JSONObject json()throws org.json.JSONException{
@@ -68,6 +71,6 @@ public final class NewsState {
     return j.put("schema",3).put("feeds",feeds).put("linuxTabs",tabs).put("enabled",enabled)
       .put("favorites",fav).put("read",ids)
       .put("compact",compact).put("large",large).put("unread",unread).put("hotMode",hotMode)
-      .put("themeMode",ReaderTheme.mode(themeMode));
+      .put("themeMode",ReaderTheme.mode(themeMode)).put("backgroundArt",backgroundArt).put("motion",motion);
   }
 }

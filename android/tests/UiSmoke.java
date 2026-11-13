@@ -48,13 +48,13 @@ public final class UiSmoke extends Instrumentation {
     });
     theme("day");page(3,0);
     main(()->{
-      LinearLayout body=(LinearLayout)get("body");check(body.getChildAt(0) instanceof TextView&&((TextView)body.getChildAt(0)).getText().toString().equals("外观"),"Appearance heading outside card");
+      LinearLayout body=(LinearLayout)get("body");for(String name:new String[]{"外观","AI 功能","缓存管理","消息来源"})check(exact(name)!=null&&exact(name).getParent().getParent()==body,"Peer settings heading outside card: "+name);
       check(exact("阅读")==null,"Retired reading section");check(exact("分享安装包 ↗").getBackground() instanceof ColorDrawable,"Share action is unboxed");
-      LinearLayout group=(LinearLayout)body.getChildAt(body.getChildCount()-1);check(group.getChildCount()==engine.sources.size(),"One outer group holds all source cards");
+      LinearLayout group=body.findViewWithTag("settings-sources");check(group.getChildCount()==engine.sources.size(),"One outer group holds all source cards");
       String[] first={"LINUX DO","NPR","爱范儿"};
       for(int i=0;i<first.length;i++)check(texts(group.getChildAt(i)).get(0).getText().toString().startsWith(first[i]),"Rendered source order "+i);
       for(NewsEngine.Source source:engine.sources)check(exact(source.home)==null,"No raw homepage in compact cards");
-      TextView title=texts(group.getChildAt(0)).get(0);check(title.hasOnClickListeners(),"Source heading opens browser");
+      TextView title=texts(group.getChildAt(0)).get(0);check(title.hasOnClickListeners(),"Source heading opens browser");check(exact("接口与模型")!=null&&exact("打开缓存日历")!=null&&exact("背景插画")!=null&&exact("界面动效")!=null,"AI/cache and appearance controls are visible");
     });screen("settings-day");theme("night");
     final String[] opened={null};
     ActivityMonitor monitor=new ActivityMonitor(){@Override public ActivityResult onStartActivity(Intent intent){if(Intent.ACTION_VIEW.equals(intent.getAction())){opened[0]=intent.getDataString();return new ActivityResult(Activity.RESULT_CANCELED,null);}return null;}};
@@ -123,14 +123,14 @@ public final class UiSmoke extends Instrumentation {
       });screen("linux-progress");theme("day");
       main(()->check(((ProgressBar)get("progress")).isIndeterminate(),"Theme rebuild preserves in-flight Linux progress"));
     }finally{release.countDown();}await("busy",false);
-    main(()->check(((ProgressBar)get("progress")).getVisibility()==View.GONE,"Progress hides on completion"));
+    main(()->check(((ProgressBar)get("progress")).getVisibility()!=View.VISIBLE,"Progress hides on completion while keeping its layout slot"));
     final NewsEngine.Snapshot previous=((Map<String,NewsEngine.Snapshot>)get("linuxTabs")).get("default");
     NewsEngine denied=new NewsEngine(config,(source,url)->{throw new IOException("站点要求访问验证（HTTP 403）；Cloudflare challenge 标记存在");});
     main(()->{set("engine",denied);call("refreshLinuxTab");});await("busy",false);
     main(()->{
       NewsEngine.Snapshot failed=((Map<String,NewsEngine.Snapshot>)get("linuxTabs")).get("default");
       check(failed.items.size()==previous.items.size()&&failed.fetched==previous.fetched,"403 keeps the old Linux snapshot");
-      check(((ProgressBar)get("progress")).getVisibility()==View.GONE,"403 also stops the progress animation");
+      check(((ProgressBar)get("progress")).getVisibility()!=View.VISIBLE,"403 also stops the progress animation");
       TextView details=exact("本站暂时拒绝访问（403） · 已保留 "+failed.items.size()+" 条，点击查看错误详情");check(details!=null&&details.hasOnClickListeners(),"403 has a compact summary and an explicit details action");
     });
   }
