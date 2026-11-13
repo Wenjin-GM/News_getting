@@ -15,19 +15,26 @@ public final class AiSettingsDialog {
   private static TextView label(Context c,String text){TextView t=new TextView(c);t.setText(text);t.setTextSize(14);t.setPadding(0,12,0,8);return t;}
   private static EditText edit(Context c,String hint,boolean secret){EditText e=new EditText(c);e.setHint(hint);e.setSingleLine();e.setInputType(secret?129:1);e.setSaveEnabled(false);e.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);if(secret)e.setLongClickable(false);return e;}
   public static AlertDialog show(Context c,AiClient.Config existing,String loadError,AiClient client,ExecutorService worker,Handler handler,Consumer<AiClient.Config> save,Runnable forget){
+    return show(c,existing,loadError,client,worker,handler,save,forget,null,ReaderTheme.forMode("day"));
+  }
+  public static AlertDialog show(Context c,AiClient.Config existing,String loadError,AiClient client,ExecutorService worker,Handler handler,Consumer<AiClient.Config> save,Runnable forget,AiCoordinator session,ReaderTheme theme){
     LinearLayout content=new LinearLayout(c);content.setOrientation(1);int p=Math.round(20*c.getResources().getDisplayMetrics().density);content.setPadding(p,p,p,p);
-    content.addView(label(c,"GLM / DeepSeek 标准 API 或其他 OpenAI 兼容接口。启用后，更新会自动发送各分区标题用于汇报和精选；翻译仅在点击时发送预览文本。可能产生服务商费用。"));
     if(!loadError.isEmpty())content.addView(label(c,loadError));
-    EditText url=edit(c,"HTTPS API 基础地址",false),key=edit(c,"API Key（仅本机加密保存）",true),model=edit(c,"选择候选或填写模型 ID",false);
+    EditText url=edit(c,"https://你的服务地址/v1",false),key=edit(c,"API Key",true),model=edit(c,"选择或填写模型 ID",false);url.setTag("ai-url");key.setTag("ai-key");model.setTag("ai-model");
     content.addView(label(c,"URL"));content.addView(url);content.addView(label(c,"API Key"));content.addView(key);
-    LinearLayout presets=new LinearLayout(c);for(String provider:new String[]{"GLM","DeepSeek"}){Button b=new Button(c);b.setAllCaps(false);b.setText(provider);b.setOnClickListener(v->url.setText(provider.equals("GLM")?"https://open.bigmodel.cn/api/paas/v4":"https://api.deepseek.com"));presets.addView(b,new LinearLayout.LayoutParams(0,-2,1));}content.addView(presets);
     Button discover=new Button(c);discover.setAllCaps(false);discover.setText("测试连接并获取模型列表");content.addView(discover);
-    TextView status=label(c,"模型列表中的 ID 仍需验证聊天权限；只有所选模型测试成功后才能保存。服务不提供列表时可填写 ID 验证。");content.addView(status);
-    RadioGroup choices=new RadioGroup(c);content.addView(choices);content.addView(label(c,"锁定模型 ID"));content.addView(model);
+    TextView status=label(c,"");content.addView(status);
+    RadioGroup choices=new RadioGroup(c);ScrollView modelList=new ScrollView(c);modelList.addView(choices);content.addView(modelList,new LinearLayout.LayoutParams(-1,Math.round(140*c.getResources().getDisplayMetrics().density)));modelList.setVisibility(View.GONE);content.addView(label(c,"锁定模型 ID"));content.addView(model);
     Button probe=new Button(c);probe.setAllCaps(false);probe.setText("测试所选模型（极短请求）");content.addView(probe);
     if(existing!=null){url.setText(existing.url);key.setText(existing.key);model.setText(existing.model);content.addView(label(c,"当前保存模型："+existing.model+(existing.enabled?" · 已启用":" · 已停用")));}
+    LinearLayout form=new LinearLayout(c);form.setOrientation(1);while(content.getChildCount()>0){View child=content.getChildAt(0);content.removeViewAt(0);form.addView(child);}
+    LinearLayout tabs=new LinearLayout(c);Button connectionTab=new Button(c),chatTab=new Button(c);connectionTab.setAllCaps(false);connectionTab.setText("接口设置");chatTab.setAllCaps(false);chatTab.setText("对话");tabs.addView(connectionTab,new LinearLayout.LayoutParams(0,-2,1));tabs.addView(chatTab,new LinearLayout.LayoutParams(0,-2,1));content.addView(tabs);content.addView(form);
+    LinearLayout conversation=new LinearLayout(c);conversation.setOrientation(1);content.addView(conversation);conversation.setVisibility(View.GONE);
+    final AiChatPanel chat=existing!=null&&existing.enabled&&session!=null?new AiChatPanel(c,conversation,session,handler,theme):null;if(chat==null)conversation.addView(label(c,"保存并启用模型后可对话"));
     ScrollView scroll=new ScrollView(c);scroll.addView(content);
     AlertDialog dialog=new AlertDialog.Builder(c).setTitle("AI 功能").setView(scroll).setPositiveButton("保存并启用",null).setNegativeButton("取消",null).setNeutralButton(existing!=null&&existing.enabled?"停用 AI":"清除配置",null).create();
+    connectionTab.setOnClickListener(v->{form.setVisibility(View.VISIBLE);conversation.setVisibility(View.GONE);connectionTab.setTextColor(theme.accent);chatTab.setTextColor(theme.muted);dialog.getButton(-1).setVisibility(View.VISIBLE);dialog.getButton(-3).setVisibility(View.VISIBLE);dialog.getButton(-2).setText("取消");scroll.scrollTo(0,0);});
+    chatTab.setOnClickListener(v->{form.setVisibility(View.GONE);conversation.setVisibility(View.VISIBLE);connectionTab.setTextColor(theme.muted);chatTab.setTextColor(theme.accent);dialog.getButton(-1).setVisibility(View.GONE);dialog.getButton(-3).setVisibility(View.GONE);dialog.getButton(-2).setText("关闭");scroll.scrollTo(0,0);});
     final String[] verified={null};final boolean[] testing={false};
     Runnable invalidate=()->{verified[0]=null;if(dialog.isShowing())dialog.getButton(-1).setEnabled(false);};
     TextWatcher changed=new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int n,int b){}public void onTextChanged(CharSequence s,int a,int b,int n){invalidate.run();}public void afterTextChanged(Editable e){}};
@@ -35,6 +42,7 @@ public final class AiSettingsDialog {
     dialog.setOnShowListener(v->{dialog.getButton(-1).setEnabled(false);
       dialog.getButton(-1).setOnClickListener(w->{try{
         AiClient.Config draft=new AiClient.Config(url.getText().toString(),key.getText().toString(),model.getText().toString(),UUID.randomUUID().toString(),true);
+        if(existing!=null&&draft.url.equals(existing.url)&&draft.key.equals(existing.key)&&draft.model.equals(existing.model))draft=new AiClient.Config(draft.url,draft.key,draft.model,existing.id,true);
         String marker=draft.url+"\n"+draft.key+"\n"+draft.model;if(!marker.equals(verified[0])){status.setText("配置改变，请重新测试所选模型");return;}
         save.accept(draft);dialog.dismiss();
       }catch(Exception e){status.setText(AiClient.error(e));}});
@@ -48,8 +56,8 @@ public final class AiSettingsDialog {
       worker.execute(()->{try{AiClient.Models found=client.models(draft);handler.post(()->{
         testing[0]=false;if(!dialog.isShowing())return;discover.setEnabled(true);probe.setEnabled(true);
         try{if(!AiClient.baseURL(url.getText().toString()).equals(draft.url)||!key.getText().toString().trim().equals(draft.key)){status.setText("输入已改变，请重新测试");return;}}catch(Exception e){status.setText("输入已改变，请重新测试");return;}
-        choices.removeAllViews();for(String id:found.ids){RadioButton option=new RadioButton(c);option.setText(id+" · 待验证");option.setOnClickListener(w->{model.setText(id);invalidate.run();});choices.addView(option);}
-        status.setText(found.fromServer?"模型列表返回 "+found.ids.size()+" 个候选（最多500个），请选择并测试聊天权限。":"列表读取未成功："+found.detail+"。以下仅为官方目录候选，尚未验证这把 Key 的权限；也可填写其他模型 ID 测试。");
+        modelList.setVisibility(View.VISIBLE);choices.removeAllViews();for(String id:found.ids){RadioButton option=new RadioButton(c);option.setText(id+" · 待验证");option.setOnClickListener(w->{model.setText(id);invalidate.run();});choices.addView(option);}
+        style(c,choices,theme);status.setText(found.fromServer?"已获取 "+found.ids.size()+" 个模型，请选择后测试。":"请手动填写模型 ID 并测试。");
       });}catch(Exception e){String reason=AiClient.error(e);handler.post(()->{testing[0]=false;if(dialog.isShowing()){discover.setEnabled(true);probe.setEnabled(true);status.setText(reason+"；如服务没有列表，可填写模型 ID 测试。");}});}});
     }catch(Exception e){status.setText(AiClient.error(e));}});
     probe.setOnClickListener(v->{if(testing[0])return;try{
@@ -63,6 +71,13 @@ public final class AiSettingsDialog {
         }catch(Exception e){status.setText(AiClient.error(e));}
       });}catch(Exception e){String reason=AiClient.error(e);handler.post(()->{testing[0]=false;if(dialog.isShowing()){discover.setEnabled(true);probe.setEnabled(true);status.setText(reason);}});}});
     }catch(Exception e){status.setText(AiClient.error(e));}});
-    dialog.show();dialog.getButton(-1).setEnabled(false);return dialog;
+    dialog.setOnDismissListener(v->{if(chat!=null)chat.close();});dialog.show();dialog.getButton(-1).setEnabled(false);style(c,content,theme);connectionTab.setTextColor(theme.accent);chatTab.setTextColor(theme.muted);if(dialog.getWindow()!=null){android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();background.setColor(theme.surface);background.setCornerRadius(p);dialog.getWindow().setBackgroundDrawable(background);dialog.getWindow().setLayout(Math.min(c.getResources().getDisplayMetrics().widthPixels-p,Math.round(680*c.getResources().getDisplayMetrics().density)),-2);dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);}return dialog;
   }
+  private static void style(Context c,View view,ReaderTheme theme){
+    int pad=Math.round(12*c.getResources().getDisplayMetrics().density);
+    if(view instanceof TextView){TextView t=(TextView)view;t.setTextColor(theme.ink);t.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.NORMAL));}
+    if(view instanceof EditText||view instanceof Button&&!(view instanceof RadioButton)){android.graphics.drawable.GradientDrawable box=new android.graphics.drawable.GradientDrawable();box.setColor(view instanceof Button?theme.soft:theme.surface);box.setCornerRadius(pad);box.setStroke(Math.max(1,pad/12),theme.line);view.setBackground(box);view.setPadding(pad,pad,pad,pad);view.setMinimumHeight(pad*4);if(view instanceof TextView)((TextView)view).setTextSize(14);}
+    if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)style(c,group.getChildAt(i),theme);}
+  }
+
 }

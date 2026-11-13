@@ -1,6 +1,6 @@
 # 接口、数据结构与兼容性约束
 
-增量核实：2026-11-11；基于未发布 Java/Rust、Manifest、维护 JSON、构建脚本与正式/测试 APK。这里只记录实现契约；用户选择原因见 [decisions](decisions.md)，环境与操作见 [conventions](conventions.md)。
+增量核实：2026-11-12；基于未发布 Java/Rust、Manifest、维护 JSON、构建脚本与正式/测试 APK。这里只记录实现契约；用户选择原因见 [decisions](decisions.md)，环境与操作见 [conventions](conventions.md)。
 
 ## C01 · P0 / Active · 发布身份和升级边界
 
@@ -139,9 +139,9 @@ MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsStat
 
 ## C08 · P1 / Active · 分流、分站热榜、精选与本地历史
 
-实现依据 `FeaturedNews`、`ReadingRules`、`NewsArchive` 和 MainActivity，回归入口为 `NativeEngineTest`。
+实现依据 `FeaturedNews`、`ReadingRules`、`NewsArchive` 和 MainActivity，回归入口为 `NativeEngineTest`。以下词法精选规则适用于未启用AI的基础模式；启用AI后的契约及4.0.1 InfoQ特例见C09。
 
-- 3.9.1按用户澄清逐篇分流：原新闻最新候选中的AI主题帖进AI平台动态/AI精选，非AI留新闻最新/精选；InfoQ不是整源改类。NewsEngine.isAI用标题/摘要AI-only关键词，rss-ai同口径；与isAIOrTech及V2EX/HN原规则不同。匹配有局限，不声称语义分类。
+- 3.9.1按用户澄清逐篇分流（4.0.1的InfoQ整源特例见下）：原新闻最新候选中的AI主题帖进AI平台动态/AI精选，非AI留新闻最新/精选；InfoQ不是整源改类。NewsEngine.isAI用标题/摘要AI-only关键词，rss-ai同口径；与isAIOrTech及V2EX/HN原规则不同。匹配有局限，不声称语义分类。
 - 平台动态候选含原AI专用源、V2EX最新和混合新闻源；混合源只展示AI帖子，来源选项在当前缓存有AI帖子时加入。来源/区域/搜索/未读过滤后再URL去重，不能让未选中源副本屏蔽选中源。
 - 展示分流不改source/article ID、category、URL、开关、收藏/已读及schema。已存归档按现规则重分展示，不倒填或删除；媒体AI内容不改变officialAI身份、模型检查时间或目录正文。
 - 3.9展示筛选由SourceFilters持有：新闻最新按来源区域（全部/国内/国外）与多选主题标签取交集；多标签取并集。平台动态第二级改为具体source ID多选，不再匹配文中厂商；两页区域与第二级互相独立，更换区域清空对应第二级。AI资料仍用厂商筛选，模型与产品/Harness/SDK同为AI子页，全部包含工具及模型。
@@ -157,3 +157,19 @@ MainActivity 用 `AtomicFile(getFilesDir()/native-news-v3.json)`，由 `NewsStat
 - 再取仍无该日条目显示“来源没有返回这一天”；有该日条目但不满足多来源归并则如实提示；全失败保留旧记录。接口没有任意历史分页，不编造缺日，遇到未补齐缺口停止继续向前。
 - `news-archive-v1.json` 独立 AtomicFile，schema=1，records 含 article/firstSeen 与 incomplete 标记；最多 12,000 条、16 MiB。只接受成功且非 cached 的新快照，不从旧状态或收藏倒填历史。
 - 保留策略按 max(firstSeen, fetched) 保护最近七天已存记录，超限优先淘汰更旧记录；近期记录已占满时拒收新增并标 incomplete。不能承诺满额时仍保存全部新条目，也不能把七日保留误解为安装即拥有过去七天新闻。
+
+## C09 · P0 / Active · 可选AI接口、固定模型与本机结果
+
+- 4.0已实现AiSettingsDialog→AiClient→AiVault/Coordinator/Engine。URL仅公共HTTPS、拒绝凭证/查询/私网及重定向，默认TLS验证；GLM保留/api/paas/v4路径，DeepSeek兼容/models与/chat/completions。模型列表仅候选，必须测试用户选择的模型后才能保存；4.1移除品牌候选兜底，列表失败统一手填ID测试；公开HTTPS自定义路径/端口可用，不按厂商白名单限制。绝不自动选择/替换模型，响应模型不符拒绝。
+- URL/Key/model/profile/enabled通过AndroidKeyStore AES-GCM写私有ai-settings-v1.enc，不进native-news-v3.json、源码或分享APK；结果另存ai-results-v1.json。换配置隔离汇报/译名/批次，保留带原模型标注的按日历史；配置世代及Vault revision拦截迟到回调/清除后排队写入，停用不影响基本新闻；不把密文保存称全设备攻击防护。
+- 4.1一键更新依次获取来源→当前列表外文译名→三分区汇报→两分区当天精选。全部标题分批分析；相同配置/提示/输入可复用成功批次，未命中才发送，只含本批引用ID和标题，无正文/链接/热度；批间仅合并摘要。失败保留上次成功结果及错误，401/402/403/404/429停止后续请求，不换模型。未配置/停用AI时使用旧本地规则精选；AI失败不自动退回规则精选。
+- 4.0.1精选使用本批r0等明确引用标识；模型重复引用由首个事件认领，空重复事件丢弃；不存在的引用/格式错误最多同模型重做一次，仍错保留旧结果。最终原文均由本地映射取得，允许单篇推荐。4.1默认只生成当天，前两天仅读已存精选；更早点击一次扩展三天，缓存命中不重选，缺失则复查公开列表并限目标日选择，不能取得时明确为空。
+- 外文预览翻译只在手动点击后发送该预览文字，保留原文；不自动抓更多正文，不向聊天索取用户密钥。结果为未核验AI文本，不执行HTML/指令。
+- 4.1工作时隐藏搜索框、按钮占满栏内宽度，AI阶段分别显示正在生成汇报/正在生成精选并旋转图标。获取条按完成来源数；AI条按阶段内分区及已完成批次推进（含明确标识的本地复用），发现额外合并/纠错请求时调整计划，不模拟token流或按秒假进度。阶段回调不重建内容顶栏，汇报结果/错误即时重绑对应卡片内部；主题重建后恢复运行状态，全部完成/失败后恢复搜索框与更新按钮。
+- 4.0.1 InfoQ中国配置category=ai/authority=media；全部帖子包含旧缓存进入AI平台/精选，不重写旧文章身份，也不成为官方模型证据。其他混合源保留C08逐篇规则。新增来源与新华网JSON详情见[SOURCES](../docs/android/SOURCES.md)。
+
+4.0.2补充：阶段内最多两路调用，汇报阶段全部结束后才开始精选；支持单分区重试。批次成功缓存写既有ai-results-v1.json可选字段，最多96项/384KiB/7天，按profile/URL/模型/提示版本/完整输入与输出预算匹配，清配置同步清缓存，未知引用响应不留缓存。标题不截断、失败不换模型、401等停止后续请求的规则不变；旧文件无缓存/调用统计字段按未知兼容，不显示负次数。完整预算、调用流程与官方DeepSeek参数依据由[AI_API](../docs/android/AI_API.md)维护，不能以合成测试承诺真实耗时。
+
+4.1补充：日期键/译名/清理及对话契约由[AI_API](../docs/android/AI_API.md)详细维护。所有日期按published的上海日历日，未知不使用fetched替代；日历按日多选或严格早于截止日，明确保留收藏、已读、开关和密文配置。清理同时去除快照/归档/日期精选/关联译名与派生缓存，revision阻止旧写入复活。历史按日保存、单日刷新/折叠，换profile也不冒充新模型结果；聊天仅本窗口最近12轮，不自动附新闻或持久化，会话只用已保存锁定配置。搜索输入仅触摸激活，关闭键盘/后台清焦点；中文译名可搜索，但不改Article.title/ID。
+
+4.1.1补充：日历仍标任意内容缓存，含空groups的已选日期；不等于对应板块已选。历史读取先已选，再符合条件的本地归档/快照/已选原文，最后逐日补查；无历史分页不反复抓最新冒充旧日。historyChecks与成功空精选区分、可主动刷新；旧聚合逐日补缺不覆盖已有结果。AI按日文件及原子索引提交/容量/损坏保护/明确保存状态由AI_API拥有完整契约，不能把内存可见称已落盘。

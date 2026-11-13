@@ -340,6 +340,13 @@ func parseSource(s Source, body []byte) ([]Article, error) {
 		}
 		a := Article{}
 		switch s.ID {
+		case "xinhuanet":
+			a.Title = str(m["title"])
+			a.URL = str(m["publishUrl"])
+			a.Summary = str(m["summary"])
+			if t, err := time.ParseInLocation("2006-01-02 15:04:05", str(m["publishTime"]), time.FixedZone("Asia/Shanghai", 8*3600)); err == nil {
+				a.PublishedAt = t.Format(time.RFC3339)
+			}
 		case "baidu":
 			if boolean(m["isTop"]) {
 				continue
@@ -427,6 +434,8 @@ func path(v any, keys ...string) any {
 func listFor(id string, root any) []any {
 	var v any
 	switch id {
+	case "xinhuanet":
+		v = path(root, "datasource")
 	case "baidu":
 		cards, _ := path(root, "data", "cards").([]any)
 		if len(cards) > 0 {

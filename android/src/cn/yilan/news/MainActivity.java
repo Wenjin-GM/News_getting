@@ -47,6 +47,14 @@ public final class MainActivity extends Activity {
   private final ArticleTextCache linuxFullCache=new ArticleTextCache();
   private ReaderBackdrop backdrop;
   private AiCoordinator aiService;
+  private final Map<String,LinearLayout> aiReportCards=new HashMap<>();
+  private final Map<TextView,Article> titleViews=new LinkedHashMap<>();private final List<Article> titleCandidates=new ArrayList<>();
+  private final Runnable titleRequest=()->{if(!destroyed&&aiService!=null&&!busy&&(search==null||!search.hasFocus()))aiService.ensureTitles(new ArrayList<>(titleCandidates));};
+  private boolean keyboardVisible;private Runnable afterDateFetch;
+  private final Map<Boolean,String> aiFloors=new HashMap<>();private final Set<String> collapsedAiDays=new HashSet<>();
+  private android.animation.ValueAnimator refreshSpin;private android.graphics.drawable.RotateDrawable refreshGlyph;
+  private boolean foreground=true;
+  private void aiChanged(){if(destroyed)return;updateRefreshControls();updateTitleViews();if(aiService.running)updateAiReports();else render(true);}
   private final Set<String> newsTags=new LinkedHashSet<>(),feedSources=new LinkedHashSet<>(),vendors=new LinkedHashSet<>(),collapsed=new HashSet<>(),historyAttempts=new HashSet<>();
   private final Map<String,String> historyResults=new HashMap<>();
   private String newsRegion="all",feedRegion="all",region="all",toolType="all",pendingDay="";private boolean pendingAI,userScrolling;
@@ -56,7 +64,7 @@ public final class MainActivity extends Activity {
   private final NewsArchive archive=new NewsArchive();
   private List<FeaturedNews.Event> featured=new ArrayList<>();
   private String featuredKey="",builtFeaturedKey="";
-  private boolean featuredMode=false,archiveDirty=false;
+  private boolean featuredMode=false,archiveDirty=false,archiveWritable=true;private String archiveLoadError="",archiveSaveError="";
   private final Runnable archiveSaveTask=()->saveArchive();
   private final Runnable saveTask=()->saveNow();
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
@@ -68,7 +76,7 @@ public final class MainActivity extends Activity {
   private Drawable ripple(Drawable background){return new RippleDrawable(ColorStateList.valueOf((palette.dark?0x2287d4cc:0x1816646d)),background,null);}
   private Drawable floating(boolean selected,int radius){return tab==3?shape(selected?ACCENT:palette.surface,palette.line,radius):new GlassPanelDrawable(palette,selected,dp(radius),getResources().getDisplayMetrics().density);}
   private void styleButton(Button b,boolean selected){
-    b.setSelected(selected);b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{MUTED,selected?palette.onAccent:INK}));
+    b.setSelected(selected);b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{b==refresh&&selected?palette.onAccent:MUTED,selected?palette.onAccent:INK}));
     b.setBackgroundTintList(null);b.setBackground(ripple(floating(selected,14)));
   }
   private Button button(String label,boolean selected,Runnable action){
@@ -101,23 +109,26 @@ public final class MainActivity extends Activity {
   }
   private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
   private String asset(String name)throws IOException{try(InputStream in=getAssets().open(name);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>2*1024*1024)throw new IOException("内置资料过大");out.write(b,0,n);}return out.toString("UTF-8");}}
-  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();aiService=new AiCoordinator(new AiVault(getFilesDir()),handler,disk,()->{if(destroyed)return;updateRefreshControls();if(!aiService.running)render(true);});aiService.load();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
+  @Override public void onCreate(Bundle state){super.onCreate(state);try{engine=new NewsEngine(asset("sources.json"),new LinuxDoTransport(getFilesDir().getAbsolutePath()));catalog=new JSONObject(asset("ai-catalog.json"));storage=new AtomicFile(new File(getFilesDir(),"native-news-v3.json"));for(Source s:engine.sources)sourceEnabled.put(s.id,s.defaultEnabled);load();applyTheme();archiveStorage=new AtomicFile(new File(getFilesDir(),"news-archive-v1.json"));loadArchive();aiService=new AiCoordinator(new AiVault(getFilesDir()),handler,disk,this::aiChanged);aiService.load();chrome();render(false);}catch(Exception e){TextView t=text("应用初始化失败："+NewsEngine.error(e),16,INK,false);t.setPadding(dp(24),dp(50),dp(24),0);setContentView(t);}}
   private void chrome(){
-    FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));
+    if(refreshSpin!=null)refreshSpin.cancel();
+    FrameLayout stage=new FrameLayout(ui);backdrop=new ReaderBackdrop(ui);stage.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));LinearLayout root=vertical();stage.addView(root,new FrameLayout.LayoutParams(-1,-1));root.setFocusableInTouchMode(true);
     if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});else root.setFitsSystemWindows(true);
+    if(Build.VERSION.SDK_INT<30)root.getViewTreeObserver().addOnGlobalLayoutListener(()->{android.graphics.Rect frame=new android.graphics.Rect();root.getWindowVisibleDisplayFrame(frame);boolean visible=root.getRootView().getHeight()-frame.bottom>dp(160);if(keyboardVisible&&!visible)releaseSearch();keyboardVisible=visible;});
     LinearLayout bar=new LinearLayout(ui);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(dp(20),dp(12),dp(20),dp(8));
-    search=new EditText(ui);search.setSingleLine(true);search.setHint("搜索新闻、来源");search.setContentDescription("搜索新闻、来源");search.setTextSize(15);search.setTextColor(INK);search.setHintTextColor(MUTED);search.setPadding(dp(14),0,dp(12),0);
+    search=new SearchInput(ui,this::releaseSearch);search.setFocusable(false);search.setCursorVisible(false);search.setOnTouchListener((v,event)->{if(event.getActionMasked()==MotionEvent.ACTION_DOWN){search.setFocusableInTouchMode(true);search.setFocusable(true);search.setCursorVisible(true);search.requestFocus();}return false;});search.setSingleLine(true);search.setHint("搜索新闻、来源");search.setContentDescription("搜索新闻、来源");search.setTextSize(15);search.setTextColor(INK);search.setHintTextColor(MUTED);search.setPadding(dp(14),0,dp(12),0);
     search.setBackgroundTintList(null);search.setBackground(floating(false,16));search.setCompoundDrawablesRelativeWithIntrinsicBounds(icon("search",MUTED,18),null,null,null);search.setCompoundDrawablePadding(dp(9));search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);search.setText(query);
-    search.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();return true;}return false;});
+    search.setOnEditorActionListener((v,action,event)->{if(action==android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH){((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);releaseSearch();return true;}return false;});
     LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(0,dp(48),1);sp.setMargins(0,0,dp(10),0);bar.addView(search,sp);
-    refresh=button("更新",true,()->refresh(true));refresh.setContentDescription("一键更新所有已启用来源");refresh.setCompoundDrawablesRelativeWithIntrinsicBounds(icon("refresh",palette.onAccent,17),null,null,null);refresh.setCompoundDrawablePadding(dp(5));refresh.setEnabled(!busy);bar.addView(refresh,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(bar);
+    refresh=button("更新",true,()->refresh(true));refresh.setContentDescription("一键更新所有已启用来源");refreshGlyph=new android.graphics.drawable.RotateDrawable();refreshGlyph.setDrawable(icon("refresh",palette.onAccent,17));refreshGlyph.setFromDegrees(0);refreshGlyph.setToDegrees(360);refreshGlyph.setPivotX(.5f);refreshGlyph.setPivotY(.5f);refreshGlyph.setPivotXRelative(true);refreshGlyph.setPivotYRelative(true);
+    refresh.setCompoundDrawablesRelativeWithIntrinsicBounds(refreshGlyph,null,null,null);refreshSpin=android.animation.ValueAnimator.ofInt(0,10000);refreshSpin.setDuration(900);refreshSpin.setRepeatCount(android.animation.ValueAnimator.INFINITE);refreshSpin.setInterpolator(new android.view.animation.LinearInterpolator());refreshSpin.addUpdateListener(a->refreshGlyph.setLevel((Integer)a.getAnimatedValue()));refresh.setCompoundDrawablePadding(dp(5));refresh.setEnabled(!busy);bar.addView(refresh,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(bar);
     search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString().trim();limit=30;hotLimit=10;render(false);}public void afterTextChanged(Editable e){}});
     progress=new ProgressBar(ui,null,android.R.attr.progressBarStyleHorizontal);progress.setProgressTintList(ColorStateList.valueOf(ACCENT));progress.setIndeterminateTintList(ColorStateList.valueOf(ACCENT));progress.setProgressBackgroundTintList(ColorStateList.valueOf(palette.line));progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setIndeterminate(linuxUpdating);progress.setVisibility(busy?View.VISIBLE:View.GONE);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(2)));
     scroll=new ScrollView(ui);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);
     scroll.setOnTouchListener((v,event)->{userScrolling=event.getActionMasked()==MotionEvent.ACTION_MOVE;return false;});
-    scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(userScrolling&&body!=null&&y>oldY&&y+scroll.getHeight()>=body.getHeight()-dp(24)&&(tab==0&&featuredMode||tab==1&&aiMode==AI_FEATURED)){userScrolling=false;final boolean ai=tab==1;handler.post(()->showOlder(ai));}});
+    scroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->{if(!(aiService!=null&&aiService.enabled())&&userScrolling&&body!=null&&y>oldY&&y+scroll.getHeight()>=body.getHeight()-dp(24)&&(tab==0&&featuredMode||tab==1&&aiMode==AI_FEATURED)){userScrolling=false;final boolean ai=tab==1;handler.post(()->showOlder(ai));}});
     body=vertical();body.setPadding(dp(20),dp(16),dp(20),dp(28));scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    divider(root);nav=new LinearLayout(ui);nav.setPadding(dp(12),dp(8),dp(12),dp(8));nav.setBackgroundColor(palette.surface);nav.setBaselineAligned(false);nav.setGravity(Gravity.CENTER_VERTICAL);root.addView(nav);setContentView(stage);drawNav();
+    divider(root);nav=new LinearLayout(ui);nav.setPadding(dp(12),dp(8),dp(12),dp(8));nav.setBackgroundColor(palette.surface);nav.setBaselineAligned(false);nav.setGravity(Gravity.CENTER_VERTICAL);root.addView(nav);setContentView(stage);drawNav();updateRefreshControls();
   }
   private void drawNav(){
     nav.removeAllViews();String[] labels={"新闻","AI 专栏","收藏","设置"},icons={"news","ai","bookmark","settings"};
@@ -128,9 +139,9 @@ public final class MainActivity extends Activity {
     }
   }
   private void render(boolean keepScroll){
-    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxUpdateBtn=null;body.removeAllViews();
+    if(body==null||destroyed)return;int y=keepScroll?scroll.getScrollY():0;linuxUpdateBtn=null;aiReportCards.clear();titleViews.clear();titleCandidates.clear();body.removeAllViews();
     backdrop.showPage(tab,palette);nav.setBackgroundColor(tab==3?palette.surface:palette.dark?0xeb101c2c:0xebf5f9fd);search.setBackground(floating(false,16));styleButton(refresh,true);
-    if(tab==3)settings();else if(tab==1)ai();else news();scroll.post(()->scroll.scrollTo(0,y));
+    if(tab==3)settings();else if(tab==1)ai();else news();scroll.post(()->scroll.scrollTo(0,y));if(aiService!=null)aiService.visibleTitles(titleCandidates);handler.removeCallbacks(titleRequest);handler.postDelayed(titleRequest,200);
   }
   private LinearLayout chips(LinearLayout parent){HorizontalScrollView h=new HorizontalScrollView(ui);h.setHorizontalScrollBarEnabled(false);LinearLayout row=new LinearLayout(ui);row.setPadding(0,0,dp(2),0);h.addView(row);parent.addView(h);gap(parent,14);return row;}
   private void chip(LinearLayout row,String label,boolean selected,Runnable click){
@@ -145,7 +156,7 @@ public final class MainActivity extends Activity {
   private Button sectionButton(String label,Runnable action){Button b=button(label,false,action);b.setTextColor(INK);b.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);b.setBackground(ripple(floating(false,14)));return b;}
   private void emptyState(String label){LinearLayout c=card();c.setGravity(Gravity.CENTER);c.setPadding(dp(24),dp(32),dp(24),dp(32));ImageView mark=new ImageView(ui);mark.setImageDrawable(icon(tab==2?"bookmark":"news",MUTED,28));c.addView(mark,new LinearLayout.LayoutParams(dp(28),dp(28)));gap(c,16);c.addView(text(label,14,MUTED,false));}
   private boolean match(String value){return query.isEmpty()||value.toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT));}
-  private List<Article> articles(boolean ai){List<Article> all=new ArrayList<>();if(tab==2)all.addAll(favorites);else for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(ai?ReadingRules.platformSource(catalog,s):FeaturedNews.latestSource(s))){Snapshot snap=snapshots.get(s.id);if(snap!=null)for(Article item:snap.items)if(ai?ReadingRules.platformArticle(s,item):ReadingRules.newsArticle(s,item))all.add(item);}all.sort((a,b)->{int c=Long.compare(b.published,a.published);return c!=0?c:Integer.compare(a.rank,b.rank);});Set<String> seen=new HashSet<>();List<Article> out=new ArrayList<>();for(Article a:all){if(!match(a.title+" "+a.summary+" "+a.sourceName)||unread&&read.contains(a.id))continue;Source source=engine.sourceMap.get(a.source);if(tab==0&&!SourceFilters.news(catalog,source,newsRegion,newsTags))continue;if(ai&&!SourceFilters.platform(catalog,source,feedRegion,feedSources))continue;if(!seen.add(a.url))continue;out.add(a);}return out;}
+  private List<Article> articles(boolean ai){List<Article> all=new ArrayList<>();if(tab==2)all.addAll(favorites);else for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&(ai?ReadingRules.platformSource(catalog,s):FeaturedNews.latestSource(s))){Snapshot snap=snapshots.get(s.id);if(snap!=null)for(Article item:snap.items)if(ai?ReadingRules.platformArticle(s,item):ReadingRules.newsArticle(s,item))all.add(item);}all.sort((a,b)->{int c=Long.compare(b.published,a.published);return c!=0?c:Integer.compare(a.rank,b.rank);});Set<String> seen=new HashSet<>();List<Article> out=new ArrayList<>();for(Article a:all){if(!match(searchable(a))||unread&&read.contains(a.id))continue;Source source=engine.sourceMap.get(a.source);if(tab==0&&!SourceFilters.news(catalog,source,newsRegion,newsTags))continue;if(ai&&!SourceFilters.platform(catalog,source,feedRegion,feedSources))continue;if(!seen.add(a.url))continue;out.add(a);}return out;}
   private void news(){
     if(tab!=2){
       LinearLayout modes=chips(body);chip(modes,"最新",!hotMode&&!featuredMode,()->setNewsMode(0));chip(modes,"分站热榜",hotMode,()->setNewsMode(1));chip(modes,"精选",featuredMode,()->setNewsMode(2));
@@ -175,12 +186,13 @@ public final class MainActivity extends Activity {
     limit+=30;render(true);
   }
   private void featuredNews(boolean ai){
+    storageWarnings();
     if(aiService!=null&&aiService.enabled()){aiFeatured(ai);return;}
     requestFeatured(ai);body.addView(text("本机已抓来源归并",12,INK,false));gap(body,10);
     if(archive.incomplete)body.addView(text("归档容量已满，部分新条目未保存",12,INK,false));
     if(!featuredKey.equals(builtFeaturedKey)){body.addView(text("正在归并…",12,INK,false));return;}
     String scope=ai?"ai:":"news:";List<FeaturedNews.Event> visible=new ArrayList<>();
-    for(FeaturedNews.Event e:featured){boolean matches=false,hasUnread=false;for(Article a:e.reports){matches|=match(a.title+" "+a.summary+" "+a.sourceName);hasUnread|=!read.contains(a.id);}if(matches&&(!unread||hasUnread))visible.add(e);}
+    for(FeaturedNews.Event e:featured){boolean matches=false,hasUnread=false;for(Article a:e.reports){matches|=match(searchable(a));hasUnread|=!read.contains(a.id);}if(matches&&(!unread||hasUnread))visible.add(e);}
     Map<String,List<FeaturedNews.Event>> days=FeaturedNews.days(visible,timelineFloor(ai));
     if(!days.isEmpty()&&initializedTimelines.add(scope))expandedDates.add(scope+days.keySet().iterator().next());
     String missing=missingDays.get(ai);
@@ -218,7 +230,7 @@ public final class MainActivity extends Activity {
     for(String id:NewsEngine.HOT_SOURCES){
       Source source=engine.sourceMap.get(id);if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(id))||(!ai&&!FeaturedNews.stationSource(id))||(ai&&!ReadingRules.aiBoard(id,snapshots.get(id))))continue;
       Snapshot snapshot=snapshots.get(id);List<Article> items=FeaturedNews.hotItems(id,snapshot,ai,aiURLs);
-      items.removeIf(a->!match(a.title+" "+a.summary+" "+a.sourceName)||unread&&read.contains(a.id));
+      items.removeIf(a->!match(searchable(a))||unread&&read.contains(a.id));
       if(ai&&items.isEmpty())continue;
       String boardKey=(ai?"ai:":"news:")+id;body.addView(sectionButton(source.name+" · "+items.size()+(collapsed.contains(boardKey)?" ▸":" ▾"),()->{if(!collapsed.add(boardKey))collapsed.remove(boardKey);render(true);}));gap(body,10);if(collapsed.contains(boardKey))continue;
       for(int i=0;i<Math.min(hotLimit,items.size());i++)articleCard(items.get(i));
@@ -232,9 +244,12 @@ public final class MainActivity extends Activity {
     if(list.size()>limit)body.addView(button("再看 30 条",false,()->{limit+=30;render(true);}));
   }
   private void articleCard(Article a){
-    LinearLayout c=card();TextView title=text(a.title,17,INK,true);title.setAlpha(read.contains(a.id)?0.78f:1f);
+    LinearLayout c=card();TextView title=text(listTitle(a),17,INK,true);titleViews.put(title,a);titleCandidates.add(a);title.setAlpha(read.contains(a.id)?0.78f:1f);
     title.setOnClickListener(v->open(a));c.setOnClickListener(v->open(a));c.addView(title);gap(c,5);c.addView(text(a.sourceName+" · "+publication(a),11,MUTED,false));
   }
+  private String searchable(Article a){String translated=aiService!=null&&aiService.enabled()?aiService.titles.get(a):null;return a.title+" "+a.summary+" "+a.sourceName+(translated==null?"":" "+translated);}
+  private String listTitle(Article a){if(aiService==null||!aiService.enabled()||!AiEngine.foreign(a.title))return a.title;String translated=aiService.titles.get(a);return translated!=null?translated:aiService.errors.containsKey("titles")?a.title:"正在翻译标题…";}
+  private void updateTitleViews(){for(Map.Entry<TextView,Article> entry:titleViews.entrySet())entry.getKey().setText(listTitle(entry.getValue()));}
   private boolean isFavorite(String id){for(Article a:favorites)if(a.id.equals(id))return true;return false;}
   private void open(Article a){
     read.add(a.id);while(read.size()>2000)read.remove(read.iterator().next());saveSoon();render(true);
@@ -247,7 +262,7 @@ public final class MainActivity extends Activity {
     final TextView bodyView=text(linux?"正在获取全文…":a.summary,16,INK,false);content.addView(bodyView);
     final String[] original={a.summary};final boolean[] loading={linux};
     final TextView translated=text("",15,INK,false);translated.setVisibility(View.GONE);content.addView(translated);
-    final Button translate=filterButton("翻译",()->{});translate.setVisibility(AiEngine.foreign(a.title+"\n"+a.summary)?View.VISIBLE:View.GONE);translate.setEnabled(!linux);content.addView(translate);
+    final Button translate=button("翻译",false,()->{});final boolean[] translatedMode={false};translate.setVisibility(AiEngine.foreign(a.title+"\n"+a.summary)?View.VISIBLE:View.GONE);translate.setEnabled(!linux);content.addView(translate);
     gap(content,24);divider(content);gap(content,16);LinearLayout actions=new LinearLayout(ui);
     Button star=button(isFavorite(a.id)?"已收藏":"收藏",isFavorite(a.id),()->{});
     star.setOnClickListener(v->{if(isFavorite(a.id))favorites.removeIf(x->x.id.equals(a.id));else{favorites.add(0,a);if(favorites.size()>500)favorites.remove(500);}star.setText(isFavorite(a.id)?"已收藏":"收藏");styleButton(star,isFavorite(a.id));saveSoon();drawNav();render(true);});
@@ -256,9 +271,10 @@ public final class MainActivity extends Activity {
     final AlertDialog preview=dialog().setView(reader).setPositiveButton("关闭",null).create();
     preview.show();
     translate.setOnClickListener(v->{
+      if(translatedMode[0]){translatedMode[0]=false;translated.setText("");translated.setVisibility(View.GONE);translate.setText("翻译");return;}
       if(loading[0])return;String sourceText=a.title+"\n\n"+original[0];if(!AiEngine.foreign(sourceText)){toast("当前预览并非纯外文");return;}
-      translate.setEnabled(false);translated.setVisibility(View.VISIBLE);translated.setText("正在翻译…");
-      aiService.translate(sourceText,value->{if(!destroyed&&preview.isShowing()){translated.setText("译文（AI）\n"+value);translate.setEnabled(true);}},reason->{if(!destroyed&&preview.isShowing()){translated.setText(reason);translate.setEnabled(true);}});
+      translate.setEnabled(false);translate.setText("正在翻译…");translated.setVisibility(View.VISIBLE);translated.setText("正在翻译…");
+      aiService.translate(sourceText,value->{if(!destroyed&&preview.isShowing()){translated.setText("译文（AI）\n"+value);translatedMode[0]=true;translate.setText("取消翻译");translate.setEnabled(true);}},reason->{if(!destroyed&&preview.isShowing()){translated.setText(reason);translate.setText("翻译");translate.setEnabled(true);}});
     });
     if(linux){
       final Source src=engine.sourceMap.get("linuxdo");final long topicId=topicIdFromUrl(a.url);final String fallback=a.summary;
@@ -337,7 +353,7 @@ public final class MainActivity extends Activity {
       error.setOnClickListener(v->dialog().setTitle("LINUX DO · "+names[linuxTab]).setMessage(snap.error).setPositiveButton("关闭",null).show());body.addView(error);gap(body,10);
     }
     List<Article> items=new ArrayList<>();
-    if(snap!=null)for(Article a:snap.items)if(match(a.title+" "+a.summary+" "+a.sourceName)&&(!unread||!read.contains(a.id)))items.add(a);
+    if(snap!=null)for(Article a:snap.items)if(match(searchable(a))&&(!unread||!read.contains(a.id)))items.add(a);
     showArticles(items);
   }
   private String linuxTabKey(int m){return m==1?"views":m==2?"latest":"default";}
@@ -417,10 +433,12 @@ public final class MainActivity extends Activity {
   }
   private void toolDetails(JSONObject t){LinearLayout content=vertical();content.setPadding(dp(22),dp(14),dp(22),dp(10));content.addView(text(t.optString("description"),15,INK,false));gap(content,12);content.addView(text("出品方："+providerName(t.optString("provider"))+"\n类型："+types(t.optJSONArray("kinds"))+"\n定位："+t.optString("role")+"\n许可："+t.optString("license")+"\n适用平台："+t.optJSONArray("platforms")+"\n工具资料核对于 "+catalog.optString("checkedAt"),13,MUTED,false));if(!t.optString("note").isEmpty()){gap(content,12);content.addView(text(t.optString("note"),13,ACCENT,false));}gap(content,12);JSONArray refs=t.optJSONArray("references");for(int i=0;refs!=null&&i<refs.length();i++){final String url=refs.optString(i);content.addView(button("官方依据 "+(i+1)+" ↗",false,()->external(url)));gap(content,6);}content.addView(button("前往官方产品 / 文档 ↗",true,()->external(t.optString("url"))));ScrollView s=new ScrollView(ui);s.addView(content);dialog().setTitle(t.optString("name")).setView(s).setPositiveButton("关闭",null).show();}
   private void settings(){
+    storageWarnings();
     body.addView(text("外观",16,INK,true));gap(body,10);LinearLayout appearance=card();LinearLayout options=new LinearLayout(ui);
     themeOption(options,"day","日间","sun");themeOption(options,"night","夜间","moon");appearance.addView(options);gap(appearance,12);divider(appearance);
     toggle(appearance,"大字显示",large,value->{large=value;saveSoon();render(true);});divider(appearance);toggle(appearance,"只看未读",unread,value->{unread=value;saveSoon();render(true);});
     body.addView(filterButton("AI功能 · "+(aiService!=null&&aiService.enabled()?aiService.config.model:"未启用")+" ▾",this::aiSettings));gap(body,8);
+    body.addView(sectionButton("清理缓存",this::cacheCalendar));gap(body,8);
     body.addView(filterButton("分享安装包 ↗",this::shareApk));gap(body,12);
     body.addView(text("消息来源 · "+enabledCount()+" / "+engine.sources.size()+" 已启用",16,INK,true));gap(body,10);
     LinearLayout group=card();group.setPadding(dp(10),dp(10),dp(10),dp(2));
@@ -438,32 +456,75 @@ public final class MainActivity extends Activity {
       }
     }
   }
+  private List<Article> cachedArticles(){List<Article> rows=archive.articles();for(Snapshot s:snapshots.values())rows.addAll(s.items);for(Snapshot s:linuxTabs.values())rows.addAll(s.items);if(aiService!=null)for(AiEngine.Result r:aiService.results.values())for(AiEngine.Group g:r.groups)rows.addAll(g.reports);return rows;}
+  private void cacheCalendar(){if(busy||aiService!=null&&(aiService.running||aiService.loading||aiService.saving)){toast("请等待更新完成后清理");return;}Map<String,Integer> dates=ContentDates.counts(cachedArticles());if(aiService!=null){for(String day:aiService.titles.dates())dates.putIfAbsent(day,1);for(String key:aiService.results.keySet()){String day=ContentDates.date(key);if(!day.isEmpty())dates.putIfAbsent(day,1);}}CacheCalendarDialog.show(ui,palette,dates,chosen->clearContentDates(chosen::contains),date->clearContentDates(day->day.compareTo(date)<0));}
+  private void storageWarnings(){
+    if(!archiveLoadError.isEmpty()){body.addView(text(archiveLoadError,12,palette.danger,false));body.addView(filterButton("重试读取新闻归档",()->{loadArchive();render(true);}));}
+    if(!archiveSaveError.isEmpty()){body.addView(text(archiveSaveError,12,palette.danger,false));body.addView(filterButton("重试保存新闻归档",()->{saveArchive();}));}
+    if(aiService!=null&&aiService.resultsBlocked){body.addView(text(aiService.loadError,12,palette.danger,false));body.addView(filterButton("重试读取 AI 记录",()->{if(!busy&&!aiService.running&&!aiService.loading&&!aiService.saving)aiService.load();}));}
+    if(aiService!=null&&!aiService.saveError.isEmpty()){body.addView(text(aiService.saveError,12,palette.danger,false));body.addView(filterButton("重试保存 AI 记录",()->aiService.retrySave()));}
+  }
+  private void clearContentDates(java.util.function.Predicate<String> dates){
+    if(busy||aiService!=null&&(aiService.running||aiService.loading||aiService.saving)){toast("更新进行中，暂未清理");return;}
+    if(!archiveWritable||aiService!=null&&aiService.resultsBlocked){toast("本地记录读取失败，请先重试读取；原文件受保护");return;}
+    boolean present=cachedArticles().stream().anyMatch(a->ContentDates.matches(a,dates))||aiService!=null&&(aiService.titles.dates().stream().anyMatch(dates)||aiService.results.keySet().stream().anyMatch(key->!ContentDates.date(key).isEmpty()&&dates.test(ContentDates.date(key))));if(!present){toast("所选日期没有缓存");return;}
+    archive.deleteDates(dates);ContentDates.clearSnapshots(snapshots.values(),dates);ContentDates.clearSnapshots(linuxTabs.values(),dates);linuxFullCache.clear();
+    if(aiService!=null)aiService.deleteDates(dates);archiveDirty=true;featuredKey=builtFeaturedKey="";historyAttempts.clear();historyResults.clear();saveArchive();saveNow();render(true);toast("已清理所选内容日期；收藏和个人设置保留");
+  }
   private void aiSettings(){
     if(aiService.loading||aiService.saving){toast("正在读取或保存 AI 配置，请稍候");return;}
-    AiSettingsDialog.show(ui,aiService.config,aiService.loadError,aiService.client,aiService.tests,handler,next->aiService.save(next,reason->{if(!destroyed)toast(reason.isEmpty()?(next.enabled?"已锁定模型："+next.model:"AI 已停用"):reason);}),()->{aiService.forget();toast("AI 配置已清除");});
+    AiSettingsDialog.show(ui,aiService.config,aiService.loadError,aiService.client,aiService.tests,handler,next->aiService.save(next,reason->{if(!destroyed)toast(reason.isEmpty()?(next.enabled?"已锁定模型："+next.model:"AI 已停用"):reason);}),()->{aiService.forget();toast("AI 配置已清除");},aiService,palette);
   }
+  private String aiUsage(AiEngine.Result result){return result.requests<0?"历史结果，未记录调用统计":"请求 "+result.requests+" 次 / 复用 "+result.reused+" 批";}
   private void aiReport(String scope){
-    if(aiService==null||!aiService.enabled())return;LinearLayout card=card();card.addView(text("AI 更新汇报",15,INK,true));gap(card,8);
-    AiEngine.Result result=aiService.results.get(scope);String error=aiService.errors.get(scope);
-    if(aiService.running)card.addView(text("正在按标题分批分析，完成后显示汇报…",12,MUTED,false));
-    if(error!=null)card.addView(text("本次分析失败："+error+"；下方保留上次结果。",12,palette.danger,false));
-    if(result==null)card.addView(text("一键更新后生成；只发送本轮成功快照中的标题（含沿用缓存），不受页面筛选和分页影响。",13,MUTED,false));
-    else{card.addView(text(result.text,14,INK,false));gap(card,8);card.addView(text(result.model+" · "+stamp(result.at,false)+" · "+result.count+" 条标题；不含失败来源旧数据，AI 未核实正文",12,MUTED,false));}
-    if(!aiService.running)card.addView(filterButton("重新分析本机数据",()->{aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());render(true);}));
+    if(aiService==null||!aiService.enabled())return;LinearLayout card=card();aiReportCards.put(scope,card);bindAiReport(scope,card);
   }
+  private void updateAiReports(){for(Map.Entry<String,LinearLayout> entry:aiReportCards.entrySet())bindAiReport(entry.getKey(),entry.getValue());}
+  private void bindAiReport(String scope,LinearLayout card){
+    AiEngine.Result result=aiService.results.get(scope);String error=aiService.errors.get(scope),status=aiService.statuses.get(scope);
+    String signature=(result==null?"":result.at+result.text+result.requests+":"+result.reused)+"|"+error+"|"+status+"|"+busy+"|"+aiService.running+"|"+aiService.saveError+"|"+aiService.savedState(scope);
+    if(signature.equals(card.getTag()))return;card.setTag(signature);card.removeAllViews();card.addView(text("AI 更新汇报",15,INK,true));gap(card,8);
+    if(status!=null)card.addView(text(status+"，可继续阅读上次汇报…",12,MUTED,false));
+    if(error!=null)card.addView(text((status==null?"本次分析失败：":"上次分析失败：")+error+"；下方保留上次结果。",12,palette.danger,false));
+    if(!aiService.saveError.isEmpty())card.addView(text(aiService.saveError,12,palette.danger,false));
+    if(result==null)card.addView(text("只发送成功快照中的标题（含沿用缓存），不受页面筛选和分页影响。",13,MUTED,false));
+    else{card.addView(text(result.text,14,INK,false));gap(card,8);card.addView(text(result.model+" · "+stamp(result.at,false)+" · "+result.count+" 条标题 · "+aiUsage(result)+" · "+aiService.savedState(scope)+"；AI 未核实正文",12,MUTED,false));}
+    if(!busy&&!aiService.running)card.addView(filterButton(error==null?"更新本分区":"重试本分区",()->{aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles(),scope);render(true);}));
+  }
+  private ImageButton iconAction(String name,String description,Runnable action){ImageButton b=new ImageButton(ui);b.setImageDrawable(icon(name,ACCENT,19));b.setContentDescription(description);b.setBackground(ripple(shape(Color.TRANSPARENT,0,12)));b.setPadding(dp(10),dp(10),dp(10),dp(10));b.setOnClickListener(v->action.run());return b;}
+  private String aiFloor(boolean ai){return aiFloors.getOrDefault(ai,java.time.LocalDate.parse(FeaturedNews.day(System.currentTimeMillis())).minusDays(2).toString());}
   private void aiFeatured(boolean ai){
-    String scope=ai?AiEngine.FEATURED_AI:AiEngine.FEATURED_NEWS;AiEngine.Result result=aiService.results.get(scope);
-    body.addView(text("AI 精选 · "+aiService.config.model,13,INK,true));gap(body,10);
-    if(aiService.running)body.addView(text("AI 正在选择标题，可继续阅读上次结果…",12,MUTED,false));
-    if(aiService.errors.containsKey(scope))body.addView(text("本次失败："+aiService.errors.get(scope)+"；保留上次 AI 精选。",12,palette.danger,false));
-    if(result==null){emptyState("尚无 AI 精选。请一键更新或分析本机已存标题。");if(!aiService.running)body.addView(button("分析本机标题",false,()->{aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());render(true);}));return;}
-    body.addView(text("生成于 "+stamp(result.at,false)+" · "+result.count+" 条本地标题 · 允许单篇推荐，AI 分析未核实正文",12,MUTED,false));gap(body,10);
-    List<AiEngine.Group> groups=new ArrayList<>(result.groups);groups.sort((a,b)->Long.compare(b.latest(),a.latest()));String last="";
-    for(AiEngine.Group group:groups){String day=group.latest()>0?FeaturedNews.day(group.latest()):"未提供报道日期";if(!last.equals(day)){body.addView(text(day,14,INK,true));gap(body,8);last=day;}
-      LinearLayout c=card();c.addView(text(group.title,17,INK,true));gap(c,6);c.addView(text(group.reason,13,MUTED,false));gap(c,6);c.addView(text(group.reports.size()+" 篇原始报道",12,MUTED,false));c.setOnClickListener(v->openAiGroup(group));
+    String scope=ai?AiEngine.FEATURED_AI:AiEngine.FEATURED_NEWS,today=FeaturedNews.day(System.currentTimeMillis()),floor=aiFloor(ai);
+    body.addView(text("AI 精选 · "+aiService.config.model,13,INK,true));gap(body,10);if(!aiService.loadError.isEmpty())body.addView(text(aiService.loadError,12,palette.danger,false));
+    List<String> days=new ArrayList<>();days.add(today);for(String key:aiService.results.keySet()){String day=ContentDates.date(key);if(ContentDates.scope(key).equals(scope)&&!day.isEmpty()&&day.compareTo(floor)>=0&&day.compareTo(today)<0&&!days.contains(day))days.add(day);}days.sort(Collections.reverseOrder());
+    for(java.time.LocalDate d=java.time.LocalDate.parse(today).minusDays(3);d.toString().compareTo(floor)>=0;d=d.minusDays(1))if(!days.contains(d.toString()))days.add(d.toString());days.sort(Collections.reverseOrder());
+    for(String day:days){String key=ContentDates.key(scope,day);AiEngine.Result result=aiService.daily(scope,day);boolean collapsed=collapsedAiDays.contains(key);
+      LinearLayout heading=new LinearLayout(ui);heading.setGravity(Gravity.CENTER_VERTICAL);heading.addView(text(day+(day.equals(today)?" · 今天":""),14,INK,true),new LinearLayout.LayoutParams(0,-2,1));
+      ImageButton update=iconAction("refresh","更新 "+day+" "+(ai?"AI精选":"新闻精选"),()->requestAiDates(ai,Collections.singletonList(day),true));update.setEnabled(!busy&&!aiService.running);heading.addView(update,new LinearLayout.LayoutParams(dp(40),dp(40)));
+      heading.addView(iconAction(collapsed?"chevron-down":"chevron-up",(collapsed?"展开 ":"收起 ")+day,()->{if(!collapsedAiDays.add(key))collapsedAiDays.remove(key);render(true);}),new LinearLayout.LayoutParams(dp(40),dp(40)));body.addView(heading);gap(body,8);
+      if(collapsed)continue;String error=aiService.errors.get(key);if(error!=null)body.addView(text(error+"；旧精选保留",12,palette.danger,false));if(aiService.statuses.containsKey(key))body.addView(text(aiService.statuses.get(key)+"…",12,MUTED,false));
+      if(result==null){body.addView(text(aiService.unavailable.contains(key)?"该日期暂无可获取内容；可点刷新图标重新检查":"尚无本地精选",13,MUTED,false));gap(body,10);continue;}
+      body.addView(text(result.model+" · 整理于 "+stamp(result.at,false)+" · "+result.count+" 条标题 · "+aiUsage(result)+" · "+aiService.savedState(key),11,MUTED,false));gap(body,8);
+      for(AiEngine.Group group:result.groups){LinearLayout c=card();c.addView(text(group.title,17,INK,true));gap(c,6);c.addView(text(group.reason,13,MUTED,false));gap(c,6);c.addView(text(group.reports.size()+" 篇原始报道",12,MUTED,false));c.setOnClickListener(v->openAiGroup(group));}
+      if(result.groups.isEmpty()){body.addView(text(result.text,13,MUTED,false));gap(body,10);}
     }
-    if(groups.isEmpty())body.addView(text(result.text,14,MUTED,false));
-    if(!aiService.running)body.addView(button("更早的本地 AI 精选",false,()->{if(!aiService.older(ai,engine,sourceEnabled,snapshots,archive.articles()))toast("没有更早的相关本地记录，或已达本地上限");else render(true);}));
+    body.addView(text("显示至 "+floor+"；历史仅在点击后补充",11,MUTED,false));
+    Button older=button("更早的本地 AI 精选",false,()->{List<String> olderDays=ContentDates.older(aiFloor(ai));aiFloors.put(ai,olderDays.get(2));requestAiDates(ai,olderDays,false);});older.setEnabled(!busy&&!aiService.running);body.addView(older);
+  }
+  private void requestAiDates(boolean ai,List<String> days,boolean force){
+    if(busy||aiService.running||aiService.loading||aiService.saving||!aiService.enabled()){toast("请等待当前更新完成");return;}if(aiService.resultsBlocked){toast("AI 历史读取失败，请先重试读取");return;}
+    List<Article> records=AiHistory.local(archive.articles(),snapshots,aiService.results);AiHistory.Plan plan=AiHistory.plan(ai,days,aiService.results,aiService.unavailable,records,engine,sourceEnabled,visibleAIBoards(),force);
+    Runnable fetch=()->fetchAiDates(ai,new ArrayList<>(plan.fetch),force);render(true);
+    if(!plan.local.isEmpty())aiService.selectDates(ai,plan.local,engine,sourceEnabled,snapshots,archive.articles(),false,fetch);else fetch.run();
+  }
+  private void fetchAiDates(boolean ai,List<String> days,boolean force){
+    if(destroyed||days.isEmpty()||aiService==null||!aiService.enabled()||aiService.resultsBlocked)return;
+    String day=days.remove(0),scope=ai?AiEngine.FEATURED_AI:AiEngine.FEATURED_NEWS;List<Source> sources=new ArrayList<>();
+    for(Source s:engine.sources)if(Boolean.TRUE.equals(sourceEnabled.get(s.id))&&!s.id.equals("linuxdo")&&(ai?ReadingRules.platformSource(catalog,s)||NewsEngine.HOT_SOURCES.contains(s.id):FeaturedNews.latestSource(s))&&(force||AiHistory.canRecheck(snapshots.get(s.id),day)))sources.add(s);
+    Runnable next=()->handler.post(()->fetchAiDates(ai,days,force));
+    Runnable select=()->{List<Article> records=AiHistory.local(archive.articles(),snapshots,aiService.results);if(AiEngine.featuredInput(ai,records,engine,sourceEnabled,visibleAIBoards(),day,java.time.LocalDate.parse(day).plusDays(1).toString()).isEmpty()){if(!sources.isEmpty()&&failed>0)aiService.historyFailure(scope,Collections.singletonList(day));else aiService.noContent(scope,Collections.singletonList(day));next.run();}else aiService.selectDates(ai,Collections.singletonList(day),engine,sourceEnabled,snapshots,archive.articles(),force,next);render(true);};
+    if(sources.isEmpty()){select.run();return;}
+    afterDateFetch=()->{if(failed>0&&total>0&&failed==total){aiService.historyFailure(scope,Collections.singletonList(day));render(true);next.run();}else select.run();};startRefresh(sources,true,true,"",ai);
   }
   private void openAiGroup(AiEngine.Group group){
     LinearLayout content=vertical();content.setPadding(dp(20),dp(16),dp(20),dp(16));content.addView(text(group.reason+"\n仅依据标题的AI分析，请查看原始报道。",14,MUTED,false));
@@ -495,15 +556,23 @@ public final class MainActivity extends Activity {
     startRefresh(selected,force,false,"",false);
   }
   private void syncProgress(){
-    if(progress==null)return;progress.setIndeterminate(linuxUpdating);progress.setMax(Math.max(total,1));progress.setProgress(done);progress.setVisibility(busy?View.VISIBLE:View.GONE);
+    if(progress==null)return;boolean aiRunning=aiService!=null&&aiService.running;
+    progress.setIndeterminate(linuxUpdating);progress.setMax(aiRunning?Math.max(1,aiService.stageTotal):Math.max(total,1));progress.setProgress(aiRunning?aiService.stageDone:done);progress.setVisibility(busy||aiRunning?View.VISIBLE:View.GONE);
+    progress.setContentDescription(aiRunning?aiService.stage+" · "+aiService.detail:"获取新闻 · "+done+"/"+total);
   }
   private void updateRefreshControls(){
     syncProgress();
-    if(refresh!=null)refresh.setEnabled(!busy&&(aiService==null||!aiService.running&&!aiService.saving));
-    if(linuxUpdateBtn!=null){linuxUpdateBtn.setText(linuxUpdating?"更新中…":"更新");linuxUpdateBtn.setEnabled(!busy&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));}
+    if(refresh!=null){boolean aiRunning=aiService!=null&&aiService.running,working=busy||aiRunning;
+      if(search!=null){if(working&&search.hasFocus())releaseSearch();search.setVisibility(working?View.GONE:View.VISIBLE);}
+      refresh.setEnabled(!working&&(aiService==null||!aiService.saving));refresh.setText(aiRunning?"正在"+aiService.stage:busy?"正在获取新闻":"更新");refresh.setSingleLine(true);
+      LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)refresh.getLayoutParams();lp.width=working?-1:-2;refresh.setLayoutParams(lp);
+      if(refreshSpin!=null){if(working&&foreground){if(!refreshSpin.isStarted())refreshSpin.start();}else{refreshSpin.cancel();refreshGlyph.setLevel(0);}}
+      refresh.setContentDescription(aiRunning?aiService.stage+" · "+aiService.detail:busy?"获取新闻 · "+done+"/"+total:"一键更新所有已启用来源");
+    }
+    if(linuxUpdateBtn!=null){linuxUpdateBtn.setText(linuxUpdating?"更新中…":"更新");linuxUpdateBtn.setEnabled(!busy&&(aiService==null||!aiService.running)&&Boolean.TRUE.equals(sourceEnabled.get("linuxdo")));}
   }
   private void refreshLinuxTab(){
-    if(busy||destroyed||engine==null||body==null)return;
+    if(busy||destroyed||engine==null||body==null||aiService!=null&&aiService.running)return;
     final Source source=engine.sourceMap.get("linuxdo");
     if(source==null||!Boolean.TRUE.equals(sourceEnabled.get(source.id)))return;
     final int mode=linuxTab;final String key=linuxTabKey(mode);final Snapshot old=linuxTabs.get(key);
@@ -520,33 +589,36 @@ public final class MainActivity extends Activity {
     });
   }
   private void startRefresh(List<Source> selected,boolean force,boolean recheck,String historyKey,boolean ai){
-    if(busy||destroyed)return;
-    if(selected.isEmpty()){if(!historyKey.isEmpty()){historyResults.put(historyKey,"没有已启用的相关来源");render(true);}return;}
+    if(busy||destroyed||aiService!=null&&aiService.running)return;
+    if(selected.isEmpty()){if(afterDateFetch!=null){Runnable action=afterDateFetch;afterDateFetch=null;action.run();}if(!historyKey.isEmpty()){historyResults.put(historyKey,"没有已启用的相关来源");render(true);}return;}
     busy=true;done=updated=failed=cached=0;total=selected.size();updateRefreshControls();progress.setMax(total);progress.setProgress(0);progress.setVisibility(View.VISIBLE);
     for(Source s:selected){final Snapshot old=snapshots.get(s.id);network.execute(()->{
       Snapshot value=recheck?engine.recheck(s,old):engine.fetch(s,old,force);handler.post(()->{
         if(destroyed)return;snapshots.put(s.id,value);if(!value.cached&&value.error.isEmpty()&&!"linuxdo".equals(s.id)){long before=archive.revision;archive.accept(value,engine,System.currentTimeMillis());if(archive.revision!=before){archiveDirty=true;handler.removeCallbacks(archiveSaveTask);handler.postDelayed(archiveSaveTask,500);}}done++;if(!value.error.isEmpty())failed++;else if(value.cached)cached++;else updated++;
         progress.setProgress(done);saveSoon();
-        if(done==total){busy=false;updateRefreshControls();progress.setVisibility(View.GONE);toast("更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
+        if(done==total){busy=false;updateRefreshControls();toast("更新 "+updated+" · 沿用 "+cached+" · 失败 "+failed);
           if(!historyKey.isEmpty()){String day=historyKey.substring(historyKey.indexOf(':')+1);boolean returned=false;for(Source src:selected){Snapshot snap=snapshots.get(src.id);if(snap!=null&&snap.error.isEmpty())for(Article a:snap.items)if(a.published>0&&FeaturedNews.day(a.published).equals(day))returned=true;}historyResults.put(historyKey,returned?"来源已返回该日条目，未形成该日独立精选":failed==total?"本次检查失败，旧记录已保留":"来源没有返回这一天（"+day+"）");}
-          if(!recheck&&historyKey.isEmpty()&&aiService!=null&&aiService.enabled())aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());
-          render(true);if(!pendingDay.isEmpty()){String day=pendingDay;boolean scope=pendingAI;pendingDay="";handler.post(()->requestHistory(scope,day));}}
+          if(afterDateFetch!=null){Runnable action=afterDateFetch;afterDateFetch=null;action.run();}
+          else if(!recheck&&historyKey.isEmpty()&&aiService!=null&&aiService.enabled()){render(true);aiService.run(engine,catalog,snapshots,sourceEnabled,archive.articles());}
+          else render(true);if(!pendingDay.isEmpty()){String day=pendingDay;boolean scope=pendingAI;pendingDay="";handler.post(()->requestHistory(scope,day));}}
       });
     });}
   }
   private String publication(Article a){return a.published>0?stamp(a.published,a.dateOnly):"未提供";}
-  private void loadArchive(){try{if(archiveStorage.getBaseFile().exists()&&archiveStorage.getBaseFile().length()<=NewsArchive.MAX_BYTES)archive.restore(new JSONObject(new String(archiveStorage.readFully(),StandardCharsets.UTF_8)),engine);}catch(Exception ignored){}}
+  private void loadArchive(){try{if(archiveStorage.getBaseFile().exists()||new File(archiveStorage.getBaseFile()+".bak").exists()){byte[] bytes;try(InputStream in=archiveStorage.openRead();ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(out.size()+n>NewsArchive.MAX_BYTES)throw new IOException("归档过大");out.write(buffer,0,n);}bytes=out.toByteArray();}JSONObject j=new JSONObject(new String(bytes,StandardCharsets.UTF_8));if(j.optInt("schema")!=1||j.optJSONArray("records")==null)throw new IOException("归档结构无效");archive.restoreChecked(j,engine);}archiveWritable=true;archiveLoadError="";}catch(Exception e){archiveWritable=false;archiveLoadError="新闻归档读取失败，原文件保留，已暂停覆盖保存；仍可阅读其他本地缓存。";}}
   private void saveArchive(){
-    if(!archiveDirty||archiveStorage==null||disk.isShutdown())return;
+    if(!archiveDirty||archiveStorage==null||disk.isShutdown()||!archiveWritable)return;
     try{final byte[] bytes=archive.json().toString().getBytes(StandardCharsets.UTF_8);if(bytes.length>NewsArchive.MAX_BYTES)throw new IOException("归档过大");archiveDirty=false;
-      disk.execute(()->{FileOutputStream out=null;try{out=archiveStorage.startWrite();out.write(bytes);archiveStorage.finishWrite(out);}catch(Exception e){if(out!=null)archiveStorage.failWrite(out);handler.post(()->{archiveDirty=true;if(!destroyed)toast("归档保存失败");});}});
-    }catch(Exception e){if(!destroyed)toast("归档保存失败");}
+      disk.execute(()->{FileOutputStream out=null;try{out=archiveStorage.startWrite();out.write(bytes);archiveStorage.finishWrite(out);handler.post(()->{archiveSaveError="";if(!destroyed&&!busy&&!aiService.running)render(true);});}catch(Exception e){if(out!=null)archiveStorage.failWrite(out);handler.post(()->{archiveDirty=true;archiveSaveError="新闻归档未保存，请检查剩余空间；旧文件保留。";if(!destroyed){toast(archiveSaveError);render(true);}});}});
+    }catch(Exception e){archiveSaveError="新闻归档未保存，旧文件保留。";if(!destroyed)toast(archiveSaveError);}
   }
   private String stamp(long value,boolean dateOnly){SimpleDateFormat f=new SimpleDateFormat(dateOnly?"yyyy-MM-dd":"MM-dd HH:mm",Locale.CHINA);f.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));return f.format(new Date(value));}
   private void load(){try{if(!storage.getBaseFile().exists()||storage.getBaseFile().length()>8*1024*1024)return;JSONObject j=new JSONObject(new String(storage.readFully(),StandardCharsets.UTF_8));savedState.restore(engine,j);compact=savedState.compact;large=savedState.large;unread=savedState.unread;hotMode=savedState.hotMode;}catch(Exception ignored){}}
   private void saveSoon(){handler.removeCallbacks(saveTask);handler.postDelayed(saveTask,350);}
   private void saveNow(){if(storage==null||disk.isShutdown())return;try{savedState.compact=compact;savedState.large=large;savedState.unread=unread;savedState.hotMode=hotMode;byte[] bytes=savedState.json().toString().getBytes(StandardCharsets.UTF_8);disk.execute(()->{FileOutputStream out=null;try{out=storage.startWrite();out.write(bytes);storage.finishWrite(out);}catch(Exception e){if(out!=null)storage.failWrite(out);if(!destroyed)handler.post(()->toast("缓存保存失败，请检查设备剩余空间"));}});}catch(Exception ignored){}}
-  @Override protected void onPause(){saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
-  @Override protected void onResume(){super.onResume();}
-  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();if(aiService!=null)aiService.close();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
+  private void releaseSearch(){if(search==null)return;boolean active=search.hasFocus();search.clearFocus();search.setCursorVisible(false);search.setFocusable(false);if(active){handler.removeCallbacks(titleRequest);handler.postDelayed(titleRequest,200);}if(active)((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);}
+  @Override public boolean dispatchTouchEvent(MotionEvent event){if(event.getActionMasked()==MotionEvent.ACTION_DOWN&&search!=null&&search.hasFocus()){android.graphics.Rect bounds=new android.graphics.Rect();search.getGlobalVisibleRect(bounds);if(!bounds.contains((int)event.getRawX(),(int)event.getRawY()))releaseSearch();}return super.dispatchTouchEvent(event);}
+  @Override protected void onPause(){releaseSearch();foreground=false;if(refreshSpin!=null)refreshSpin.cancel();saveNow();handler.removeCallbacks(archiveSaveTask);saveArchive();super.onPause();}
+  @Override protected void onResume(){super.onResume();foreground=true;updateRefreshControls();}
+  @Override protected void onDestroy(){destroyed=true;handler.removeCallbacks(titleRequest);if(refreshSpin!=null)refreshSpin.cancel();handler.removeCallbacks(archiveSaveTask);saveArchive();handler.removeCallbacks(saveTask);saveNow();network.shutdownNow();if(aiService!=null)aiService.close();linuxFullCache.clear();disk.shutdown();super.onDestroy();}
 }

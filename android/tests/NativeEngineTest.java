@@ -447,6 +447,11 @@ public final class NativeEngineTest {
 
   private static void repairs387(NewsEngine engine,String sourceFile)throws Exception{
     JSONObject catalog=new JSONObject(new String(Files.readAllBytes(Paths.get(sourceFile).getParent().getParent().resolve("internal/catalog/ai_catalog.json")),StandardCharsets.UTF_8));
+    List<NewsEngine.Article> cdata=NewsEngine.parse(engine.sourceMap.get("tass"),"<rss><channel><item><title>CDATA RSS headline</title><link><![CDATA[https://tass.com/world/123]]></link></item><item><title>Unsafe</title><link><![CDATA[javascript:alert(1)]]></link></item></channel></rss>",System.currentTimeMillis());
+    check(cdata.size()==1&&cdata.get(0).url.equals("https://tass.com/world/123"),"CDATA RSS links parse normally and still reject unsafe schemes");
+    String xinhua="{\"datasource\":[{\"title\":\"<a>公开新闻标题</a>\",\"publishUrl\":\"https://www.news.cn/world/20261112/sample/c.html\",\"publishTime\":\"2026-11-12 15:46:47\",\"summary\":\"公开摘要\"}]}";
+    List<NewsEngine.Article> xinhuaItems=NewsEngine.parse(engine.sourceMap.get("xinhuanet"),xinhua,java.time.Instant.parse("2026-11-12T10:00:00Z").toEpochMilli());
+    check(xinhuaItems.size()==1&&xinhuaItems.get(0).title.equals("公开新闻标题")&&xinhuaItems.get(0).published==java.time.Instant.parse("2026-11-12T07:46:47Z").toEpochMilli(),"Xinhua public list cleans titles and interprets Shanghai timestamps correctly");
     check(!engine.sourceMap.containsKey("toms-hardware"),"Removed feed cannot be fetched or offered in settings");
     Set<String> tools=ReadingRules.toolSources(catalog);
     for(NewsEngine.Source s:engine.sources){
@@ -542,8 +547,11 @@ public final class NativeEngineTest {
 
   private static void aiRouting391(NewsEngine engine,String sourceFile)throws Exception{
     JSONObject catalog=new JSONObject(new String(Files.readAllBytes(Paths.get(sourceFile).getParent().getParent().resolve("internal/catalog/ai_catalog.json")),StandardCharsets.UTF_8));
+    NewsEngine.Source whole=engine.sourceMap.get("infoq-cn");
+    NewsEngine.Article java=report(whole.id,"Java数据库架构",System.currentTimeMillis(),"infoq-whole");
+    check(ReadingRules.platformArticle(whole,java)&&!ReadingRules.newsArticle(whole,java)&&!NewsEngine.officialAI(whole),"Entire InfoQ feed routes to AI as media, including cached non-AI stories");
     long now=System.currentTimeMillis();
-    NewsEngine.Source infoq=engine.sourceMap.get("infoq-cn"),blogs=engine.sourceMap.get("cnblogs"),techcrunch=engine.sourceMap.get("techcrunch");
+    NewsEngine.Source infoq=engine.sourceMap.get("cnblogs"),blogs=engine.sourceMap.get("ithome"),techcrunch=engine.sourceMap.get("techcrunch");
     for(String title:new String[]{"AI研发平台正式发布","生成式AI推理引擎","AIGC 应用进展","LLM inference released","GPT5 推理优化","机器学习模型训练","Claude 新版本发布"})check(NewsEngine.isAI(report(infoq.id,title,now,"ai-topic")),"AI-only topic recognized: "+title);
     for(String title:new String[]{"Java Agent 字节码监控","Rust SDK 数据库开发实践","Daily mail delivery service","Airbnb 旅游商业分析"})check(!NewsEngine.isAI(report(infoq.id,title,now,"plain-topic")),"General technology/text is not automatically AI: "+title);
     String mediaFeed="<rss><channel><item><title>AI图像模型发布</title><link>https://www.ithome.com/ai391.htm</link></item><item><title>Java数据库架构实践</title><link>https://www.ithome.com/java391.htm</link></item></channel></rss>";

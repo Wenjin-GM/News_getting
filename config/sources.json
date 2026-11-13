@@ -659,18 +659,18 @@
     "category": "news",
     "color": "#b03a2e",
     "custom": false,
-    "description": "官方 RSS · 时政综合",
+    "description": "官方栏目公开 JSON · 国际要闻；替换停更的旧 RSS",
     "enabled": true,
     "endpoints": [
-      "https://www.xinhuanet.com/politics/news_politics.xml"
+      "https://www.news.cn/world/ds_8d5294ed513c4779af6242a3623aa27b.json"
     ],
     "experimental": false,
-    "home": "https://www.xinhuanet.com",
+    "home": "https://www.news.cn",
     "icon": "新",
     "id": "xinhuanet",
     "interval": 600,
-    "kind": "rss",
-    "name": "新华网"
+    "kind": "json",
+    "name": "新华网 · 国际"
   },
   {
     "category": "community",
@@ -690,10 +690,10 @@
     "name": "少数派"
   },
   {
-    "category": "tech",
+    "category": "ai",
     "color": "#16a085",
     "custom": false,
-    "description": "官方 RSS · 技术架构与实践",
+    "description": "官方 RSS · 技术架构与 AI 实践（整源归入 AI 专栏）",
     "enabled": true,
     "endpoints": [
       "https://www.infoq.cn/feed"
@@ -704,7 +704,8 @@
     "id": "infoq-cn",
     "interval": 900,
     "kind": "rss",
-    "name": "InfoQ 中国"
+    "name": "InfoQ 中国",
+    "authority": "media"
   },
   {
     "category": "tech",
@@ -1148,5 +1149,107 @@
     "interval": 900,
     "kind": "rss",
     "name": "HackerNoon"
+  },
+  {
+    "category": "news",
+    "color": "#343434",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+    ],
+    "experimental": false,
+    "home": "https://www.nytimes.com",
+    "icon": "NY",
+    "id": "nytimes",
+    "interval": 600,
+    "kind": "rss",
+    "name": "纽约时报"
+  },
+  {
+    "category": "news",
+    "color": "#286297",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://feeds.content.dowjones.io/public/rss/RSSWorldNews"
+    ],
+    "experimental": false,
+    "home": "https://www.wsj.com",
+    "icon": "WSJ",
+    "id": "wsj",
+    "interval": 600,
+    "kind": "rss",
+    "name": "华尔街日报 · 国际"
+  },
+  {
+    "category": "news",
+    "color": "#343434",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://feeds.washingtonpost.com/rss/world"
+    ],
+    "experimental": false,
+    "home": "https://www.washingtonpost.com",
+    "icon": "WP",
+    "id": "washingtonpost",
+    "interval": 600,
+    "kind": "rss",
+    "name": "华盛顿邮报 · 国际"
+  },
+  {
+    "category": "news",
+    "color": "#21518b",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://www.theguardian.com/world/rss"
+    ],
+    "experimental": false,
+    "home": "https://www.theguardian.com",
+    "icon": "G",
+    "id": "guardian",
+    "interval": 600,
+    "kind": "rss",
+    "name": "卫报 · 国际"
+  },
+  {
+    "category": "finance",
+    "color": "#b47954",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://www.ft.com/rss/home/international"
+    ],
+    "experimental": false,
+    "home": "https://www.ft.com",
+    "icon": "FT",
+    "id": "ft",
+    "interval": 600,
+    "kind": "rss",
+    "name": "金融时报"
+  },
+  {
+    "category": "news",
+    "color": "#286297",
+    "custom": false,
+    "description": "官方公开 RSS · 仅标题、链接及公开摘要；原文可能需要订阅",
+    "enabled": true,
+    "endpoints": [
+      "https://tass.com/rss/v2.xml"
+    ],
+    "experimental": false,
+    "home": "https://tass.com",
+    "icon": "T",
+    "id": "tass",
+    "interval": 600,
+    "kind": "rss",
+    "name": "塔斯社"
   }
 ]

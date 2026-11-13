@@ -1,6 +1,6 @@
 # 架构与模块关系
 
-增量核实：2026-11-11；依据3.9界面整理源码、JVM与隔离模拟器回归。共享来源已改为同一JSON嵌入，避免两端手工清单漂移。验收与断点见[HANDOFF](../HANDOFF.md)，审查修复经验由F29维护。本文件拥有架构职责，字段/决策分别见contracts/decisions。
+增量核实：2026-11-13；依据现行原生源码与独立验证。共享来源已改为同一JSON嵌入，避免两端手工清单漂移。验收与断点见[HANDOFF](../HANDOFF.md)，审查修复经验由pitfalls维护。本文件拥有架构职责，字段/决策分别见contracts/decisions。
 
 ## P1 / Active · 两个独立产品
 
@@ -18,7 +18,7 @@ AI 目录内置资料 ────────────────→ MainAc
 desktop/ → Go 采集 / SQLite / 本地 HTTP API → 内嵌网页
 ```
 
-Android 没有本地服务、WebView、模型调用或云聚合 API。开发机的 Python/JDK/SDK/Go/Node 不属于手机运行依赖。
+Android 没有本地服务或WebView；4.0新增可选的用户自备API模型调用，基础新闻不依赖它。开发机的 Python/JDK/SDK/Go/Node 不属于手机运行依赖。
 
 ## P1 / Active · Android 模块地图
 
@@ -30,6 +30,15 @@ Android 没有本地服务、WebView、模型调用或云聚合 API。开发机�
 | [dns.rs](../android/native/linuxdo/src/dns.rs) | ECH 三级获取：公共 DoH failover → 第三方 JSON DoH 兜底 → 缓存；A/HTTPS 完整性校验、有限并发与阶段诊断 |
 | [fallback.rs](../android/native/linuxdo/src/fallback.rs) | 原第三方JSON DoH的有界HTTPS传输、同域重定向/记录校验；不承载新闻正文 |
 | [cache.rs](../android/native/linuxdo/src/cache.rs) | linuxdo/v2ex按固定文件名隔离缓存，保留原linuxdo旧文件；有界读写、原子替换、最长7天，成功响应后更新，命中不续期 |
+| [AiClient.java](../android/src/cn/yilan/news/AiClient.java)、[AiSettingsDialog.java](../android/src/cn/yilan/news/AiSettingsDialog.java) | HTTPS兼容接口、测试/用户选择并锁定模型、原生配置弹窗 |
+| [AiEngine.java](../android/src/cn/yilan/news/AiEngine.java)、[AiCoordinator.java](../android/src/cn/yilan/news/AiCoordinator.java) | 标题分批汇报/精选、手动翻译、阶段调度（阶段串行/内部最多两路）及进度、配置世代隔离 |
+| [AiBatchCache.java](../android/src/cn/yilan/news/AiBatchCache.java) | 有界成功批次缓存，避免相同标题/模型/提示重复调用；保存于既有AI结果文件 |
+| [AiTitles.java](../android/src/cn/yilan/news/AiTitles.java) | 独立显示译名与有界私有缓存，原文/ID不变，逐批补译 |
+| [AiHistory.java](../android/src/cn/yilan/news/AiHistory.java) | 本地归档/快照/精选原文合并，分日复用/选择/补取计划，非分页边界及幂等补迁移 |
+| [AiResultStore.java](../android/src/cn/yilan/news/AiResultStore.java) | 不可变按日文件及原子索引提交，旧格式兼容、容量/损坏保护，文件操作由AiVault注入 |
+| [ContentDates.java](../android/src/cn/yilan/news/ContentDates.java)、[CacheCalendarDialog.java](../android/src/cn/yilan/news/CacheCalendarDialog.java) | 上海内容日期、三日窗口、快照清理及原生日历确认 |
+| [AiChatPanel.java](../android/src/cn/yilan/news/AiChatPanel.java)、[SearchInput.java](../android/src/cn/yilan/news/SearchInput.java) | 锁定配置的临时原生聊天、键盘关闭搜索焦点处理 |
+| [AiVault.java](../android/src/cn/yilan/news/AiVault.java) | AndroidKeyStore AES-GCM配置及独立结果缓存，不扩展新闻状态文件 |
 | [NewsState.java](../android/src/cn/yilan/news/NewsState.java) | 不依赖 UI 的旧状态恢复、默认设置与序列化 |
 | [NewsArchive.java](../android/src/cn/yilan/news/NewsArchive.java) | 容量受限的本机历史归档，与状态文件分开 |
 | [ArticleTextCache.java](../android/src/cn/yilan/news/ArticleTextCache.java) | 全文进程内有界同步LRU，限制条数及字符总量，不写个人状态 |

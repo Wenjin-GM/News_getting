@@ -9,7 +9,7 @@ public final class SourceFilters {
   public static final String[] TAGS={"all","general","digital","development","science","business","culture"};
   public static final String[] TAG_NAMES={"全部标签","综合资讯","数码科技","开发与开源","科学研究","财经商业","社区文化"};
   private static Set<String> ids(String value){return new HashSet<>(Arrays.asList(value.split(" ")));}
-  private static final Set<String> GLOBAL=ids("v2ex v2ex-latest hackernews france24 the-verge techcrunch ars-technica wired 9to5google android-authority techmeme mit-tech-review lobsters slashdot nature science-mag phys-org npr cnet stackoverflow-blog github-blog new-scientist science-daily hacker-noon");
+  private static final Set<String> GLOBAL=ids("nytimes wsj washingtonpost guardian ft tass v2ex v2ex-latest hackernews france24 the-verge techcrunch ars-technica wired 9to5google android-authority techmeme mit-tech-review lobsters slashdot nature science-mag phys-org npr cnet stackoverflow-blog github-blog new-scientist science-daily hacker-noon");
   private static final Set<String> CHINA=ids("chinanews chinanews-world ithome ifanr thepaper wallstreetcn baidu toutiao douyin bilibili bilibili-video weibo zhihu tieba linuxdo ai-media-ithome ai-media-ifanr ai-aihot xinhuanet sspai infoq-cn cnblogs tmtpost qbitai gcores ruanyifeng");
   private static final Set<String> SCIENCE=ids("nature science-mag phys-org new-scientist science-daily mit-tech-review");
   private static final Set<String> DEVELOPMENT=ids("infoq-cn cnblogs ruanyifeng lobsters slashdot stackoverflow-blog github-blog hacker-noon");

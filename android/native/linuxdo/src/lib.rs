@@ -128,8 +128,9 @@ async fn fetch_inner(host: &str, path: &str, cache_dir: Option<&str>, mode: DnsM
                 response.from_cache = resolved.from_cache;
                 return Ok(response);
             }
-            Ok(Err(error)) if error.is::<AccessVerification>() =>
-                return Err(error.context(format!("DNS 已解析（{}）", resolved.resolver))),
+            // AccessVerification also falls through to the next resolved edge IP:
+            // distinct Cloudflare edges can apply different bot scores. The last
+            // error (including its "DNS 已解析" context) is returned if all fail.
             Ok(Err(error)) => last = error,
             Err(_) => last = anyhow!("站点连接超时"),
         }
@@ -195,6 +196,11 @@ async fn send(host: &str, ip: Ipv4Addr, ech_bytes: &[u8], path: &str) -> Result<
     Ok(Fetched { body, content_type, dns_source: String::new(), from_cache: false, status })
 }
 
+// Chrome 130 low-entropy client hints. The version must match the User-Agent
+// below: a UA claiming Chrome 130 without sec-ch-ua is itself an automation
+// signal Cloudflare uses for bot scoring.
+const SEC_CH_UA: &str = r#""Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99""#;
+
 fn feed_request(host: &str, path: &str) -> Result<hyper::Request<Empty<Bytes>>> {
     // HTTP/2 requires the TLS origin in :scheme/:authority. With a path-only
     // URI, h2 defaults :scheme to http even though the socket uses TLS.
@@ -207,16 +213,37 @@ fn feed_request(host: &str, path: &str) -> Result<hyper::Request<Empty<Bytes>>> 
             _ => None,
         }
     } else { None };
+    let is_linuxdo = host == HOST_LINUXDO;
     let mut builder = hyper::Request::builder().uri(format!("https://{host}{path}")).header("Host", host)
-        .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36")
+        .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.107 Mobile Safari/537.36")
         .header("Accept", if list_page.is_some() { "application/json" } else { "application/json,application/rss+xml,application/xml;q=0.9,*/*;q=0.8" })
-        .header("Accept-Language", "zh-CN,zh;q=0.9")
-        .header("Accept-Encoding", "identity");
+        .header("Accept-Language", "zh-CN,zh;q=0.9");
+    if is_linuxdo {
+        // Chrome 130 Android client hints, matching the declared UA version.
+        builder = builder
+            .header("Sec-Ch-Ua", SEC_CH_UA)
+            .header("Sec-Ch-Ua-Mobile", "?1")
+            .header("Sec-Ch-Ua-Platform", "\"Android\"");
+    }
     if let Some(page) = list_page {
         // Anonymous Discourse list request; no credentials or challenge handling.
         builder = builder.header("Referer", page)
             .header("X-Requested-With", "XMLHttpRequest");
+        if is_linuxdo {
+            // Same-origin XHR fetch metadata a real Chrome sends after the page.
+            builder = builder
+                .header("Sec-Fetch-Site", "same-origin")
+                .header("Sec-Fetch-Mode", "cors")
+                .header("Sec-Fetch-Dest", "empty");
+        }
+    } else if is_linuxdo {
+        // The RSS feed is opened as a top-level feed/document navigation.
+        builder = builder
+            .header("Sec-Fetch-Site", "none")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Dest", "document");
     }
+    builder = builder.header("Accept-Encoding", "identity");
     Ok(builder.body(Empty::<Bytes>::new())?)
 }
 
@@ -369,6 +396,30 @@ mod tests {
         let topic = feed_request(HOST_LINUXDO,"/t/2910500.json").unwrap();
         assert_eq!(topic.headers()["Referer"],"https://linux.do/t/2910500");
         assert_eq!(topic.headers()["X-Requested-With"],"XMLHttpRequest");
+    }
+    #[test]
+    fn linuxdo_carries_chrome_client_hints_and_fetch_metadata() {
+        // RSS feed: top-level navigation metadata plus client hints.
+        let rss = feed_request(HOST_LINUXDO, "/latest.rss").unwrap();
+        assert_eq!(rss.headers()["Sec-Ch-Ua"], SEC_CH_UA);
+        assert_eq!(rss.headers()["Sec-Ch-Ua-Mobile"], "?1");
+        assert_eq!(rss.headers()["Sec-Ch-Ua-Platform"], "\"Android\"");
+        assert_eq!(rss.headers()["Sec-Fetch-Site"], "none");
+        assert_eq!(rss.headers()["Sec-Fetch-Mode"], "navigate");
+        assert_eq!(rss.headers()["Sec-Fetch-Dest"], "document");
+        // JSON list/topic: same-origin XHR fetch metadata.
+        for path in ["/top.json?period=quarterly", "/latest.json?per_page=50", "/t/2910500.json"] {
+            let xhr = feed_request(HOST_LINUXDO, path).unwrap();
+            assert_eq!(xhr.headers()["Sec-Fetch-Site"], "same-origin");
+            assert_eq!(xhr.headers()["Sec-Fetch-Mode"], "cors");
+            assert_eq!(xhr.headers()["Sec-Fetch-Dest"], "empty");
+        }
+        // V2EX keeps its original headers; no linux.do-specific client hints.
+        for path in ["/api/topics/hot.json", "/index.xml"] {
+            let v2ex = feed_request(HOST_V2EX, path).unwrap();
+            assert!(!v2ex.headers().contains_key("Sec-Ch-Ua"));
+            assert!(!v2ex.headers().contains_key("Sec-Fetch-Site"));
+        }
     }
     #[test]
     fn reject_arbitrary_endpoints() {

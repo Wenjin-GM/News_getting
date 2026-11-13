@@ -8,15 +8,17 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--ui', action='store_true', help='Build isolated native UI regression instrumentation')
 parser.add_argument('--ai', action='store_true', help='Build isolated AI configuration and workflow instrumentation')
+parser.add_argument('--reader', action='store_true', help='Build reader date/cache/translation/chat regression')
+parser.add_argument('--history', action='store_true', help='Build persistent history upgrade and failure regression')
 options = parser.parse_args()
-runner = 'AiSmoke' if options.ai else 'UiSmoke' if options.ui else 'DeviceSmoke'
+runner = 'HistorySmoke' if options.history else 'ReaderFeatureSmoke' if options.reader else 'AiSmoke' if options.ai else 'UiSmoke' if options.ui else 'DeviceSmoke'
 
 root = pathlib.Path(__file__).resolve().parents[2]
 tools = root / '.cache/android'
 jdk = next((tools / 'jdk').glob('*/bin'))
 sdk = tools / 'build-tools/android-16'
 platform = tools / 'platform/android-36/android.jar'
-work = root / ('.cache/android-ai-smoke' if options.ai else '.cache/android-ui-smoke' if options.ui else '.cache/android-smoke')
+work = root / ('.cache/android-history-smoke' if options.history else '.cache/android-reader-smoke' if options.reader else '.cache/android-ai-smoke' if options.ai else '.cache/android-ui-smoke' if options.ui else '.cache/android-smoke')
 for folder in (work, work / 'classes', work / 'dex'):
     folder.mkdir(parents=True, exist_ok=True)
 manifest = work / 'AndroidManifest.xml'

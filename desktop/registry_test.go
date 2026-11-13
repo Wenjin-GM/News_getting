@@ -52,4 +52,8 @@ func TestSharedDefaultsAndNewParser(t *testing.T) {
 	if err != nil || len(items) != 1 || items[0].Heat != "12345" || items[0].URL != "https://www.douyin.com/search/AI%20agents" {
 		t.Fatalf("shared source must have a usable desktop adapter: %+v %v", items, err)
 	}
+	items, err = parseSource(app.states["xinhuanet"].Source, []byte(`{"datasource":[{"title":"<a>公开新闻</a>","publishUrl":"https://www.news.cn/world/sample/c.html","publishTime":"2026-11-12 15:46:47"}]}`))
+	if err != nil || len(items) != 1 || items[0].Title != "公开新闻" || items[0].PublishedAt != "2026-11-12T15:46:47+08:00" {
+		t.Fatalf("Xinhua list must preserve real Shanghai timestamps: %+v %v", items, err)
+	}
 }

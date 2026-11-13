@@ -1,6 +1,6 @@
 # 开发规范、环境与操作约定
 
-增量核实：2026-11-11，依据当前脚本/目录与实际工具准备；验收结果由 HANDOFF 维护。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
+增量核实：2026-11-12，依据当前脚本/目录与实际工具准备；验收结果由 HANDOFF 维护。硬规则由 [AGENTS](../AGENTS.md) 持有，技术契约见 [contracts](contracts.md)。记忆管理方法唯一依据根 [MEMORY_PROTOCOL](../MEMORY_PROTOCOL.md)，本文件不另设维护协议。
 
 ## P2 / Active · 日常协作与开发环境
 
@@ -122,3 +122,11 @@ git diff --check
 检查器只读文档、维护 JSON、正式 APK/元数据与 Manifest，不下载、不启动应用、不读私钥/个人库。专题少，HANDOFF 直接索引五份文件，无需 INDEX。记录新知识前按根协议判断价值，无新增知识无需改专题；不要新建日期流水总结或另立维护协议。
 
 当前检查器假设开发 Manifest 与正式版本一致，分离开发后会报错；具体条件及处理边界见 pitfalls F16。报告原始结果，不能称全部通过，也不为了记忆检查重建或替换正式包。
+
+## P2 / Active · 可选AI的隔离验证
+
+`python scripts/android/test.py`现运行NativeEngineTest与AiEngineTest；`build-smoke.py --ai`产生独立AiSmoke测试包，不能夹入产品APK。模型请求使用注入的合成Transport及虚假测试凭据，不需要真Key/付费调用；这不等于GLM/DeepSeek线上授权推理已通过。AiSmoke还覆盖精选阻塞时汇报已可见、两路并发与阶段屏障、缓存零新调用、单分区重试及图标动画推进/结束停止；覆盖设置测试/选择/保存、Keystore密文、五分区/重复引用、阶段顶栏与结束恢复、失败/重启保留、手动翻译与清除的过期写入。
+
+4.1新增`python scripts/android/build-smoke.py --reader`，产物`.cache/android-reader-smoke/yilan-smoke.apk`、runner ReaderFeatureSmoke，合成接口验证日期/翻译/焦点/日历/聊天。UI截图与错误仅放.local/reports；隔离日期夹具，实际跨后台检查需确认返回同一Activity；无真实Key/付费API，不把通用协议支持称全厂商实测。
+
+4.1.1新增HistoryStorageTest（纳入test.py）及`build-smoke.py --history`/HistorySmoke。后者可先在旧APK以mode=seed保存旧格式，再覆盖升级以mode=verify验证真实Android AtomicFile及Keystore。容量故障后恢复用于读重试的索引，必须取最后一次成功提交的版本；不能用已被正常GC的更早索引指向的文件当恢复夹具。模拟器启动前创建ANDROID_EMULATOR_HOME等工作空间目录，避免缺目录锁文件错误刷屏；失败日志只保留必要首尾证据。

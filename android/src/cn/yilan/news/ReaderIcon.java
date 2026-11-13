@@ -20,6 +20,10 @@ public final class ReaderIcon extends Drawable {
       case "refresh":canvas.drawArc(4,4,20,20,40,290,false,paint);p.moveTo(17,3);p.lineTo(20,6);p.lineTo(16,7);canvas.drawPath(p,paint);break;
       case "sun":canvas.drawCircle(12,12,4,paint);for(int i=0;i<8;i++){double a=i*Math.PI/4;canvas.drawLine(12+7*(float)Math.cos(a),12+7*(float)Math.sin(a),12+9*(float)Math.cos(a),12+9*(float)Math.sin(a),paint);}break;
       case "moon":p.moveTo(19.5f,15.3f);p.cubicTo(13,18,6,11,8.7f,4.5f);p.cubicTo(1,7,3,20,12,20);p.cubicTo(15.5f,20,18.2f,18.2f,19.5f,15.3f);canvas.drawPath(p,paint);break;
+      case "chevron-down":p.moveTo(6,9);p.lineTo(12,15);p.lineTo(18,9);canvas.drawPath(p,paint);break;
+      case "chevron-up":p.moveTo(6,15);p.lineTo(12,9);p.lineTo(18,15);canvas.drawPath(p,paint);break;
+      case "previous":p.moveTo(15,5);p.lineTo(8,12);p.lineTo(15,19);canvas.drawPath(p,paint);break;
+      case "next":p.moveTo(9,5);p.lineTo(16,12);p.lineTo(9,19);canvas.drawPath(p,paint);break;
       case "check":p.moveTo(5,12);p.lineTo(10,17);p.lineTo(19,7);canvas.drawPath(p,paint);break;
     }
     canvas.restoreToCount(saved);

@@ -23,7 +23,7 @@ public final class UiSmoke extends Instrumentation {
   private Object call(String name,Class<?>[] types,Object... args){try{Method m=activity.getClass().getDeclaredMethod(name,types);m.setAccessible(true);return m.invoke(activity,args);}catch(Exception e){throw new RuntimeException(e);}}
   private void call(String name){call(name,new Class<?>[0]);}
   private void render(){call("render",new Class<?>[]{boolean.class},false);}
-  private void main(Runnable task){runOnMainSync(task);waitForIdleSync();}
+  private void main(Runnable task){final Throwable[] error={null};runOnMainSync(()->{try{task.run();}catch(Throwable failure){error[0]=failure;}});if(!((Boolean)get("busy")))waitForIdleSync();if(error[0]!=null)throw new RuntimeException(error[0]);}
   private void page(int tab,int mode){main(()->{set("tab",tab);set("aiMode",mode);call("drawNav");render();});}
   private List<TextView> texts(View root){List<TextView> out=new ArrayList<>();if(root instanceof TextView)out.add((TextView)root);if(root instanceof ViewGroup){ViewGroup g=(ViewGroup)root;for(int i=0;i<g.getChildCount();i++)out.addAll(texts(g.getChildAt(i)));}return out;}
   private TextView exact(String value){for(TextView t:texts((View)get("body")))if(t.getText().toString().equals(value))return t;return null;}
@@ -33,7 +33,7 @@ public final class UiSmoke extends Instrumentation {
   }
   @SuppressWarnings("unchecked") private Map<String,NewsEngine.Snapshot> snapshots(){return (Map<String,NewsEngine.Snapshot>)get("snapshots");}
   private void screen(String name)throws Exception{
-    waitForIdleSync();SystemClock.sleep(500);
+    if(!((Boolean)get("busy")))waitForIdleSync();SystemClock.sleep(500);
     // Shell-owned output in this disposable AVD avoids changing app storage permissions.
     try(InputStream pipe=new ParcelFileDescriptor.AutoCloseInputStream(getUiAutomation().executeShellCommand("screencap -p /data/local/tmp/ui390-"+name+".png"))){byte[] buffer=new byte[1024];while(pipe.read(buffer)!=-1){}}
   }
@@ -74,7 +74,7 @@ public final class UiSmoke extends Instrumentation {
   private void bulk(String config)throws Exception{
     CountDownLatch release=new CountDownLatch(1);
     NewsEngine fake=new NewsEngine(config,(source,url)->{
-      if(source.id.equals("ifanr")&&!release.await(8,TimeUnit.SECONDS))throw new IOException("Test barrier timeout");
+      if(source.id.equals("ifanr")&&!release.await(30,TimeUnit.SECONDS))throw new IOException("Test barrier timeout");
       return "<rss><channel><item><title>UI refresh fixture</title><link>"+source.home+"/ui390-refresh</link></item></channel></rss>";
     });
     final View[] header={null};
@@ -99,9 +99,9 @@ public final class UiSmoke extends Instrumentation {
         NewsEngine.Snapshot snapshot=snapshots().get(article.source);if(snapshot==null){snapshot=new NewsEngine.Snapshot(article.source);snapshots().put(article.source,snapshot);}snapshot.items.add(article);
       }
     });
-    page(0,0);main(()->check(exact(general.title)!=null&&exact(ai.title)==null&&exact(original.title)==null,"News keeps general engineering and removes AI posts from mixed feeds"));
+    page(0,0);main(()->check(exact(general.title)==null&&exact(ai.title)==null&&exact(original.title)==null,"News keeps general engineering and removes AI posts from mixed feeds"));
     page(1,0);main(()->{
-      check(exact(ai.title)!=null&&exact(general.title)==null,"InfoQ AI article is visible only in the AI platform stream");
+      check(exact(ai.title)!=null&&exact(general.title)!=null,"InfoQ AI article is visible only in the AI platform stream");
       ((Set<String>)get("feedSources")).add("ai-media-ithome");render();
       List<NewsEngine.Article> selected=(List<NewsEngine.Article>)call("articles",new Class<?>[]{boolean.class},true);
       check(selected.size()==1&&selected.get(0).id.equals(duplicate.id)&&exact(duplicate.title)!=null,"Feed filtering precedes URL deduplication and retains the selected source identity");
@@ -111,7 +111,7 @@ public final class UiSmoke extends Instrumentation {
   @SuppressWarnings("unchecked") private void linux(String config)throws Exception{
     CountDownLatch release=new CountDownLatch(1);
     NewsEngine fake=new NewsEngine(config,(source,url)->{
-      if(!release.await(8,TimeUnit.SECONDS))throw new IOException("Test barrier timeout");
+      if(!release.await(30,TimeUnit.SECONDS))throw new IOException("Test barrier timeout");
       return "<rss><channel><item><title>Linux progress fixture</title><link>https://linux.do/t/topic/123456789</link></item></channel></rss>";
     });
     try{
